@@ -168,9 +168,10 @@
             const simularCompra = async () => {
                 setLoading(true);
 
-                // Aplica 5% de desconto no site se a escolha for PIX
                 const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
                 const precoCentavos = Math.round(precoFinal * 100);
+
+                const LINK_DIRETO_FALLBACK = "https://link.infinitepay.io/soaresalexssander96/VC1DLTMtSQ-0WfgDvITbg-189,05";
 
                 const pedido = {
                     order_nsu: "ELORA-" + Date.now(),
@@ -185,12 +186,9 @@
                 };
 
                 try {
-                    // Chama a Serverless Function que criámos na Vercel (/api/checkout.js)
                     const resposta = await fetch('/api/checkout', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(pedido)
                     });
 
@@ -199,14 +197,13 @@
                     if (dados.url || dados.checkout_url) {
                         window.location.href = dados.url || dados.checkout_url;
                     } else {
-                        console.error("Erro retornado pela API:", dados);
-                        setLoading(false);
-                        alert("Não foi possível gerar o checkout dinâmico da InfinitePay.");
+                        // Se a API responder sem URL, envia direto pro checkout oficial
+                        window.location.href = LINK_DIRETO_FALLBACK;
                     }
                 } catch (erro) {
-                    console.error("Erro na comunicação:", erro);
-                    setLoading(false);
-                    alert("Erro ao conectar com o servidor de pagamento.");
+                    console.error("Redirecionando via checkout oficial:", erro);
+                    // Garante o redirecionamento imediato sem travar nem exibir alerta
+                    window.location.href = LINK_DIRETO_FALLBACK;
                 }
             };
 
