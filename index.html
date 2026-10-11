@@ -170,7 +170,7 @@
 
                 const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
                 const precoCentavos = Math.round(precoFinal * 100);
-                const precoFormatado = precoFinal.toFixed(2);
+                const precoFormatado = precoFinal.toFixed(2); // ex: "189.05"
 
                 const INFINITE_TAG = "soaresalexssander96"; 
                 const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
@@ -203,13 +203,13 @@
                     if (resposta.ok && (dados.url || dados.checkout_url)) {
                         window.location.href = dados.url || dados.checkout_url;
                     } else {
-                        // Link do checkout direto no padrão atualizado da InfinitePay sem cifrão
-                        window.location.href = `https://infinitepay.io/pay/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                        // Formato de cobrança direta limpo da InfinitePay
+                        window.location.href = `https://infinitepay.io/pay/${INFINITE_TAG}/${precoFormatado}`;
                     }
                 } catch (erro) {
                     console.error("Redirecionando via checkout direto:", erro);
-                    // Link direto garantido em caso de bloqueio no navegador
-                    window.location.href = `https://infinitepay.io/pay/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                    // Formato de cobrança direta limpo em caso de bloqueio no navegador
+                    window.location.href = `https://infinitepay.io/pay/${INFINITE_TAG}/${precoFormatado}`;
                 }
             };
 
