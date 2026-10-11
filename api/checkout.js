@@ -11,59 +11,57 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  const { items, order_nsu } = req.body || {};
+  const { items, order_nsu, payment_method } = req.body || {};
 
   const CHAVE_API = process.env.INFINITE_API_KEY || "inchk_RQB5Xy3KHSPBtnlsF-1gorL-P9pGQMNwb8lnMksP9tU"; 
   const INFINITE_TAG = "soaresalexssander96";
 
+  // Calcula o valor total em centavos exigido pela API
+  const totalAmount = (items || []).reduce((acc, item) => acc + (item.price || item.amount || 0) * (item.quantity || 1), 0);
+
+  const formattedItems = (items || []).map(item => ({
+    description: item.description || "Fragrância Elora Parfums",
+    quantity: item.quantity || 1,
+    amount: item.price || item.amount || totalAmount
+  }));
+
   const payload = {
     handle: INFINITE_TAG,
-    redirect_url: req.headers.referer || "https://site-elora.vercel.app",
+    amount: totalAmount,
     order_nsu: order_nsu || "ELORA-" + Date.now(),
-    items: items || []
+    redirect_url: req.headers.referer || "https://site-elora.vercel.app",
+    payment_method: payment_method || "pix",
+    items: formattedItems
   };
 
-  const endpoints = [
-    'https://cloud.infinitepay.io/v2/checkouts',
-    'https://cloud.infinitepay.io/v2/checkout',
-    'https://api.infinitepay.io/v2/checkout/link',
-    'https://api.infinitepay.io/v1/checkout/links',
-    'https://api.infinitepay.io/v2/transactions'
-  ];
+  try {
+    const response = await fetch('https://api.infinitepay.io/v2/transactions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CHAVE_API}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-  let resultados = [];
-
-  for (const url of endpoints) {
+    const rawText = await response.text();
+    let data;
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CHAVE_API}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const text = await response.text();
-      let parsed = null;
-      try { parsed = JSON.parse(text); } catch(e) {}
-
-      resultados.push({
-        url: url,
-        status: response.status,
-        resposta: parsed || text.substring(0, 100)
-      });
-
-      if (response.ok && parsed && (parsed.url || parsed.checkout_url)) {
-        return res.status(200).json(parsed);
-      }
-    } catch (err) {
-      resultados.push({ url: url, erro: err.message });
+      data = JSON.parse(rawText);
+    } catch (e) {
+      data = { raw: rawText };
     }
-  }
 
-  return res.status(200).json({
-    diagnostico: "Relatório Ampliado",
-    tentativas: resultados
-  });
+    if (!response.ok) {
+      return res.status(response.status).json({
+        erro: "Recusado pela InfinitePay",
+        statusHttp: response.status,
+        detalhes: data
+      });
+    }
+
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 }
