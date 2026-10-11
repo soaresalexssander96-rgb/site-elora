@@ -168,12 +168,12 @@
             const simularCompra = () => {
                 setLoading(true);
 
-                // Seu link de cobrança oficial fornecido pelo app da InfinitePay
-                const LINK_OFICIAL_GERADO = "https://link.infinitepay.io/soaresalexssander96/VC1DLTMtSQ-0WfgDvITbg-189,05";
+                // Link direto de pagamento da InfinitePay
+                const LINK_INFINITEPAY = "https://link.infinitepay.io/soaresalexssander96/VC1DLTMtSQ-0WfgDvITbg-189,05";
 
                 setTimeout(() => {
-                    window.location.href = LINK_OFICIAL_GERADO;
-                }, 500);
+                    window.location.href = LINK_INFINITEPAY;
+                }, 400);
             };
 
             if (comprado) return (
