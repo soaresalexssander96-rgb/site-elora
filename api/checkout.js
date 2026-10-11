@@ -11,30 +11,54 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  const { items, order_nsu } = req.body;
+  const { items, order_nsu } = req.body || {};
 
-  // Substitua entre as aspas pela sua Chave API real da InfinitePay
-  const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
+  const CHAVE_API = "inchk_RQB5Xy3KHSPBtnlsF-1gorL-P9pGQMNwb8lnMksP9tU"; 
   const INFINITE_TAG = "soaresalexssander96";
+
+  const payload = {
+    handle: INFINITE_TAG,
+    redirect_url: req.headers.referer || "https://site-elora.vercel.app",
+    order_nsu: order_nsu || "ELORA-" + Date.now(),
+    items: items || []
+  };
 
   try {
     const response = await fetch('https://api.infinitepay.io/v2/checkout/links', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CHAVE_API}`
+        'Authorization': `Bearer ${CHAVE_API}`,
+        'User-Agent': 'EloraParfums/1.0'
       },
-      body: JSON.stringify({
-        handle: INFINITE_TAG,
-        redirect_url: req.headers.referer || "https://site-elora.vercel.app",
-        order_nsu: order_nsu || "ELORA-" + Date.now(),
-        items: items
-      })
+      body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      console.error("InfinitePay retornou resposta não-JSON:", rawText);
+      return res.status(502).json({
+        erro: "Resposta não-JSON da InfinitePay",
+        statusHttp: response.status,
+        respostaBruta: rawText
+      });
+    }
+
+    if (!response.ok) {
+      console.error("Recusado pela InfinitePay:", data);
+      return res.status(response.status).json({
+        erro: "Recusado pela InfinitePay",
+        statusHttp: response.status,
+        detalhes: data
+      });
+    }
+
     return res.status(200).json(data);
   } catch (error) {
+    console.error("Erro interno no servidor:", error);
     return res.status(500).json({ error: error.message });
   }
 }
