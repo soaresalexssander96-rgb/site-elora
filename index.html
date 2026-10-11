@@ -203,7 +203,7 @@
                         window.location.href = dados.url || dados.checkout_url;
                     } else {
                         console.warn("Redirecionando via checkout direto:", dados);
-                        const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                        const linkDireto = `https://checkout.infinitepay.io/%24${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
                         window.location.href = linkDireto;
                     }
                 } catch (erro) {
