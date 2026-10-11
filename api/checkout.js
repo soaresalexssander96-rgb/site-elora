@@ -11,31 +11,28 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  const { items, order_nsu, payment_method } = req.body || {};
+  const { items, order_nsu } = req.body || {};
 
   const CHAVE_API = process.env.INFINITE_API_KEY || "inchk_RQB5Xy3KHSPBtnlsF-1gorL-P9pGQMNwb8lnMksP9tU"; 
   const INFINITE_TAG = "soaresalexssander96";
 
-  // Calcula o valor total em centavos exigido pela API
-  const totalAmount = (items || []).reduce((acc, item) => acc + (item.price || item.amount || 0) * (item.quantity || 1), 0);
-
+  // Na API de links, o valor deve estar no campo "price" em centavos dentro do array "items"
   const formattedItems = (items || []).map(item => ({
-    description: item.description || "Fragrância Elora Parfums",
+    description: item.description || "Elora Parfums",
     quantity: item.quantity || 1,
-    amount: item.price || item.amount || totalAmount
+    price: item.price || item.amount || 0
   }));
 
   const payload = {
     handle: INFINITE_TAG,
-    amount: totalAmount,
-    order_nsu: order_nsu || "ELORA-" + Date.now(),
     redirect_url: req.headers.referer || "https://site-elora.vercel.app",
-    payment_method: payment_method || "pix",
+    order_nsu: order_nsu || "ELORA-" + Date.now(),
     items: formattedItems
   };
 
   try {
-    const response = await fetch('https://api.infinitepay.io/v2/transactions', {
+    // URL EXATA E OFICIAL DO CHECKOUT INFINITEPAY
+    const response = await fetch('https://api.checkout.infinitepay.io/links', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -60,6 +57,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Retorna a URL de pagamento dinâmico gerada
     return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });
