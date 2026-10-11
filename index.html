@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+<!-- Ligação ao Banco de Dados Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPImRf4Mp7-AAsTzOXZNgS4NGvENeZsM4",
+    authDomain: "elora-parfums.firebaseapp.com",
+    projectId: "elora-parfums",
+    storageBucket: "elora-parfums.firebasestorage.app",
+    messagingSenderId: "953833053006",
+    appId: "1:953833053006:web:141e5f4fb22e3a017fdc1f",
+    measurementId: "G-YN6WE6QZP7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  window.db = db;
+  window.collection = collection;
+  window.getDocs = getDocs;
+  window.addDoc = addDoc;
+  
+  console.log("Cofre Firebase ligado com sucesso!");
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elora Parfums | A Essência do Oriente</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        elora: {
+                            deepblue: '#050B14', 
+                            gold: '#D4AF37',     
+                            light: '#FDFBF7',    
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #FDFBF7; 
+            color: #0f172a; 
+        }
+        h1, h2, h3, h4, .font-serif { 
+            font-family: 'Playfair Display', serif; 
+        }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+    </style>
+</head>
+<body class="antialiased selection:bg-elora-gold selection:text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { 
+            ShoppingBag, Search, Sparkles, FlaskConical, X, 
+            LayoutDashboard, PlusCircle, Package, CreditCard, 
+            QrCode, CheckCircle, ArrowLeft, Star
+        } = lucide;
+
+        const produtosIniciais = [
+            { id: 1, marca: 'Orientica', nome: 'Royal Amber', categoria: 'Lançamentos', genero: 'Unissex', preco: 899.90, estoque: 5, tag: 'Joia da Coroa', imagem: './royal-amber.jpeg' },
+            { id: 2, marca: 'Lattafa', nome: 'Coleção Asad', categoria: 'Masculino', genero: 'Masculino', preco: 289.90, estoque: 12, tag: 'Bestseller', imagem: './asad.jpeg' },
+            { id: 3, marca: 'Lattafa', nome: 'Yara Rose', categoria: 'Feminino', genero: 'Feminino', preco: 259.90, estoque: 15, tag: 'Viral', imagem: './yara-rose.jpeg' },
+            { id: 4, marca: 'Lattafa', nome: 'Fakar Rose', categoria: 'Feminino', genero: 'Feminino', preco: 319.90, estoque: 8, tag: 'Elegância', imagem: './fakar-rose.jpeg' },
+            { id: 5, marca: 'Lattafa', nome: 'Fakar Black', categoria: 'Masculino', genero: 'Masculino', preco: 319.90, estoque: 10, tag: 'Marcante', imagem: './fakar-black.jpeg' },
+            { id: 6, marca: 'Zimaya', nome: 'Affef', categoria: 'Lançamentos', genero: 'Feminino', preco: 279.90, estoque: 6, tag: 'Novidade', imagem: './affef.jpeg' },
+            { id: 7, marca: 'Armaf', nome: 'Club de Nuit', categoria: 'Masculino', genero: 'Masculino', preco: 459.00, estoque: 4, tag: 'Clássico', imagem: './club de nuit.jpeg' },
+            { id: 8, marca: 'Al Wataniah', nome: 'Sabah Al Ward', categoria: 'Feminino', genero: 'Feminino', preco: 299.90, estoque: 7, tag: 'Sedutor', imagem: './sabah al ward.jpeg' },
+            { id: 9, marca: 'Lattafa', nome: 'Asad Elixir', categoria: 'Masculino', genero: 'Masculino', preco: 349.90, estoque: 9, tag: 'Intenso', imagem: './asad elixir.jpeg' }
+        ];
+
+        function QuizModal({ onClose, produtos, irParaCheckout }) {
+            const [step, setStep] = useState(1);
+            const [resultado, setResultado] = useState(null);
+
+            const handleResponder = (tipo) => {
+                if (step === 1) setStep(2);
+                else {
+                    const rec = tipo === 'noite' ? produtos[1] : produtos[3]; 
+                    setResultado(rec || produtos[0]);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/40 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+                    <div className="bg-white border border-slate-200 p-8 md:p-12 max-w-lg w-full relative animate-fade-in shadow-2xl rounded-xl">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors">
+                            <i data-lucide="x" className="w-6 h-6"></i>
+                        </button>
+                        
+                        {!resultado ? (
+                            <div className="text-center">
+                                <i data-lucide="flask-conical" className="w-12 h-12 text-elora-gold mx-auto mb-6"></i>
+                                <h3 className="text-3xl font-serif text-slate-900 mb-2">Descubra sua Assinatura</h3>
+                                <p className="text-slate-500 text-sm mb-8 tracking-widest uppercase">Etapa {step} de 2</p>
+
+                                {step === 1 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-700 mb-6 font-medium">Qual atmosfera te atrai mais?</p>
+                                        <button onClick={() => handleResponder('madeira')} className="w-full border border-slate-200 hover:border-elora-gold bg-slate-50 py-5 text-sm text-slate-600 hover:text-elora-gold transition-all uppercase tracking-widest font-semibold rounded-md shadow-sm">Madeiras Intensas & Especiarias</button>
+                                        <button onClick={() => handleResponder('doce')} className="w-full border border-slate-200 hover:border-elora-gold bg-slate-50 py-5 text-sm text-slate-600 hover:text-elora-gold transition-all uppercase tracking-widest font-semibold rounded-md shadow-sm">Doces Marcantes & Flores</button>
+                                    </div>
+                                )}
+                                {step === 2 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-700 mb-6 font-medium">Onde você usará esta joia?</p>
+                                        <button onClick={() => handleResponder('noite')} className="w-full border border-slate-200 hover:border-elora-gold bg-slate-50 py-5 text-sm text-slate-600 hover:text-elora-gold transition-all uppercase tracking-widest font-semibold rounded-md shadow-sm">Encontros Noturnos (Sedução)</button>
+                                        <button onClick={() => handleResponder('dia')} className="w-full border border-slate-200 hover:border-elora-gold bg-slate-50 py-5 text-sm text-slate-600 hover:text-elora-gold transition-all uppercase tracking-widest font-semibold rounded-md shadow-sm">Eventos Diários (Deixar Rastro)</button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-center animate-fade-in">
+                                <h3 className="text-3xl font-serif text-elora-gold mb-2">Seu Par Perfeito</h3>
+                                <p className="text-slate-500 text-sm mb-6">A fragrância ideal para o seu perfil.</p>
+                                <div className="bg-slate-50 border border-slate-100 p-6 flex flex-col items-center mb-6 rounded-xl">
+                                    <img src={resultado.imagem} className="w-40 h-40 object-cover mb-6 rounded-md shadow-md" alt={resultado.nome} />
+                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-2">{resultado.marca}</span>
+                                    <h4 className="text-2xl text-slate-900 font-serif">{resultado.nome}</h4>
+                                    <p className="text-elora-gold font-medium text-xl mt-3">R$ {resultado.preco.toFixed(2)}</p>
+                                </div>
+                                <button onClick={() => irParaCheckout(resultado)} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Comprar Esta Joia</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function Checkout({ produto, voltarParaLoja }) {
+            const [metodo, setMetodo] = useState('pix');
+            const [comprado, setComprado] = useState(false);
+            const [loading, setLoading] = useState(false);
+
+            const simularCompra = async () => {
+                setLoading(true);
+
+                const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
+                const precoCentavos = Math.round(precoFinal * 100);
+
+                const INFINITE_TAG = "soaresalexssander96"; 
+                const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; // Cole a sua chave token aqui
+
+                const pedido = {
+                    handle: INFINITE_TAG,
+                    redirect_url: window.location.href,
+                    order_nsu: "ELORA-" + Date.now(),
+                    items: [
+                        {
+                            quantity: 1,
+                            price: precoCentavos,
+                            description: `Elora Parfums: ${produto.marca} - ${produto.nome}`
+                        }
+                    ]
+                };
+
+                try {
+                    const resposta = await fetch('https://api.infinitepay.io/v2/checkout/links', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CHAVE_API}`
+                        },
+                        body: JSON.stringify(pedido)
+                    });
+
+                    const dados = await resposta.json();
+
+                    if (resposta.ok && (dados.url || dados.checkout_url)) {
+                        window.location.href = dados.url || dados.checkout_url;
+                    } else {
+                        console.warn("Redirecionando via checkout direto:", dados);
+                        const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                        window.location.href = linkDireto;
+                    }
+                } catch (erro) {
+                    console.error("Redirecionando via checkout direto:", erro);
+                    const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                    window.location.href = linkDireto;
+                }
+            };
+
+            if (comprado) return (
+                <div className="min-h-[75vh] flex flex-col items-center justify-center text-center animate-fade-in px-4">
+                    <i data-lucide="check-circle" className="w-24 h-24 text-elora-gold mb-6 animate-bounce"></i>
+                    <h2 className="text-4xl md:text-5xl font-serif text-slate-900 mb-6">Pedido Confirmado.</h2>
+                    <p className="text-slate-600 text-lg mb-10 max-w-lg">Sua joia olfativa está sendo preparada com o máximo cuidado pela equipe Elora. Enviamos o código de rastreio para o seu e-mail.</p>
+                    <button onClick={voltarParaLoja} className="border border-elora-gold text-elora-gold px-10 py-4 text-sm font-bold uppercase tracking-widest hover:bg-elora-gold hover:text-white transition-all rounded-md">Voltar para o Catálogo</button>
+                </div>
+            );
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 py-12 lg:py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 animate-fade-in">
+                    <div>
+                        <button onClick={voltarParaLoja} className="flex items-center gap-2 text-slate-500 hover:text-elora-gold mb-8 text-sm uppercase tracking-widest font-semibold transition-colors">
+                            <i data-lucide="arrow-left" className="w-4 h-4"></i> Voltar
+                        </button>
+                        <h2 className="text-3xl font-serif text-slate-900 mb-8 border-b border-slate-200 pb-4">Pagamento Seguro</h2>
+                        
+                        <div className="flex gap-4 mb-8">
+                            <button onClick={() => setMetodo('pix')} className={`flex-1 py-5 border flex items-center justify-center gap-3 transition-all text-sm font-semibold uppercase tracking-widest rounded-md ${metodo === 'pix' ? 'border-elora-gold text-elora-gold bg-elora-gold/5 shadow-md' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                <i data-lucide="qr-code" className="w-5 h-5"></i> PIX (5% OFF)
+                            </button>
+                            <button onClick={() => setMetodo('cartao')} className={`flex-1 py-5 border flex items-center justify-center gap-3 transition-all text-sm font-semibold uppercase tracking-widest rounded-md ${metodo === 'cartao' ? 'border-elora-gold text-elora-gold bg-elora-gold/5 shadow-md' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                <i data-lucide="credit-card" className="w-5 h-5"></i> Cartão
+                            </button>
+                        </div>
+
+                        <div className="bg-white border border-slate-100 shadow-xl p-8 mb-8 rounded-xl">
+                            {metodo === 'cartao' ? (
+                                <div className="space-y-5 animate-fade-in">
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Nome no Cartão</label>
+                                        <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Número do Cartão</label>
+                                        <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Validade</label>
+                                            <input type="text" placeholder="MM/AA" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">CVV</label>
+                                            <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center p-8 animate-fade-in">
+                                    <i data-lucide="qr-code" className="w-20 h-20 text-elora-gold mx-auto mb-6 opacity-80"></i>
+                                    <p className="text-slate-600 text-lg font-medium">Aprovação Imediata</p>
+                                    <p className="text-slate-500 text-sm mt-2">O código PIX Copia e Cola será exibido após a confirmação para garantir seu desconto de 5%.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white border border-slate-100 p-8 md:p-12 h-fit shadow-2xl rounded-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-elora-gold/5 rounded-full blur-3xl"></div>
+
+                        <h3 className="text-2xl font-serif text-slate-900 mb-8 relative z-10">Resumo da Compra</h3>
+                        <div className="flex items-center gap-6 mb-8 pb-8 border-b border-slate-100 relative z-10">
+                            <img src={produto.imagem} className="w-24 h-24 object-cover rounded-md shadow-md" alt={produto.nome} />
+                            <div>
+                                <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">{produto.marca}</span>
+                                <p className="text-slate-900 text-lg font-serif mb-1">{produto.nome}</p>
+                                <p className="text-slate-500 font-medium text-sm">R$ {produto.preco.toFixed(2)}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 text-sm text-slate-600 relative z-10">
+                            <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span>R$ {produto.preco.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Frete Expresso</span>
+                                <span className="text-emerald-500 font-semibold">Grátis</span>
+                            </div>
+                            {metodo === 'pix' && (
+                                <div className="flex justify-between text-elora-gold">
+                                    <span>Desconto PIX (5%)</span>
+                                    <span>- R$ {(produto.preco * 0.05).toFixed(2)}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between text-slate-900 font-serif text-3xl mt-8 pt-8 border-t border-slate-100 relative z-10">
+                            <span>Total</span>
+                            <span className="text-elora-gold">R$ {(metodo === 'pix' ? produto.preco * 0.95 : produto.preco).toFixed(2)}</span>
+                        </div>
+                        
+                        <button onClick={simularCompra} disabled={loading} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors mt-10 rounded-md shadow-xl shadow-elora-gold/20 flex items-center justify-center gap-3 relative z-10">
+                            {loading ? <i data-lucide="loader-2" className="w-5 h-5 animate-spin"></i> : 'Finalizar Pedido'}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminDashboard({ produtos, setProdutos }) {
+            const [novoProduto, setNovoProduto] = useState({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Masculino' });
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                
+                const produtoCriado = {
+                    nome: novoProduto.nome,
+                    marca: novoProduto.marca,
+                    preco: parseFloat(novoProduto.preco),
+                    estoque: parseInt(novoProduto.estoque),
+                    categoria: novoProduto.categoria || 'Masculino',
+                    genero: novoProduto.categoria || 'Masculino',
+                    imagem: './royal-amber.jpeg',
+                    tag: 'Novo'
+                };
+
+                try {
+                    if (window.db && window.collection && window.addDoc) {
+                        const docRef = await window.addDoc(window.collection(window.db, "perfumes"), produtoCriado);
+                        setProdutos([...produtos, { ...produtoCriado, id: docRef.id }]);
+                        alert("Produto salvo com SUCESSO no banco de dados Firebase!");
+                    } else {
+                        setProdutos([...produtos, { ...produtoCriado, id: Date.now() }]);
+                        alert("Salvo localmente (Firebase ainda não conectou).");
+                    }
+                } catch (error) {
+                    console.error("Erro ao salvar no Firebase: ", error);
+                    alert("Erro ao salvar na nuvem.");
+                }
+
+                setNovoProduto({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Masculino' });
+            };
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 py-12 animate-fade-in">
+                    <div className="flex items-center gap-4 mb-12 border-b border-slate-200 pb-6">
+                        <i data-lucide="layout-dashboard" className="text-elora-gold w-10 h-10"></i>
+                        <div>
+                            <h2 className="text-4xl font-serif text-slate-900">Gestão Elora Parfums</h2>
+                            <p className="text-slate-500 mt-2">Painel de Controle de Estoque e Catálogo</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        <div className="bg-white border border-slate-100 p-8 h-fit rounded-xl shadow-xl">
+                            <h3 className="text-xl text-slate-900 font-serif mb-8 flex items-center gap-3">
+                                <i data-lucide="plus-circle" className="w-5 h-5 text-elora-gold"></i> Cadastrar Fragrância
+                            </h3>
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <div>
+                                    <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Nome</label>
+                                    <input value={novoProduto.nome} onChange={(e) => setNovoProduto({...novoProduto, nome: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 text-sm outline-none focus:border-elora-gold transition-colors rounded-md" required />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Marca (Ex: Lattafa)</label>
+                                    <input value={novoProduto.marca} onChange={(e) => setNovoProduto({...novoProduto, marca: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 text-sm outline-none focus:border-elora-gold transition-colors rounded-md" required />
+                                </div>
+                                <div className="grid grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Preço (R$)</label>
+                                        <input type="number" value={novoProduto.preco} onChange={(e) => setNovoProduto({...novoProduto, preco: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 text-sm outline-none focus:border-elora-gold transition-colors rounded-md" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Estoque</label>
+                                        <input type="number" value={novoProduto.estoque} onChange={(e) => setNovoProduto({...novoProduto, estoque: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 text-sm outline-none focus:border-elora-gold transition-colors rounded-md" required />
+                                    </div>
+                                </div>
+                                <button type="submit" className="w-full bg-elora-gold text-white py-4 text-xs font-bold uppercase tracking-widest mt-8 hover:bg-slate-900 transition-colors rounded-md shadow-md">Salvar no Firebase</button>
+                            </form>
+                        </div>
+
+                        <div className="lg:col-span-2 bg-white border border-slate-100 p-8 rounded-xl shadow-xl">
+                            <h3 className="text-xl text-slate-900 font-serif mb-8 flex items-center gap-3">
+                                <i data-lucide="package" className="w-5 h-5 text-elora-gold"></i> Estoque Atual na Nuvem
+                            </h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm text-slate-600">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 text-xs uppercase tracking-widest text-slate-500">
+                                            <th className="pb-4 font-semibold">Produto</th>
+                                            <th className="pb-4 font-semibold">Preço</th>
+                                            <th className="pb-4 font-semibold text-right">Qtd</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {produtos.map(p => (
+                                            <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                                <td className="py-5">
+                                                    <span className="text-elora-gold text-[10px] uppercase font-bold block mb-1 tracking-widest">{p.marca}</span>
+                                                    <span className="text-slate-900 font-medium text-base">{p.nome}</span>
+                                                </td>
+                                                <td className="py-5 font-medium">R$ {Number(p.preco).toFixed(2)}</td>
+                                                <td className="py-5 text-right">
+                                                    <span className={`px-3 py-1.5 text-xs font-semibold rounded-md ${p.estoque < 10 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-700'}`}>
+                                                        {p.estoque} un.
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [view, setView] = useState('store');
+            const [quizOpen, setQuizOpen] = useState(false);
+            const [filtro, setFiltro] = useState('Todos');
+            const [produtos, setProdutos] = useState([]); 
+            const [produtoCheckout, setProdutoCheckout] = useState(null);
+
+            useEffect(() => {
+                const carregarPerfumesDaNuvem = async () => {
+                    setTimeout(async () => {
+                        if (window.db && window.collection && window.getDocs) {
+                            try {
+                                const querySnapshot = await window.getDocs(window.collection(window.db, "perfumes"));
+                                const lista = [];
+                                querySnapshot.forEach((doc) => {
+                                    lista.push({ id: doc.id, ...doc.data() });
+                                });
+                                
+                                if (lista.length > 0) {
+                                    setProdutos(lista);
+                                } else {
+                                    setProdutos(produtosIniciais);
+                                }
+                            } catch (e) {
+                                console.error("Erro ao puxar dados: ", e);
+                                setProdutos(produtosIniciais);
+                            }
+                        } else {
+                            setProdutos(produtosIniciais);
+                        }
+                    }, 800);
+                };
+                
+                carregarPerfumesDaNuvem();
+            }, []);
+
+            useEffect(() => {
+                setTimeout(() => lucide.createIcons(), 50); 
+            }, [view, quizOpen, produtos]);
+
+            const irParaCheckout = (produto) => {
+                setProdutoCheckout(produto);
+                setView('checkout');
+                setQuizOpen(false);
+                window.scrollTo(0,0);
+            };
+
+            const produtosFiltrados = filtro === 'Todos' ? produtos : produtos.filter(p => p.categoria === filtro || p.genero === filtro);
+
+            return (
+                <div className="min-h-screen text-slate-900 font-sans flex flex-col">
+                    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 py-6 sticky top-0 z-50 shadow-sm flex items-center min-h-[90px]">
+                        <div className="max-w-7xl w-full mx-auto px-4 flex justify-between items-center relative">
+                            <div className="flex space-x-6 text-[11px] font-bold uppercase tracking-[0.2em] hidden md:flex w-1/3">
+                                <button onClick={() => {setView('store'); setProdutoCheckout(null)}} className={`transition-colors py-2 ${view === 'store' ? 'text-elora-gold border-b-2 border-elora-gold' : 'text-slate-500 hover:text-slate-900'}`}>Vitrine</button>
+                                <button onClick={() => setView('admin')} className={`transition-colors py-2 ${view === 'admin' ? 'text-elora-gold border-b-2 border-elora-gold' : 'text-slate-500 hover:text-slate-900'}`}>Admin</button>
+                            </div>
+                            
+                            <div className="text-4xl md:text-5xl font-cinzel tracking-[0.15em] uppercase text-elora-gold absolute left-1/2 -translate-x-1/2 cursor-pointer flex flex-col items-center leading-none mt-2" onClick={() => setView('store')}>
+                                <span className="font-semibold drop-shadow-sm pb-1">ELORA</span>
+                                <span className="text-[10px] tracking-[0.4em] font-sans text-slate-900 font-medium">PARFUMS</span>
+                            </div>
+                            
+                            <div className="flex items-center justify-end space-x-6 w-1/3">
+                                <button className="text-slate-500 hover:text-elora-gold transition-colors">
+                                    <i data-lucide="shopping-bag" className="w-6 h-6"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="flex-grow">
+                        {view === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} />}
+                        {view === 'checkout' && produtoCheckout && <Checkout produto={produtoCheckout} voltarParaLoja={() => setView('store')} />}
+                        
+                        {view === 'store' && (
+                            <div className="animate-fade-in">
+                                <section className="relative h-[80vh] w-full flex items-center justify-center overflow-hidden bg-slate-100">
+                                    <img src="./banner-promo.jpeg" className="absolute inset-0 w-full h-full object-cover z-0" alt="Promoção Inauguração" />
+                                    <div className="absolute inset-0 bg-white/70 z-10"></div>
+                                    
+                                    <div className="relative z-20 text-center px-6 mt-16 mx-4 max-w-4xl">
+                                        <div className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-elora-gold text-white text-[11px] font-bold uppercase tracking-[0.2em] rounded-full mb-8 shadow-lg shadow-elora-gold/30">
+                                            <i data-lucide="star" className="w-4 h-4 fill-current"></i> Promoção de Inauguração
+                                        </div>
+                                        <h1 className="text-6xl md:text-8xl font-serif mb-6 text-slate-900 tracking-tight drop-shadow-xl">
+                                            A Essência do <span className="text-elora-gold drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">Oriente</span>.
+                                        </h1>
+                                        <p className="text-lg md:text-xl text-slate-900 mb-10 max-w-2xl mx-auto font-medium drop-shadow-md">
+                                            Compras acima de R$ 300,00 parcele em até <strong className="font-bold text-elora-gold text-2xl mx-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">10x sem juros</strong> na sua primeira compra.
+                                        </p>
+                                        <button onClick={() => setQuizOpen(true)} className="bg-elora-gold text-white px-8 md:px-12 py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl flex items-center mx-auto gap-3 rounded-md hover:scale-105">
+                                            <i data-lucide="flask-conical" className="w-5 h-5"></i> Encontrar Minha Fragrância
+                                        </button>
+                                    </div>
+                                </section>
+
+                                <section className="max-w-7xl mx-auto px-4 py-24">
+                                    <div className="flex flex-col items-center mb-16">
+                                        <h2 className="text-4xl md:text-5xl font-serif mb-10 text-slate-900 text-center">Catálogo Exclusivo</h2>
+                                        
+                                        <div className="flex flex-wrap justify-center gap-3">
+                                            {['Todos', 'Lançamentos', 'Feminino', 'Masculino'].map((cat) => (
+                                                <button key={cat} onClick={() => setFiltro(cat)} className={`px-8 py-3 text-[11px] font-semibold uppercase tracking-widest rounded-full transition-all duration-300 ${filtro === cat ? 'bg-elora-gold text-white shadow-md shadow-elora-gold/20 border-transparent' : 'text-slate-600 border border-slate-200 hover:border-elora-gold bg-white'}`}>{cat}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                        {produtosFiltrados.map((produto) => (
+                                            <div key={produto.id} className="group flex flex-col bg-white border border-slate-100 shadow-lg hover:shadow-2xl hover:border-elora-gold/30 transition-all duration-500 p-5 rounded-xl">
+                                                <div className="relative aspect-[4/5] bg-slate-50 overflow-hidden flex items-center justify-center p-6 mb-6 rounded-md">
+                                                    {produto.tag && <div className="absolute top-3 left-3 bg-elora-gold text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 z-10 rounded-sm shadow-sm">{produto.tag}</div>}
+                                                    <img src={produto.imagem} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
+                                                </div>
+                                                
+                                                <div className="text-center mt-auto flex flex-col items-center">
+                                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-2 block">{produto.marca}</span>
+                                                    <h3 className="text-slate-900 text-xl font-serif mb-2 group-hover:text-elora-gold transition-colors">{produto.nome}</h3>
+                                                    <p className="text-slate-600 mb-6 font-medium text-lg">R$ {Number(produto.preco).toFixed(2)}</p>
+                                                    <button onClick={() => irParaCheckout(produto)} className="w-full border border-slate-200 text-slate-700 py-4 text-xs font-bold uppercase tracking-widest hover:bg-elora-gold hover:border-elora-gold hover:text-white transition-all rounded-md flex justify-center items-center gap-2">
+                                                        <i data-lucide="shopping-bag" className="w-4 h-4"></i> Comprar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            </div>
+                        )}
+                    </main>
+
+                    <footer className="bg-white border-t border-slate-200 py-12 mt-auto">
+                        <div className="max-w-7xl mx-auto px-4 text-center">
+                            <div className="text-3xl font-cinzel tracking-[0.2em] uppercase text-elora-gold mb-6 leading-none">
+                                ELORA <span className="text-slate-900 text-[10px] font-sans tracking-[0.4em] block mt-3">PARFUMS</span>
+                            </div>
+                            <p className="text-slate-500 text-sm tracking-wide mt-4">A Essência do Oriente. Todos os direitos reservados &copy; 2026.</p>
+                        </div>
+                    </footer>
+
+                    {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={irParaCheckout} />}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
