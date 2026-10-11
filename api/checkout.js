@@ -24,12 +24,12 @@ export default async function handler(req, res) {
   };
 
   try {
-    const response = await fetch('https://api.infinitepay.io/v2/checkout/links', {
+    // Rota oficial corrigida: /v2/checkouts
+    const response = await fetch('https://api.infinitepay.io/v2/checkouts', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CHAVE_API}`,
-        'User-Agent': 'EloraParfums/1.0'
+        'Authorization': `Bearer ${CHAVE_API}`
       },
       body: JSON.stringify(payload)
     });
@@ -39,7 +39,6 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(rawText);
     } catch (e) {
-      console.error("InfinitePay retornou resposta não-JSON:", rawText);
       return res.status(502).json({
         erro: "Resposta não-JSON da InfinitePay",
         statusHttp: response.status,
@@ -48,7 +47,6 @@ export default async function handler(req, res) {
     }
 
     if (!response.ok) {
-      console.error("Recusado pela InfinitePay:", data);
       return res.status(response.status).json({
         erro: "Recusado pela InfinitePay",
         statusHttp: response.status,
@@ -58,7 +56,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json(data);
   } catch (error) {
-    console.error("Erro interno no servidor:", error);
     return res.status(500).json({ error: error.message });
   }
 }
