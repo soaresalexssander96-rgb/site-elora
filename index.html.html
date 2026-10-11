@@ -17,11 +17,9 @@
     measurementId: "G-YN6WE6QZP7"
   };
 
-  // Inicializar o Firebase e o Firestore
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   
-  // Tornar a base de dados acessível para a nossa loja
   window.db = db;
   window.collection = collection;
   window.getDocs = getDocs;
@@ -57,13 +55,12 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
     <style>
-        /* Tipografia de Luxo */
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
         
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #FDFBF7; /* Fundo off-white fixo */
-            color: #0f172a; /* Texto escuro fixo */
+            background-color: #FDFBF7; 
+            color: #0f172a; 
         }
         h1, h2, h3, h4, .font-serif { 
             font-family: 'Playfair Display', serif; 
@@ -76,7 +73,6 @@
             to { opacity: 1; transform: translateY(0); } 
         }
 
-        /* Barra de Rolagem Clara */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -94,7 +90,6 @@
             QrCode, CheckCircle, ArrowLeft, Star
         } = lucide;
 
-        // Catálogo de segurança (Caso o banco esteja vazio)
         const produtosIniciais = [
             { id: 1, marca: 'Orientica', nome: 'Royal Amber', categoria: 'Lançamentos', genero: 'Unissex', preco: 899.90, estoque: 5, tag: 'Joia da Coroa', imagem: './royal-amber.jpeg' },
             { id: 2, marca: 'Lattafa', nome: 'Coleção Asad', categoria: 'Masculino', genero: 'Masculino', preco: 289.90, estoque: 12, tag: 'Bestseller', imagem: './asad.jpeg' },
@@ -104,7 +99,7 @@
             { id: 6, marca: 'Zimaya', nome: 'Affef', categoria: 'Lançamentos', genero: 'Feminino', preco: 279.90, estoque: 6, tag: 'Novidade', imagem: './affef.jpeg' },
             { id: 7, marca: 'Armaf', nome: 'Club de Nuit', categoria: 'Masculino', genero: 'Masculino', preco: 459.00, estoque: 4, tag: 'Clássico', imagem: './club de nuit.jpeg' },
             { id: 8, marca: 'Al Wataniah', nome: 'Sabah Al Ward', categoria: 'Feminino', genero: 'Feminino', preco: 299.90, estoque: 7, tag: 'Sedutor', imagem: './sabah al ward.jpeg' },
-             { id: 9, marca: 'Lattafa', nome: 'Asad Elixir', categoria: 'Masculino', genero: 'Masculino', preco: 349.90, estoque: 9, tag: 'Intenso', imagem: './asad elixir.jpeg' }
+            { id: 9, marca: 'Lattafa', nome: 'Asad Elixir', categoria: 'Masculino', genero: 'Masculino', preco: 349.90, estoque: 9, tag: 'Intenso', imagem: './asad elixir.jpeg' }
         ];
 
         function QuizModal({ onClose, produtos, irParaCheckout }) {
@@ -173,11 +168,10 @@
             const simularCompra = async () => {
                 setLoading(true);
 
-                // Preço em centavos exigido pela InfinitePay (ex: R$ 199,00 vira 19900)
                 const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
                 const precoCentavos = Math.round(precoFinal * 100);
 
-                const INFINITE_TAG = "soaresalexssander96"; // Sua tag sem o $
+                const INFINITE_TAG = "soaresalexssander96"; 
                 const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
 
                 const pedido = {
@@ -206,7 +200,6 @@
                     const dados = await resposta.json();
 
                     if (dados.url) {
-                        // Redireciona o cliente diretamente para a tela oficial da InfinitePay
                         window.location.href = dados.url;
                     } else {
                         console.error("Erro da InfinitePay:", dados);
@@ -215,35 +208,6 @@
                     }
                 } catch (erro) {
                     console.error("Erro ao conectar à InfinitePay:", erro);
-                    setLoading(false);
-                }
-            };
-                try {
-                    // Comunicação com o Checkout Integrado da InfinitePay
-                    const resposta = await fetch('https://api.checkout.infinitepay.io/links', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${CHAVE_API}`
-                        },
-                        body: JSON.stringify(pedido)
-                    });
-
-                    const dados = await resposta.json();
-
-                    if (dados.url) {
-                        // Sucesso! Redireciona o cliente para o checkout oficial da InfinitePay
-                        window.location.href = dados.url;
-                    } else {
-                        console.error("Erro InfinitePay:", dados);
-                        alert("Erro ao gerar link de pagamento. Verifique se a Chave está correta.");
-                        setLoading(false);
-                    }
-                } catch (erro) {
-                    console.error("Erro na requisição:", erro);
-                    
-                    // Alerta de Segurança (CORS)
-                    alert("Aviso: Como o site está rodando direto do seu computador (sem um servidor), o navegador bloqueou o envio por segurança (CORS).");
                     setLoading(false);
                 }
             };
@@ -362,18 +326,16 @@
                     estoque: parseInt(novoProduto.estoque),
                     categoria: novoProduto.categoria || 'Masculino',
                     genero: novoProduto.categoria || 'Masculino',
-                    imagem: './royal-amber.jpeg', // Imagem padrão que pode ser trocada no futuro
+                    imagem: './royal-amber.jpeg',
                     tag: 'Novo'
                 };
 
                 try {
-                    // Verifica se o Firebase está conectado e envia os dados
                     if (window.db && window.collection && window.addDoc) {
                         const docRef = await window.addDoc(window.collection(window.db, "perfumes"), produtoCriado);
                         setProdutos([...produtos, { ...produtoCriado, id: docRef.id }]);
                         alert("Produto salvo com SUCESSO no banco de dados Firebase!");
                     } else {
-                        // Salva apenas localmente se der erro na rede
                         setProdutos([...produtos, { ...produtoCriado, id: Date.now() }]);
                         alert("Salvo localmente (Firebase ainda não conectou).");
                     }
@@ -464,13 +426,11 @@
             const [view, setView] = useState('store');
             const [quizOpen, setQuizOpen] = useState(false);
             const [filtro, setFiltro] = useState('Todos');
-            const [produtos, setProdutos] = useState([]); // Inicia vazio, busca do Firebase
+            const [produtos, setProdutos] = useState([]); 
             const [produtoCheckout, setProdutoCheckout] = useState(null);
 
-            // Tenta buscar do Firebase ao carregar a página
             useEffect(() => {
                 const carregarPerfumesDaNuvem = async () => {
-                    // Espera 1 segundo para garantir que o script do Firebase no head carregou
                     setTimeout(async () => {
                         if (window.db && window.collection && window.getDocs) {
                             try {
@@ -480,7 +440,6 @@
                                     lista.push({ id: doc.id, ...doc.data() });
                                 });
                                 
-                                // Se o Firebase tiver produtos, mostra eles. Se não, mostra os produtos iniciais
                                 if (lista.length > 0) {
                                     setProdutos(lista);
                                 } else {
@@ -491,7 +450,6 @@
                                 setProdutos(produtosIniciais);
                             }
                         } else {
-                            // Se o Firebase falhar por algum motivo, não deixa a tela em branco
                             setProdutos(produtosIniciais);
                         }
                     }, 800);
@@ -515,24 +473,18 @@
 
             return (
                 <div className="min-h-screen text-slate-900 font-sans flex flex-col">
-                    
-                    {/* Header Principal Elora */}
                     <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 py-6 sticky top-0 z-50 shadow-sm flex items-center min-h-[90px]">
                         <div className="max-w-7xl w-full mx-auto px-4 flex justify-between items-center relative">
-                            
-                            {/* Navegação Esquerda */}
                             <div className="flex space-x-6 text-[11px] font-bold uppercase tracking-[0.2em] hidden md:flex w-1/3">
                                 <button onClick={() => {setView('store'); setProdutoCheckout(null)}} className={`transition-colors py-2 ${view === 'store' ? 'text-elora-gold border-b-2 border-elora-gold' : 'text-slate-500 hover:text-slate-900'}`}>Vitrine</button>
                                 <button onClick={() => setView('admin')} className={`transition-colors py-2 ${view === 'admin' ? 'text-elora-gold border-b-2 border-elora-gold' : 'text-slate-500 hover:text-slate-900'}`}>Admin</button>
                             </div>
                             
-                            {/* Logo Centralizada */}
                             <div className="text-4xl md:text-5xl font-cinzel tracking-[0.15em] uppercase text-elora-gold absolute left-1/2 -translate-x-1/2 cursor-pointer flex flex-col items-center leading-none mt-2" onClick={() => setView('store')}>
                                 <span className="font-semibold drop-shadow-sm pb-1">ELORA</span>
                                 <span className="text-[10px] tracking-[0.4em] font-sans text-slate-900 font-medium">PARFUMS</span>
                             </div>
                             
-                            {/* Ferramentas Direita */}
                             <div className="flex items-center justify-end space-x-6 w-1/3">
                                 <button className="text-slate-500 hover:text-elora-gold transition-colors">
                                     <i data-lucide="shopping-bag" className="w-6 h-6"></i>
@@ -541,14 +493,12 @@
                         </div>
                     </header>
 
-                    {/* Conteúdo Dinâmico */}
                     <main className="flex-grow">
                         {view === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} />}
                         {view === 'checkout' && produtoCheckout && <Checkout produto={produtoCheckout} voltarParaLoja={() => setView('store')} />}
                         
                         {view === 'store' && (
                             <div className="animate-fade-in">
-                                {/* Banner de Impacto */}
                                 <section className="relative h-[80vh] w-full flex items-center justify-center overflow-hidden bg-slate-100">
                                     <img src="./banner-promo.jpeg" className="absolute inset-0 w-full h-full object-cover z-0" alt="Promoção Inauguração" />
                                     <div className="absolute inset-0 bg-white/70 z-10"></div>
@@ -569,7 +519,6 @@
                                     </div>
                                 </section>
 
-                                {/* Vitrine de Produtos */}
                                 <section className="max-w-7xl mx-auto px-4 py-24">
                                     <div className="flex flex-col items-center mb-16">
                                         <h2 className="text-4xl md:text-5xl font-serif mb-10 text-slate-900 text-center">Catálogo Exclusivo</h2>
@@ -581,11 +530,9 @@
                                         </div>
                                     </div>
 
-                                    {/* Grid de Perfumes */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                                         {produtosFiltrados.map((produto) => (
                                             <div key={produto.id} className="group flex flex-col bg-white border border-slate-100 shadow-lg hover:shadow-2xl hover:border-elora-gold/30 transition-all duration-500 p-5 rounded-xl">
-                                                
                                                 <div className="relative aspect-[4/5] bg-slate-50 overflow-hidden flex items-center justify-center p-6 mb-6 rounded-md">
                                                     {produto.tag && <div className="absolute top-3 left-3 bg-elora-gold text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 z-10 rounded-sm shadow-sm">{produto.tag}</div>}
                                                     <img src={produto.imagem} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
@@ -599,7 +546,6 @@
                                                         <i data-lucide="shopping-bag" className="w-4 h-4"></i> Comprar
                                                     </button>
                                                 </div>
-                                                
                                             </div>
                                         ))}
                                     </div>
@@ -608,7 +554,6 @@
                         )}
                     </main>
 
-                    {/* Footer Elora */}
                     <footer className="bg-white border-t border-slate-200 py-12 mt-auto">
                         <div className="max-w-7xl mx-auto px-4 text-center">
                             <div className="text-3xl font-cinzel tracking-[0.2em] uppercase text-elora-gold mb-6 leading-none">
@@ -618,7 +563,6 @@
                         </div>
                     </footer>
 
-                    {/* Modal do Quiz */}
                     {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={irParaCheckout} />}
                 </div>
             );
@@ -627,6 +571,5 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-
 </body>
 </html>
