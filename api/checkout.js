@@ -24,11 +24,11 @@ export default async function handler(req, res) {
   };
 
   const endpoints = [
-    'https://api.infinitepay.io/v2/checkouts',
-    'https://api.infinitepay.io/v2/checkout',
-    'https://api.infinitepay.io/v1/checkouts',
-    'https://api.infinitepay.io/v2/checkout/links',
-    'https://api.infinitepay.io/v2/links'
+    'https://cloud.infinitepay.io/v2/checkouts',
+    'https://cloud.infinitepay.io/v2/checkout',
+    'https://api.infinitepay.io/v2/checkout/link',
+    'https://api.infinitepay.io/v1/checkout/links',
+    'https://api.infinitepay.io/v2/transactions'
   ];
 
   let resultados = [];
@@ -54,7 +54,6 @@ export default async function handler(req, res) {
         resposta: parsed || text.substring(0, 100)
       });
 
-      // Se a rota for válida e retornar a URL do checkout
       if (response.ok && parsed && (parsed.url || parsed.checkout_url)) {
         return res.status(200).json(parsed);
       }
@@ -63,9 +62,8 @@ export default async function handler(req, res) {
     }
   }
 
-  // Se nenhuma rota gerou URL direta, exibe o relatório de todas as rotas testadas
   return res.status(200).json({
-    diagnostico: "Relatório de Rotas",
+    diagnostico: "Relatório Ampliado",
     tentativas: resultados
   });
 }
