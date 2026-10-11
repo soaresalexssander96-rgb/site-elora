@@ -186,26 +186,23 @@
                 };
 
                 try {
-                    const resposta = await fetch('/api/checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(pedido)
-                    });
+    const resposta = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pedido)
+    });
 
-                    const dados = await resposta.json();
+    const dados = await resposta.json();
+    
+    // Exibe o retorno exato da API em um alerta na tela
+    alert("Retorno da API: " + JSON.stringify(dados));
 
-                    if (dados.url || dados.checkout_url) {
-                        window.location.href = dados.url || dados.checkout_url;
-                    } else {
-                        // Se a API responder sem URL, envia direto pro checkout oficial
-                        window.location.href = LINK_DIRETO_FALLBACK;
-                    }
-                } catch (erro) {
-                    console.error("Redirecionando via checkout oficial:", erro);
-                    // Garante o redirecionamento imediato sem travar nem exibir alerta
-                    window.location.href = LINK_DIRETO_FALLBACK;
-                }
-            };
+    if (dados.url || dados.checkout_url) {
+        window.location.href = dados.url || dados.checkout_url;
+    }
+} catch (erro) {
+    alert("Erro na requisição: " + erro.message);
+}
 
             if (comprado) return (
                 <div className="min-h-[75vh] flex flex-col items-center justify-center text-center animate-fade-in px-4">
