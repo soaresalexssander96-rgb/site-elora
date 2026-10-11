@@ -170,7 +170,6 @@
 
                 const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
                 const precoCentavos = Math.round(precoFinal * 100);
-                const precoFormatado = precoFinal.toFixed(2); // ex: "189.05"
 
                 const INFINITE_TAG = "soaresalexssander96"; 
                 const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
@@ -203,13 +202,13 @@
                     if (resposta.ok && (dados.url || dados.checkout_url)) {
                         window.location.href = dados.url || dados.checkout_url;
                     } else {
-                        // Formato de cobrança direta limpo da InfinitePay
-                        window.location.href = `https://infinitepay.io/pay/${INFINITE_TAG}/${precoFormatado}`;
+                        // Link direto oficial do seu perfil InfinitePay
+                        window.location.href = `https://infinitepay.io/pay/$${INFINITE_TAG}`;
                     }
                 } catch (erro) {
-                    console.error("Redirecionando via checkout direto:", erro);
-                    // Formato de cobrança direta limpo em caso de bloqueio no navegador
-                    window.location.href = `https://infinitepay.io/pay/${INFINITE_TAG}/${precoFormatado}`;
+                    console.error("Redirecionando para a InfiniteTag:", erro);
+                    // Garante que o cliente cai na sua página oficial de recebimento da InfinitePay
+                    window.location.href = `https://infinitepay.io/pay/$${INFINITE_TAG}`;
                 }
             };
 
