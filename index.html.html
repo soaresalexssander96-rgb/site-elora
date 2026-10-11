@@ -172,9 +172,9 @@
                 const precoCentavos = Math.round(precoFinal * 100);
 
                 const INFINITE_TAG = "soaresalexssander96"; 
-                // Insira sua chave API da InfinitePay entre as aspas abaixo
-                const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
+                const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; // Cole a sua chave token aqui
 
+                // Estrutura do Pedido para a InfinitePay
                 const pedido = {
                     handle: INFINITE_TAG,
                     redirect_url: window.location.href,
@@ -187,6 +187,64 @@
                         }
                     ]
                 };
+
+                try {
+                    // Tentativa via API V2 Oficial da InfinitePay
+                    const resposta = await fetch('https://api.infinitepay.io/v2/checkout/links', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CHAVE_API}`
+                        },
+                        body: JSON.stringify(pedido)
+                    });
+
+                    const dados = await resposta.json();
+
+                    if (resposta.ok && (dados.url || dados.checkout_url)) {
+                        window.location.href = dados.url || dados.checkout_url;
+                    } else {
+                        // Fallback para Link Direto de Pagamento (Garante o redirecionamento)
+                        console.warn("Resposta API:", dados);
+                        const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                        window.location.href = linkDireto;
+                    }
+                } catch (erro) {
+                    console.error("Redirecionando via checkout direto:", erro);
+                    // Em caso de bloqueio CORS pelo navegador, envia para o checkout direto do seu Handle
+                    const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                    window.location.href = linkDireto;
+                }
+            };
+
+                try {
+                    // Tentativa via API V2 Oficial da InfinitePay
+                    const resposta = await fetch('https://api.infinitepay.io/v2/checkout/links', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CHAVE_API}`
+                        },
+                        body: JSON.stringify(pedido)
+                    });
+
+                    const dados = await resposta.json();
+
+                    if (resposta.ok && (dados.url || dados.checkout_url)) {
+                        window.location.href = dados.url || dados.checkout_url;
+                    } else {
+                        // Fallback para Link Direto de Pagamento (Garante o redirecionamento)
+                        console.warn("Resposta API:", dados);
+                        const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                        window.location.href = linkDireto;
+                    }
+                } catch (erro) {
+                    console.error("Redirecionando via checkout direto:", erro);
+                    // Em caso de bloqueio CORS pelo navegador, envia para o checkout direto do seu Handle
+                    const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                    window.location.href = linkDireto;
+                }
+            };
 
                 try {
                     const resposta = await fetch('https://api.checkout.infinitepay.io/links', {
