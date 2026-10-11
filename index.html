@@ -84,7 +84,7 @@
         const { 
             ShoppingBag, Search, Sparkles, FlaskConical, X, 
             LayoutDashboard, PlusCircle, Package, CreditCard, 
-            QrCode, CheckCircle, ArrowLeft, Star, Loader2, ShieldCheck
+            QrCode, CheckCircle, ArrowLeft, Star, Loader2, ShieldCheck, MapPin, User
         } = lucide;
 
         const produtosIniciais = [
@@ -159,19 +159,58 @@
 
         function Checkout({ produto, voltarParaLoja }) {
             const [loading, setLoading] = useState(false);
+            const [cliente, setCliente] = useState({
+                nome: '',
+                email: '',
+                telefone: '',
+                cpf: '',
+                cep: '',
+                rua: '',
+                numero: '',
+                complemento: '',
+                bairro: '',
+                cidade: '',
+                uf: 'SP'
+            });
 
             useEffect(() => {
                 setTimeout(() => lucide.createIcons(), 50);
             }, []);
 
-            const simularCompra = async () => {
+            const handleChange = (e) => {
+                setCliente({ ...cliente, [e.target.name]: e.target.value });
+            };
+
+            const processarPedido = async (e) => {
+                e.preventDefault();
                 setLoading(true);
 
-                // Envia sempre o valor total oficial em centavos sem margem para alteração
+                const orderNsu = "ELORA-" + Date.now();
                 const precoCentavos = Math.round(produto.preco * 100);
 
+                // 1. Guardar os dados do cliente e da compra no Firebase Firestore
+                try {
+                    if (window.db && window.collection && window.addDoc) {
+                        await window.addDoc(window.collection(window.db, "pedidos"), {
+                            order_nsu: orderNsu,
+                            cliente: cliente,
+                            produto: {
+                                id: produto.id,
+                                nome: produto.nome,
+                                marca: produto.marca,
+                                preco: produto.preco
+                            },
+                            dataCriacao: new Date().toISOString(),
+                            status: "Aguardando Pagamento"
+                        });
+                    }
+                } catch (err) {
+                    console.error("Erro ao guardar dados do cliente no Firebase:", err);
+                }
+
+                // 2. Chamar a API da InfinitePay
                 const pedido = {
-                    order_nsu: "ELORA-" + Date.now(),
+                    order_nsu: orderNsu,
                     items: [
                         {
                             quantity: 1,
@@ -207,36 +246,99 @@
                         <button onClick={voltarParaLoja} className="flex items-center gap-2 text-slate-500 hover:text-elora-gold mb-8 text-sm uppercase tracking-widest font-semibold transition-colors">
                             <i data-lucide="arrow-left" className="w-4 h-4"></i> Voltar
                         </button>
-                        <h2 className="text-3xl font-serif text-slate-900 mb-8 border-b border-slate-200 pb-4">Checkout Seguro InfinitePay</h2>
-                        
-                        <div className="bg-white border border-slate-100 shadow-xl p-8 mb-8 rounded-xl space-y-6">
-                            <div className="flex items-center gap-4 text-emerald-600 bg-emerald-50/50 p-4 rounded-lg border border-emerald-100">
-                                <i data-lucide="shield-check" className="w-8 h-8 flex-shrink-0"></i>
-                                <div>
-                                    <p className="font-semibold text-sm">Ambiente de Pagamento Criptografado</p>
-                                    <p className="text-xs text-slate-500">Sua transação será concluída diretamente no servidor seguro da InfinitePay.</p>
+
+                        <form onSubmit={processarPedido} className="space-y-8">
+                            <div className="bg-white border border-slate-100 p-8 shadow-xl rounded-xl">
+                                <h3 className="text-xl font-serif text-slate-900 mb-6 flex items-center gap-3">
+                                    <i data-lucide="user" className="text-elora-gold w-5 h-5"></i> 1. Dados Pessoais
+                                </h3>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Nome Completo *</label>
+                                        <input name="nome" value={cliente.nome} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="Ex: Maria Silva" />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">E-mail *</label>
+                                            <input type="email" name="email" value={cliente.email} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="seu@email.com" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Telefone / WhatsApp *</label>
+                                            <input name="telefone" value={cliente.telefone} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="(11) 99999-9999" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">CPF *</label>
+                                        <input name="cpf" value={cliente.cpf} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="000.000.000-00" />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 pt-2">
-                                <div className="border border-slate-100 bg-slate-50/80 p-5 rounded-lg text-center">
-                                    <i data-lucide="credit-card" className="w-8 h-8 text-elora-gold mx-auto mb-2"></i>
-                                    <p className="font-semibold text-xs text-slate-800 uppercase tracking-wider">Cartão de Crédito</p>
-                                    <p className="text-[11px] text-slate-500 mt-1">Até 10x sem juros</p>
-                                </div>
-                                <div className="border border-slate-100 bg-slate-50/80 p-5 rounded-lg text-center">
-                                    <i data-lucide="qr-code" className="w-8 h-8 text-elora-gold mx-auto mb-2"></i>
-                                    <p className="font-semibold text-xs text-slate-800 uppercase tracking-wider">PIX Instantâneo</p>
-                                    <p className="text-[11px] text-slate-500 mt-1">Aprovação em segundos</p>
+                            <div className="bg-white border border-slate-100 p-8 shadow-xl rounded-xl">
+                                <h3 className="text-xl font-serif text-slate-900 mb-6 flex items-center gap-3">
+                                    <i data-lucide="map-pin" className="text-elora-gold w-5 h-5"></i> 2. Endereço de Entrega
+                                </h3>
+                                
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">CEP *</label>
+                                            <input name="cep" value={cliente.cep} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="00000-000" />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Rua / Avenida *</label>
+                                            <input name="rua" value={cliente.rua} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="Nome da rua" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Número *</label>
+                                            <input name="numero" value={cliente.numero} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="123" />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Complemento</label>
+                                            <input name="complemento" value={cliente.complemento} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" placeholder="Apto, Bloco, etc." />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Bairro *</label>
+                                            <input name="bairro" value={cliente.bairro} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Cidade *</label>
+                                            <input name="cidade" value={cliente.cidade} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-semibold">Estado *</label>
+                                            <input name="uf" value={cliente.uf} onChange={handleChange} required maxLength="2" className="w-full bg-slate-50 border border-slate-200 p-3.5 text-slate-900 text-sm outline-none focus:border-elora-gold rounded-md uppercase" placeholder="SP" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+
+                            <button type="submit" disabled={loading} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-xl shadow-elora-gold/20 flex items-center justify-center gap-3">
+                                {loading ? <i data-lucide="loader-2" className="w-5 h-5 animate-spin"></i> : 'Confirmar e Ir para Pagamento'}
+                            </button>
+                        </form>
                     </div>
                     
-                    <div className="bg-white border border-slate-100 p-8 md:p-12 h-fit shadow-2xl rounded-xl relative overflow-hidden">
+                    <div className="bg-white border border-slate-100 p-8 md:p-12 h-fit shadow-2xl rounded-xl relative overflow-hidden sticky top-28">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-elora-gold/5 rounded-full blur-3xl"></div>
 
-                        <h3 className="text-2xl font-serif text-slate-900 mb-8 relative z-10">Resumo da Compra</h3>
+                        <h3 className="text-2xl font-serif text-slate-900 mb-8 relative z-10">Resumo do Pedido</h3>
+                        
+                        {/* Selo Informativo do Desconto PIX */}
+                        <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex items-center gap-3 mb-6 relative z-10">
+                            <i data-lucide="sparkles" className="w-5 h-5 text-emerald-600 flex-shrink-0"></i>
+                            <p className="text-xs text-emerald-800 font-medium">
+                                <strong>Ganhe 5% OFF no PIX!</strong> O desconto extra é aplicado automaticamente ao selecionar a opção PIX na etapa seguinte.
+                            </p>
+                        </div>
+
                         <div className="flex items-center gap-6 mb-8 pb-8 border-b border-slate-100 relative z-10">
                             <img src={produto.imagem} className="w-24 h-24 object-cover rounded-md shadow-md" alt={produto.nome} />
                             <div>
@@ -256,8 +358,8 @@
                                 <span className="text-emerald-500 font-semibold">Grátis</span>
                             </div>
                             <div className="flex justify-between text-slate-500">
-                                <span>Forma de Pagamento</span>
-                                <span>PIX ou Até 10x sem juros</span>
+                                <span>Opções no Checkout</span>
+                                <span>PIX (5% OFF) ou 10x s/ juros</span>
                             </div>
                         </div>
 
@@ -265,10 +367,6 @@
                             <span>Total</span>
                             <span className="text-elora-gold">R$ {produto.preco.toFixed(2)}</span>
                         </div>
-                        
-                        <button onClick={simularCompra} disabled={loading} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors mt-10 rounded-md shadow-xl shadow-elora-gold/20 flex items-center justify-center gap-3 relative z-10">
-                            {loading ? <i data-lucide="loader-2" className="w-5 h-5 animate-spin"></i> : 'Ir para Pagamento Seguro'}
-                        </button>
                     </div>
                 </div>
             );
