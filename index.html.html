@@ -172,7 +172,7 @@
                 const precoCentavos = Math.round(precoFinal * 100);
 
                 const INFINITE_TAG = "soaresalexssander96"; 
-                // ⚠️ IMPORTANTE: Cole sua chave do bloco de notas dentro destas aspas
+                // Insira sua chave API da InfinitePay entre as aspas abaixo
                 const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
 
                 const pedido = {
@@ -201,42 +201,16 @@
                     const dados = await resposta.json();
 
                     if (dados.url) {
-                        // Redireciona para o checkout oficial da InfinitePay
-                        window.location.href = dados.url;
-                    } else {
-                        console.error("Erro retornado pela InfinitePay:", dados);
-                        setLoading(false);
-                        alert("A InfinitePay recusou a requisição. Motivo: " + (dados.message || JSON.stringify(dados)));
-                    }
-                } catch (erro) {
-                    console.error("Erro ao conectar à API:", erro);
-                    setLoading(false);
-                    alert("Erro de conexão ao tentar gerar o pagamento.");
-                }
-            };
-
-                try {
-                    const resposta = await fetch('https://api.checkout.infinitepay.io/links', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${CHAVE_API}`
-                        },
-                        body: JSON.stringify(pedido)
-                    });
-
-                    const dados = await resposta.json();
-
-                    if (dados.url) {
                         window.location.href = dados.url;
                     } else {
                         console.error("Erro da InfinitePay:", dados);
                         setLoading(false);
-                        alert("Não foi possível gerar a cobrança. Verifique as credenciais da InfinitePay.");
+                        alert("Erro InfinitePay: " + (dados.message || "Verifique a chave API inserida."));
                     }
                 } catch (erro) {
-                    console.error("Erro ao conectar à InfinitePay:", erro);
+                    console.error("Erro na conexão:", erro);
                     setLoading(false);
+                    alert("Falha de conexão com a InfinitePay.");
                 }
             };
 
