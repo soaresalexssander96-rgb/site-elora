@@ -188,8 +188,6 @@
 
                     const dados = await resposta.json();
 
-                    alert("Retorno da API: " + JSON.stringify(dados));
-
                     if (dados.url || dados.checkout_url) {
                         window.location.href = dados.url || dados.checkout_url;
                     } else {
