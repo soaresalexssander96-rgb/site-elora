@@ -172,7 +172,7 @@
                 const precoCentavos = Math.round(precoFinal * 100);
 
                 const INFINITE_TAG = "soaresalexssander96"; 
-                const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; // Cole a sua chave token aqui
+                const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
 
                 const pedido = {
                     handle: INFINITE_TAG,
@@ -208,7 +208,7 @@
                     }
                 } catch (erro) {
                     console.error("Redirecionando via checkout direto:", erro);
-                    const linkDireto = `https://checkout.infinitepay.io/${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
+                    const linkDireto = `https://checkout.infinitepay.io/%24${INFINITE_TAG}?amount=${precoCentavos}&description=${encodeURIComponent(produto.nome)}`;
                     window.location.href = linkDireto;
                 }
             };
