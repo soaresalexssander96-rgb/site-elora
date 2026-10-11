@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   const { items, order_nsu } = req.body || {};
 
-  const CHAVE_API = "inchk_RQB5Xy3KHSPBtnlsF-1gorL-P9pGQMNwb8lnMksP9tU"; 
+  const CHAVE_API = process.env.INFINITE_API_KEY || "inchk_RQB5Xy3KHSPBtnlsF-1gorL-P9pGQMNwb8lnMksP9tU"; 
   const INFINITE_TAG = "soaresalexssander96";
 
   const payload = {
@@ -23,39 +23,49 @@ export default async function handler(req, res) {
     items: items || []
   };
 
-  try {
-    // Rota oficial corrigida: /v2/checkouts
-    const response = await fetch('https://api.infinitepay.io/v2/checkouts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CHAVE_API}`
-      },
-      body: JSON.stringify(payload)
-    });
+  const endpoints = [
+    'https://api.infinitepay.io/v2/checkouts',
+    'https://api.infinitepay.io/v2/checkout',
+    'https://api.infinitepay.io/v1/checkouts',
+    'https://api.infinitepay.io/v2/checkout/links',
+    'https://api.infinitepay.io/v2/links'
+  ];
 
-    const rawText = await response.text();
-    let data;
+  let resultados = [];
+
+  for (const url of endpoints) {
     try {
-      data = JSON.parse(rawText);
-    } catch (e) {
-      return res.status(502).json({
-        erro: "Resposta não-JSON da InfinitePay",
-        statusHttp: response.status,
-        respostaBruta: rawText
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${CHAVE_API}`
+        },
+        body: JSON.stringify(payload)
       });
-    }
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        erro: "Recusado pela InfinitePay",
-        statusHttp: response.status,
-        detalhes: data
+      const text = await response.text();
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch(e) {}
+
+      resultados.push({
+        url: url,
+        status: response.status,
+        resposta: parsed || text.substring(0, 100)
       });
-    }
 
-    return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+      // Se a rota for válida e retornar a URL do checkout
+      if (response.ok && parsed && (parsed.url || parsed.checkout_url)) {
+        return res.status(200).json(parsed);
+      }
+    } catch (err) {
+      resultados.push({ url: url, erro: err.message });
+    }
   }
+
+  // Se nenhuma rota gerou URL direta, exibe o relatório de todas as rotas testadas
+  return res.status(200).json({
+    diagnostico: "Relatório de Rotas",
+    tentativas: resultados
+  });
 }
