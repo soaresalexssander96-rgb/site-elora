@@ -165,15 +165,49 @@
             const [comprado, setComprado] = useState(false);
             const [loading, setLoading] = useState(false);
 
-            const simularCompra = () => {
+            const simularCompra = async () => {
                 setLoading(true);
 
-                // Link direto de pagamento da InfinitePay
-                const LINK_INFINITEPAY = "https://link.infinitepay.io/soaresalexssander96/VC1DLTMtSQ-0WfgDvITbg-189,05";
+                // Aplica 5% de desconto no site se a escolha for PIX
+                const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
+                const precoCentavos = Math.round(precoFinal * 100);
 
-                setTimeout(() => {
-                    window.location.href = LINK_INFINITEPAY;
-                }, 400);
+                const pedido = {
+                    order_nsu: "ELORA-" + Date.now(),
+                    payment_method: metodo,
+                    items: [
+                        {
+                            quantity: 1,
+                            price: precoCentavos,
+                            description: `Elora Parfums: ${produto.marca} - ${produto.nome}`
+                        }
+                    ]
+                };
+
+                try {
+                    // Chama a Serverless Function que criámos na Vercel (/api/checkout.js)
+                    const resposta = await fetch('/api/checkout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(pedido)
+                    });
+
+                    const dados = await resposta.json();
+
+                    if (dados.url || dados.checkout_url) {
+                        window.location.href = dados.url || dados.checkout_url;
+                    } else {
+                        console.error("Erro retornado pela API:", dados);
+                        setLoading(false);
+                        alert("Não foi possível gerar o checkout dinâmico da InfinitePay.");
+                    }
+                } catch (erro) {
+                    console.error("Erro na comunicação:", erro);
+                    setLoading(false);
+                    alert("Erro ao conectar com o servidor de pagamento.");
+                }
             };
 
             if (comprado) return (
