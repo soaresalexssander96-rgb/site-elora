@@ -161,9 +161,14 @@
             const [metodo, setMetodo] = useState('pix');
             const [loading, setLoading] = useState(false);
 
+            useEffect(() => {
+                setTimeout(() => lucide.createIcons(), 50);
+            }, [metodo]);
+
             const simularCompra = async () => {
                 setLoading(true);
 
+                // Aplica 5% de desconto se for PIX; no Cartão mantém o valor original
                 const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
                 const precoCentavos = Math.round(precoFinal * 100);
 
@@ -194,7 +199,7 @@
                         setLoading(false);
                     }
                 } catch (erro) {
-                    alert("Erro na requisição: " + erro.message);
+                    alert("Erro ao conectar com o checkout. Tente novamente.");
                     setLoading(false);
                 }
             };
@@ -212,37 +217,22 @@
                                 <i data-lucide="qr-code" className="w-5 h-5"></i> PIX (5% OFF)
                             </button>
                             <button onClick={() => setMetodo('cartao')} className={`flex-1 py-5 border flex items-center justify-center gap-3 transition-all text-sm font-semibold uppercase tracking-widest rounded-md ${metodo === 'cartao' ? 'border-elora-gold text-elora-gold bg-elora-gold/5 shadow-md' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                                <i data-lucide="credit-card" className="w-5 h-5"></i> Cartão
+                                <i data-lucide="credit-card" className="w-5 h-5"></i> Cartão (Até 10x)
                             </button>
                         </div>
 
                         <div className="bg-white border border-slate-100 shadow-xl p-8 mb-8 rounded-xl">
                             {metodo === 'cartao' ? (
-                                <div className="space-y-5 animate-fade-in">
-                                    <div>
-                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Nome no Cartão</label>
-                                        <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Número do Cartão</label>
-                                        <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-5">
-                                        <div>
-                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Validade</label>
-                                            <input type="text" placeholder="MM/AA" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">CVV</label>
-                                            <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 outline-none focus:border-elora-gold rounded-md transition-colors" />
-                                        </div>
-                                    </div>
+                                <div className="text-center p-8 animate-fade-in">
+                                    <i data-lucide="credit-card" className="w-20 h-20 text-elora-gold mx-auto mb-6 opacity-80"></i>
+                                    <p className="text-slate-600 text-lg font-medium">Parcelamento em até 10x sem juros</p>
+                                    <p className="text-slate-500 text-sm mt-2">Você será redirecionado para o ambiente seguro da InfinitePay para concluir o pagamento no cartão de crédito.</p>
                                 </div>
                             ) : (
                                 <div className="text-center p-8 animate-fade-in">
                                     <i data-lucide="qr-code" className="w-20 h-20 text-elora-gold mx-auto mb-6 opacity-80"></i>
-                                    <p className="text-slate-600 text-lg font-medium">Aprovação Imediata</p>
-                                    <p className="text-slate-500 text-sm mt-2">O código PIX Copia e Cola será exibido após a confirmação para garantir seu desconto de 5%.</p>
+                                    <p className="text-slate-600 text-lg font-medium">Aprovação Imediata com 5% OFF</p>
+                                    <p className="text-slate-500 text-sm mt-2">O desconto de 5% foi aplicado no resumo. Você será redirecionado para gerar seu PIX com total segurança.</p>
                                 </div>
                             )}
                         </div>
@@ -270,10 +260,15 @@
                                 <span>Frete Expresso</span>
                                 <span className="text-emerald-500 font-semibold">Grátis</span>
                             </div>
-                            {metodo === 'pix' && (
+                            {metodo === 'pix' ? (
                                 <div className="flex justify-between text-elora-gold">
                                     <span>Desconto PIX (5%)</span>
                                     <span>- R$ {(produto.preco * 0.05).toFixed(2)}</span>
+                                </div>
+                            ) : (
+                                <div className="flex justify-between text-slate-500">
+                                    <span>Parcelamento</span>
+                                    <span>Até 10x sem juros</span>
                                 </div>
                             )}
                         </div>
