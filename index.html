@@ -210,9 +210,16 @@
 
                 // 2. Chamar a API da InfinitePay
                 const pedido = {
-                    order_nsu: orderNsu,
-                    items: [
-                        {
+    order_nsu: orderNsu,
+    customer: cliente,
+    items: [
+        {
+            quantity: 1,
+            price: precoCentavos,
+            description: `Elora Parfums: ${produto.marca} - ${produto.nome}`
+        }
+    ]
+};              
                             quantity: 1,
                             price: precoCentavos,
                             description: `Elora Parfums: ${produto.marca} - ${produto.nome}`
