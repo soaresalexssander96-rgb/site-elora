@@ -84,7 +84,7 @@
         const { 
             ShoppingBag, Search, Sparkles, FlaskConical, X, 
             LayoutDashboard, PlusCircle, Package, CreditCard, 
-            QrCode, CheckCircle, ArrowLeft, Star, Loader2
+            QrCode, CheckCircle, ArrowLeft, Star, Loader2, ShieldCheck
         } = lucide;
 
         const produtosIniciais = [
@@ -158,23 +158,20 @@
         }
 
         function Checkout({ produto, voltarParaLoja }) {
-            const [metodo, setMetodo] = useState('pix');
             const [loading, setLoading] = useState(false);
 
             useEffect(() => {
                 setTimeout(() => lucide.createIcons(), 50);
-            }, [metodo]);
+            }, []);
 
             const simularCompra = async () => {
                 setLoading(true);
 
-                // Aplica 5% de desconto se for PIX; no Cartão mantém o valor original
-                const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
-                const precoCentavos = Math.round(precoFinal * 100);
+                // Envia sempre o valor total oficial em centavos sem margem para alteração
+                const precoCentavos = Math.round(produto.preco * 100);
 
                 const pedido = {
                     order_nsu: "ELORA-" + Date.now(),
-                    payment_method: metodo,
                     items: [
                         {
                             quantity: 1,
@@ -210,31 +207,29 @@
                         <button onClick={voltarParaLoja} className="flex items-center gap-2 text-slate-500 hover:text-elora-gold mb-8 text-sm uppercase tracking-widest font-semibold transition-colors">
                             <i data-lucide="arrow-left" className="w-4 h-4"></i> Voltar
                         </button>
-                        <h2 className="text-3xl font-serif text-slate-900 mb-8 border-b border-slate-200 pb-4">Pagamento Seguro</h2>
+                        <h2 className="text-3xl font-serif text-slate-900 mb-8 border-b border-slate-200 pb-4">Checkout Seguro InfinitePay</h2>
                         
-                        <div className="flex gap-4 mb-8">
-                            <button onClick={() => setMetodo('pix')} className={`flex-1 py-5 border flex items-center justify-center gap-3 transition-all text-sm font-semibold uppercase tracking-widest rounded-md ${metodo === 'pix' ? 'border-elora-gold text-elora-gold bg-elora-gold/5 shadow-md' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                                <i data-lucide="qr-code" className="w-5 h-5"></i> PIX (5% OFF)
-                            </button>
-                            <button onClick={() => setMetodo('cartao')} className={`flex-1 py-5 border flex items-center justify-center gap-3 transition-all text-sm font-semibold uppercase tracking-widest rounded-md ${metodo === 'cartao' ? 'border-elora-gold text-elora-gold bg-elora-gold/5 shadow-md' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                                <i data-lucide="credit-card" className="w-5 h-5"></i> Cartão (Até 10x)
-                            </button>
-                        </div>
+                        <div className="bg-white border border-slate-100 shadow-xl p-8 mb-8 rounded-xl space-y-6">
+                            <div className="flex items-center gap-4 text-emerald-600 bg-emerald-50/50 p-4 rounded-lg border border-emerald-100">
+                                <i data-lucide="shield-check" className="w-8 h-8 flex-shrink-0"></i>
+                                <div>
+                                    <p className="font-semibold text-sm">Ambiente de Pagamento Criptografado</p>
+                                    <p className="text-xs text-slate-500">Sua transação será concluída diretamente no servidor seguro da InfinitePay.</p>
+                                </div>
+                            </div>
 
-                        <div className="bg-white border border-slate-100 shadow-xl p-8 mb-8 rounded-xl">
-                            {metodo === 'cartao' ? (
-                                <div className="text-center p-8 animate-fade-in">
-                                    <i data-lucide="credit-card" className="w-20 h-20 text-elora-gold mx-auto mb-6 opacity-80"></i>
-                                    <p className="text-slate-600 text-lg font-medium">Parcelamento em até 10x sem juros</p>
-                                    <p className="text-slate-500 text-sm mt-2">Você será redirecionado para o ambiente seguro da InfinitePay para concluir o pagamento no cartão de crédito.</p>
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div className="border border-slate-100 bg-slate-50/80 p-5 rounded-lg text-center">
+                                    <i data-lucide="credit-card" className="w-8 h-8 text-elora-gold mx-auto mb-2"></i>
+                                    <p className="font-semibold text-xs text-slate-800 uppercase tracking-wider">Cartão de Crédito</p>
+                                    <p className="text-[11px] text-slate-500 mt-1">Até 10x sem juros</p>
                                 </div>
-                            ) : (
-                                <div className="text-center p-8 animate-fade-in">
-                                    <i data-lucide="qr-code" className="w-20 h-20 text-elora-gold mx-auto mb-6 opacity-80"></i>
-                                    <p className="text-slate-600 text-lg font-medium">Aprovação Imediata com 5% OFF</p>
-                                    <p className="text-slate-500 text-sm mt-2">O desconto de 5% foi aplicado no resumo. Você será redirecionado para gerar seu PIX com total segurança.</p>
+                                <div className="border border-slate-100 bg-slate-50/80 p-5 rounded-lg text-center">
+                                    <i data-lucide="qr-code" className="w-8 h-8 text-elora-gold mx-auto mb-2"></i>
+                                    <p className="font-semibold text-xs text-slate-800 uppercase tracking-wider">PIX Instantâneo</p>
+                                    <p className="text-[11px] text-slate-500 mt-1">Aprovação em segundos</p>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                     
@@ -260,26 +255,19 @@
                                 <span>Frete Expresso</span>
                                 <span className="text-emerald-500 font-semibold">Grátis</span>
                             </div>
-                            {metodo === 'pix' ? (
-                                <div className="flex justify-between text-elora-gold">
-                                    <span>Desconto PIX (5%)</span>
-                                    <span>- R$ {(produto.preco * 0.05).toFixed(2)}</span>
-                                </div>
-                            ) : (
-                                <div className="flex justify-between text-slate-500">
-                                    <span>Parcelamento</span>
-                                    <span>Até 10x sem juros</span>
-                                </div>
-                            )}
+                            <div className="flex justify-between text-slate-500">
+                                <span>Forma de Pagamento</span>
+                                <span>PIX ou Até 10x sem juros</span>
+                            </div>
                         </div>
 
                         <div className="flex justify-between text-slate-900 font-serif text-3xl mt-8 pt-8 border-t border-slate-100 relative z-10">
                             <span>Total</span>
-                            <span className="text-elora-gold">R$ {(metodo === 'pix' ? produto.preco * 0.95 : produto.preco).toFixed(2)}</span>
+                            <span className="text-elora-gold">R$ {produto.preco.toFixed(2)}</span>
                         </div>
                         
                         <button onClick={simularCompra} disabled={loading} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors mt-10 rounded-md shadow-xl shadow-elora-gold/20 flex items-center justify-center gap-3 relative z-10">
-                            {loading ? <i data-lucide="loader-2" className="w-5 h-5 animate-spin"></i> : 'Finalizar Pedido'}
+                            {loading ? <i data-lucide="loader-2" className="w-5 h-5 animate-spin"></i> : 'Ir para Pagamento Seguro'}
                         </button>
                     </div>
                 </div>
