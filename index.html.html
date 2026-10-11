@@ -173,20 +173,16 @@
             const simularCompra = async () => {
                 setLoading(true);
 
-                // 1. A InfinitePay exige o valor em centavos (ex: R$ 10,00 vira 1000)
+                // Preço em centavos exigido pela InfinitePay (ex: R$ 199,00 vira 19900)
                 const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
                 const precoCentavos = Math.round(precoFinal * 100);
 
-                // ==========================================
-                // 🚨 ÁREA RESTRITA: PREENCHA COM SEUS DADOS
-                // ==========================================
                 const INFINITE_TAG = "soaresalexssander96"; // Sua tag sem o $
                 const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
-                // ==========================================
 
                 const pedido = {
                     handle: INFINITE_TAG,
-                    redirect_url: window.location.href, // Para o cliente voltar à loja após pagar
+                    redirect_url: window.location.href,
                     order_nsu: "ELORA-" + Date.now(),
                     items: [
                         {
@@ -197,6 +193,31 @@
                     ]
                 };
 
+                try {
+                    const resposta = await fetch('https://api.checkout.infinitepay.io/links', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CHAVE_API}`
+                        },
+                        body: JSON.stringify(pedido)
+                    });
+
+                    const dados = await resposta.json();
+
+                    if (dados.url) {
+                        // Redireciona o cliente diretamente para a tela oficial da InfinitePay
+                        window.location.href = dados.url;
+                    } else {
+                        console.error("Erro da InfinitePay:", dados);
+                        setLoading(false);
+                        alert("Não foi possível gerar a cobrança. Verifique as credenciais da InfinitePay.");
+                    }
+                } catch (erro) {
+                    console.error("Erro ao conectar à InfinitePay:", erro);
+                    setLoading(false);
+                }
+            };
                 try {
                     // Comunicação com o Checkout Integrado da InfinitePay
                     const resposta = await fetch('https://api.checkout.infinitepay.io/links', {
