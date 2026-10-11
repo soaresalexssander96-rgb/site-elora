@@ -208,19 +208,12 @@
                     console.error("Erro ao guardar dados do cliente no Firebase:", err);
                 }
 
-                // 2. Chamar a API da InfinitePay
+                // 2. Chamar a API da InfinitePay repassando o objeto customer
                 const pedido = {
-    order_nsu: orderNsu,
-    customer: cliente,
-    items: [
-        {
-            quantity: 1,
-            price: precoCentavos,
-            description: `Elora Parfums: ${produto.marca} - ${produto.nome}`
-        }
-    ]
-};
-              
+                    order_nsu: orderNsu,
+                    customer: cliente,
+                    items: [
+                        {
                             quantity: 1,
                             price: precoCentavos,
                             description: `Elora Parfums: ${produto.marca} - ${produto.nome}`
