@@ -11,12 +11,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  const { items, order_nsu } = req.body || {};
+  const { items, order_nsu, customer } = req.body || {};
 
   const CHAVE_API = process.env.INFINITE_API_KEY || "inchk_RQB5Xy3KHSPBtnlsF-1gorL-P9pGQMNwb8lnMksP9tU"; 
   const INFINITE_TAG = "soaresalexssander96";
 
-  // Na API de links, o valor deve estar no campo "price" em centavos dentro do array "items"
   const formattedItems = (items || []).map(item => ({
     description: item.description || "Elora Parfums",
     quantity: item.quantity || 1,
@@ -30,8 +29,16 @@ export default async function handler(req, res) {
     items: formattedItems
   };
 
+  // Envia os dados do cliente para pré-preenchimento automático na InfinitePay
+  if (customer) {
+    payload.customer = {
+      name: customer.nome || "",
+      email: customer.email || "",
+      phone_number: customer.telefone ? "+55" + customer.telefone.replace(/\D/g, '') : ""
+    };
+  }
+
   try {
-    // URL EXATA E OFICIAL DO CHECKOUT INFINITEPAY
     const response = await fetch('https://api.checkout.infinitepay.io/links', {
       method: 'POST',
       headers: {
@@ -57,7 +64,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Retorna a URL de pagamento dinâmico gerada
     return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });
