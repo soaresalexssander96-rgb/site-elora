@@ -165,51 +165,15 @@
             const [comprado, setComprado] = useState(false);
             const [loading, setLoading] = useState(false);
 
-            const simularCompra = async () => {
+            const simularCompra = () => {
                 setLoading(true);
 
-                const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
-                const precoCentavos = Math.round(precoFinal * 100);
+                // Seu link de cobrança oficial fornecido pelo app da InfinitePay
+                const LINK_OFICIAL_GERADO = "https://link.infinitepay.io/soaresalexssander96/VC1DLTMtSQ-0WfgDvITbg-189,05";
 
-                const INFINITE_TAG = "soaresalexssander96"; 
-                const CHAVE_API = "inchk_RQB5Xy3KHSPBTnlsF-1gorL-P9pGQmNWb8lnMksP9tU"; 
-
-                const pedido = {
-                    handle: INFINITE_TAG,
-                    redirect_url: window.location.href,
-                    order_nsu: "ELORA-" + Date.now(),
-                    items: [
-                        {
-                            quantity: 1,
-                            price: precoCentavos,
-                            description: `Elora Parfums: ${produto.marca} - ${produto.nome}`
-                        }
-                    ]
-                };
-
-                try {
-                    const resposta = await fetch('https://api.infinitepay.io/v2/checkout/links', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${CHAVE_API}`
-                        },
-                        body: JSON.stringify(pedido)
-                    });
-
-                    const dados = await resposta.json();
-
-                    if (resposta.ok && (dados.url || dados.checkout_url)) {
-                        window.location.href = dados.url || dados.checkout_url;
-                    } else {
-                        // Link direto oficial do seu perfil InfinitePay
-                        window.location.href = `https://infinitepay.io/pay/$${INFINITE_TAG}`;
-                    }
-                } catch (erro) {
-                    console.error("Redirecionando para a InfiniteTag:", erro);
-                    // Garante que o cliente cai na sua página oficial de recebimento da InfinitePay
-                    window.location.href = `https://infinitepay.io/pay/$${INFINITE_TAG}`;
-                }
+                setTimeout(() => {
+                    window.location.href = LINK_OFICIAL_GERADO;
+                }, 500);
             };
 
             if (comprado) return (
