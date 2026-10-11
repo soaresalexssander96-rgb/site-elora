@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 <head>
 
-<!-- Ligação ao Banco de Dados Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
@@ -24,8 +23,6 @@
   window.collection = collection;
   window.getDocs = getDocs;
   window.addDoc = addDoc;
-  
-  console.log("Cofre Firebase ligado com sucesso!");
 </script>
 
     <meta charset="UTF-8">
@@ -87,7 +84,7 @@
         const { 
             ShoppingBag, Search, Sparkles, FlaskConical, X, 
             LayoutDashboard, PlusCircle, Package, CreditCard, 
-            QrCode, CheckCircle, ArrowLeft, Star
+            QrCode, CheckCircle, ArrowLeft, Star, Loader2
         } = lucide;
 
         const produtosIniciais = [
@@ -162,7 +159,6 @@
 
         function Checkout({ produto, voltarParaLoja }) {
             const [metodo, setMetodo] = useState('pix');
-            const [comprado, setComprado] = useState(false);
             const [loading, setLoading] = useState(false);
 
             const simularCompra = async () => {
@@ -170,8 +166,6 @@
 
                 const precoFinal = metodo === 'pix' ? produto.preco * 0.95 : produto.preco;
                 const precoCentavos = Math.round(precoFinal * 100);
-
-                const LINK_DIRETO_FALLBACK = "https://link.infinitepay.io/soaresalexssander96/VC1DLTMtSQ-0WfgDvITbg-189,05";
 
                 const pedido = {
                     order_nsu: "ELORA-" + Date.now(),
@@ -186,32 +180,26 @@
                 };
 
                 try {
-    const resposta = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pedido)
-    });
+                    const resposta = await fetch('/api/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(pedido)
+                    });
 
-    const dados = await resposta.json();
-    
-    // Exibe o retorno exato da API em um alerta na tela
-    alert("Retorno da API: " + JSON.stringify(dados));
+                    const dados = await resposta.json();
 
-    if (dados.url || dados.checkout_url) {
-        window.location.href = dados.url || dados.checkout_url;
-    }
-} catch (erro) {
-    alert("Erro na requisição: " + erro.message);
-}
+                    alert("Retorno da API: " + JSON.stringify(dados));
 
-            if (comprado) return (
-                <div className="min-h-[75vh] flex flex-col items-center justify-center text-center animate-fade-in px-4">
-                    <i data-lucide="check-circle" className="w-24 h-24 text-elora-gold mb-6 animate-bounce"></i>
-                    <h2 className="text-4xl md:text-5xl font-serif text-slate-900 mb-6">Pedido Confirmado.</h2>
-                    <p className="text-slate-600 text-lg mb-10 max-w-lg">Sua joia olfativa está sendo preparada com o máximo cuidado pela equipe Elora. Enviamos o código de rastreio para o seu e-mail.</p>
-                    <button onClick={voltarParaLoja} className="border border-elora-gold text-elora-gold px-10 py-4 text-sm font-bold uppercase tracking-widest hover:bg-elora-gold hover:text-white transition-all rounded-md">Voltar para o Catálogo</button>
-                </div>
-            );
+                    if (dados.url || dados.checkout_url) {
+                        window.location.href = dados.url || dados.checkout_url;
+                    } else {
+                        setLoading(false);
+                    }
+                } catch (erro) {
+                    alert("Erro na requisição: " + erro.message);
+                    setLoading(false);
+                }
+            };
 
             return (
                 <div className="max-w-7xl mx-auto px-4 py-12 lg:py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 animate-fade-in">
@@ -326,14 +314,12 @@
                     if (window.db && window.collection && window.addDoc) {
                         const docRef = await window.addDoc(window.collection(window.db, "perfumes"), produtoCriado);
                         setProdutos([...produtos, { ...produtoCriado, id: docRef.id }]);
-                        alert("Produto salvo com SUCESSO no banco de dados Firebase!");
+                        alert("Produto salvo no Firebase!");
                     } else {
                         setProdutos([...produtos, { ...produtoCriado, id: Date.now() }]);
-                        alert("Salvo localmente (Firebase ainda não conectou).");
                     }
                 } catch (error) {
-                    console.error("Erro ao salvar no Firebase: ", error);
-                    alert("Erro ao salvar na nuvem.");
+                    console.error("Erro ao salvar: ", error);
                 }
 
                 setNovoProduto({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Masculino' });
@@ -345,7 +331,7 @@
                         <i data-lucide="layout-dashboard" className="text-elora-gold w-10 h-10"></i>
                         <div>
                             <h2 className="text-4xl font-serif text-slate-900">Gestão Elora Parfums</h2>
-                            <p className="text-slate-500 mt-2">Painel de Controle de Estoque e Catálogo</p>
+                            <p className="text-slate-500 mt-2">Painel de Controle de Estoque</p>
                         </div>
                     </div>
 
@@ -360,7 +346,7 @@
                                     <input value={novoProduto.nome} onChange={(e) => setNovoProduto({...novoProduto, nome: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 text-sm outline-none focus:border-elora-gold transition-colors rounded-md" required />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Marca (Ex: Lattafa)</label>
+                                    <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Marca</label>
                                     <input value={novoProduto.marca} onChange={(e) => setNovoProduto({...novoProduto, marca: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 text-slate-900 text-sm outline-none focus:border-elora-gold transition-colors rounded-md" required />
                                 </div>
                                 <div className="grid grid-cols-2 gap-5">
@@ -379,7 +365,7 @@
 
                         <div className="lg:col-span-2 bg-white border border-slate-100 p-8 rounded-xl shadow-xl">
                             <h3 className="text-xl text-slate-900 font-serif mb-8 flex items-center gap-3">
-                                <i data-lucide="package" className="w-5 h-5 text-elora-gold"></i> Estoque Atual na Nuvem
+                                <i data-lucide="package" className="w-5 h-5 text-elora-gold"></i> Estoque Atual
                             </h3>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm text-slate-600">
@@ -438,7 +424,6 @@
                                     setProdutos(produtosIniciais);
                                 }
                             } catch (e) {
-                                console.error("Erro ao puxar dados: ", e);
                                 setProdutos(produtosIniciais);
                             }
                         } else {
