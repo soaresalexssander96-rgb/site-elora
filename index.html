@@ -41,7 +41,8 @@
             theme: {
                 extend: {
                     colors: {
-                        elora: { deepblue: '#050B14', gold: '#D4AF37', light: '#FDFBF7', darkbg: '#0B1320' }
+                        // Azul corrigido baseado na imagem 2
+                        elora: { deepblue: '#0A1128', gold: '#D4AF37', light: '#FDFBF7', darkbg: '#0B1320' }
                     }
                 }
             }
@@ -63,7 +64,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         
-        /* ANIMAÇÃO DO LETREIRO ROTATIVO */
         @keyframes scrollMarquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .animate-marquee { animation: scrollMarquee 35s linear infinite; display: flex; width: max-content; }
         .animate-marquee:hover { animation-play-state: paused; }
@@ -74,7 +74,6 @@
         ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
         
         .logo-parfums-line { display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .logo-parfums-line::before, .logo-parfums-line::after { content: ""; display: block; width: 25px; height: 1px; background-color: #D4AF37; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -141,7 +140,6 @@
             });
         };
 
-        // --- COMPONENTE DO LETREIRO ROTATIVO (BLACK FRIDAY) ---
         function PromoTicker() {
             return (
                 <div className="bg-black text-slate-300 py-2.5 overflow-hidden w-full relative z-50">
@@ -151,7 +149,6 @@
                         <span>💚 5% de Desconto Adicional no PIX</span>
                         <span>📦 Frete Expresso para todo o Brasil</span>
                         
-                        {/* Duplicado para fazer o loop infinito suave */}
                         <span>🔥 Esquenta Black Friday: Condições Especiais</span>
                         <span>💳 Até 10x Sem Juros no Cartão</span>
                         <span>💚 5% de Desconto Adicional no PIX</span>
@@ -179,6 +176,7 @@
             );
         }
 
+        // Lógica de Corrigir o Logo Deepblue
         function LogoPremium({ onClick, isSmall = false, darkMode }) {
             const textColor = darkMode ? 'text-elora-gold' : 'text-elora-deepblue';
             const lineColor = darkMode ? 'bg-elora-gold' : 'bg-elora-deepblue';
@@ -208,7 +206,6 @@
             const parcelado = (precoSeguro / 10).toFixed(2);
             const pix = (precoSeguro * 0.95).toFixed(2);
             
-            // GATILHO MENTAL: Prova Social
             const numVendidos = 120 + (produto.nome.length * 14) + (Math.floor(precoSeguro) % 30);
 
             const nextImg = (e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev + 1) % imagens.length); };
@@ -236,7 +233,6 @@
 
                     <div className="relative aspect-[4/5] bg-slate-50 dark:bg-slate-800 overflow-hidden flex items-center justify-center p-4 mb-5 rounded-md cursor-pointer group/img" onClick={() => onClick(produto)}>
                         
-                        {/* TAGS (Categoria e Família Olfativa) */}
                         <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5 items-start">
                             {produto.categoria && <span className="bg-elora-gold text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.categoria}</span>}
                             {produto.familia && <span className="bg-slate-900/80 backdrop-blur-sm text-slate-100 text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.familia}</span>}
@@ -261,7 +257,7 @@
                     
                     <div className="text-center mt-auto flex flex-col items-center z-20 relative">
                         <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-1 block">{produto.marca}</span>
-                        <h3 className="text-lg font-serif hover:text-elora-gold transition-colors cursor-pointer leading-tight" onClick={() => onClick(produto)}>{produto.nome}</h3>
+                        <h3 className="text-lg font-serif mb-1 hover:text-elora-gold transition-colors cursor-pointer leading-tight" onClick={() => onClick(produto)}>{produto.nome}</h3>
                         
                         <div className="flex items-center gap-1 mb-2 mt-1">
                             <Icon name="flame" className="w-3 h-3 text-orange-500" />
@@ -290,7 +286,6 @@
             );
         }
 
-        // --- MODAL DE PRODUTO COM PIRÂMIDE OLFATIVA E CROSS-SELL ---
         function ProductModal({ produto, todosProdutos, onSwitchProduct, onClose, onAddToCart, onBuyNow, darkMode }) {
             const [imgAtiva, setImgAtiva] = useState(0);
             
@@ -300,7 +295,6 @@
             const pix = (precoSeguro * 0.95).toFixed(2);
             const numVendidos = 120 + (produto.nome.length * 14) + (Math.floor(precoSeguro) % 30);
 
-            // Filtra produtos similares (Mesma família ou categoria, ignorando o próprio produto). Pega no máximo 4.
             const similares = todosProdutos.filter(p => p.id !== produto.id && (p.familia === produto.familia || p.categoria === produto.categoria)).slice(0, 4);
 
             return (
@@ -344,7 +338,6 @@
                                     <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 w-fit rounded border border-emerald-100 dark:border-emerald-800"><Icon name="percent" className="w-3 h-3 inline mr-1"/> R$ {pix} à vista no PIX</span>
                                 </div>
                                 
-                                {/* PIRÂMIDE OLFATIVA */}
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-lg border border-slate-200 dark:border-slate-700 mb-8">
                                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
                                         <Icon name="wind" className="w-4 h-4 text-elora-gold"/> Pirâmide Olfativa
@@ -367,7 +360,6 @@
                             </div>
                         </div>
 
-                        {/* CROSS-SELL (PRODUTOS SIMILARES) */}
                         {similares.length > 0 && (
                             <div className="w-full mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
                                 <h3 className="text-xl sm:text-2xl font-serif mb-6 text-center">Você também vai amar...</h3>
@@ -390,6 +382,94 @@
             );
         }
 
+        function QuizModal({ onClose, produtos, irParaCheckout, darkMode }) {
+            const [step, setStep] = useState(1);
+            const [perfil, setPerfil] = useState({ genero: '', familia: '', intensidade: '', ocasiao: '' });
+            const [resultado, setResultado] = useState(null);
+
+            const handleResponder = (campo, valor) => {
+                if (produtos.length === 0) {
+                    alert("O catálogo está vazio no momento.");
+                    onClose();
+                    return;
+                }
+
+                const novoPerfil = { ...perfil, [campo]: valor };
+                setPerfil(novoPerfil);
+
+                if (step < 4) {
+                    setStep(step + 1);
+                } else {
+                    let recomendados = produtos;
+                    if (novoPerfil.genero === 'Feminino') {
+                        recomendados = produtos.filter(p => p.categoria === 'Feminino');
+                    } else if (novoPerfil.genero === 'Masculino') {
+                        recomendados = produtos.filter(p => p.categoria === 'Masculino');
+                    }
+                    
+                    if (recomendados.length === 0) recomendados = produtos;
+                    
+                    setResultado(recomendados[Math.floor(Math.random() * recomendados.length)] || produtos[0]);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+                    <div className={`${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'} border p-8 md:p-12 max-w-lg w-full relative animate-fade-in shadow-2xl rounded-xl`}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors"><Icon name="x" className="w-6 h-6" /></button>
+                        {!resultado ? (
+                            <div className="text-center">
+                                <Icon name="flask-conical" className="w-12 h-12 text-elora-gold mx-auto mb-6" />
+                                <h3 className="text-3xl font-serif mb-2">Descubra sua Assinatura</h3>
+                                <p className="text-slate-500 text-sm mb-8 tracking-widest uppercase font-semibold">Etapa {step} de 4</p>
+
+                                {step === 1 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Para quem é a fragrância?</p>
+                                        <button onClick={() => handleResponder('genero', 'Feminino')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Para Ela</button>
+                                        <button onClick={() => handleResponder('genero', 'Masculino')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Para Ele</button>
+                                    </div>
+                                )}
+                                {step === 2 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual a sua família olfativa favorita?</p>
+                                        <button onClick={() => handleResponder('familia', 'Doces')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Adocicados & Florais</button>
+                                        <button onClick={() => handleResponder('familia', 'Amadeirados')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Madeiras & Especiarias</button>
+                                    </div>
+                                )}
+                                {step === 3 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual a intensidade ideal?</p>
+                                        <button onClick={() => handleResponder('intensidade', 'Suave')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Suave e Elegante</button>
+                                        <button onClick={() => handleResponder('intensidade', 'Forte')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Forte e Marcante</button>
+                                    </div>
+                                )}
+                                {step === 4 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Onde pretende usar essa joia?</p>
+                                        <button onClick={() => handleResponder('ocasiao', 'Dia')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Dia a dia e Trabalho</button>
+                                        <button onClick={() => handleResponder('ocasiao', 'Noite')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Noite e Eventos Especiais</button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-center animate-fade-in">
+                                <h3 className="text-3xl font-serif text-elora-gold mb-2">Seu Par Perfeito</h3>
+                                <p className="text-slate-500 text-sm mb-6">A fragrância ideal para o seu perfil.</p>
+                                <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} border p-6 flex flex-col items-center mb-6 rounded-xl`}>
+                                    <img src={getImagemPrincipal(resultado)} className="w-40 h-40 object-cover mb-6 rounded-md shadow-md" alt={resultado.nome} />
+                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-2">{resultado.marca}</span>
+                                    <h4 className="text-2xl font-serif">{resultado.nome}</h4>
+                                    <p className="text-elora-gold font-medium text-xl mt-3">R$ {(Number(resultado.preco) || 0).toFixed(2)}</p>
+                                </div>
+                                <button onClick={() => irParaCheckout(resultado)} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Adicionar à Sacola</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         function AuthModal({ onClose, onSuccess, mensagemExtra, darkMode }) {
             const [viewMode, setViewMode] = useState('login'); 
             const [loading, setLoading] = useState(false);
@@ -397,7 +477,6 @@
 
             const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-            // MEDIDOR DE FORÇA DA SENHA MILITAR
             const checkPasswordStrength = (pass) => {
                 let score = 0;
                 if (pass.length >= 6) score++;
@@ -622,7 +701,6 @@
             );
         }
 
-        // --- CHECKOUT COM INTEGRAÇÃO VIACEP E LÓGICA DE FRETE REGIONAL (RS mais barato) ---
         function Checkout({ cart, user, voltarParaLoja, darkMode }) {
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' });
@@ -654,10 +732,8 @@
                         return;
                     }
 
-                    // Auto-preenchimento
                     setEndereco(prev => ({ ...prev, rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, uf: data.uf }));
 
-                    // Lógica Regional de Frete (Origem: Campo Bom - RS)
                     let basePac = 28.90; let baseSedex = 45.50; let prazoPac = '5 a 8 dias úteis'; let prazoSedex = '2 a 3 dias úteis';
                     
                     if (data.uf === 'RS') {
@@ -1033,7 +1109,85 @@
             );
         }
 
-        // --- APP PRINCIPAL INTEGRANDO TUDO ---
+        function CustomerAccount({ user, logout, voltar, darkMode }) {
+            const [pedidos, setPedidos] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const buscarPedidos = async () => {
+                    if (window.db && window.collection && window.query) {
+                        try {
+                            const q = window.query(window.collection(window.db, "pedidos"), window.where("cliente.email", "==", user.email));
+                            const querySnapshot = await window.getDocs(q);
+                            const lista = [];
+                            querySnapshot.forEach((doc) => { lista.push({ id: doc.id, ...doc.data() }); });
+                            lista.sort((a,b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+                            setPedidos(lista);
+                        } catch (e) { console.error(e); }
+                    }
+                    setLoading(false);
+                };
+                buscarPedidos();
+            }, [user.email]);
+
+            return (
+                <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 md:mb-12 border-b border-slate-200 dark:border-slate-800 pb-6">
+                        <div>
+                            <h2 className="text-3xl md:text-4xl font-serif">Minha Conta</h2>
+                            <p className="text-slate-400 mt-1 text-sm">Bem-vindo(a), {user.nome.split(' ')[0]}</p>
+                        </div>
+                        <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair</button>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-6">
+                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="package" className="w-5 h-5 text-elora-gold" /> Meus Pedidos</h3>
+                            {loading ? (
+                                <div className="text-center py-12 text-slate-400"><Icon name="loader-2" className="w-8 h-8 animate-spin mx-auto" /></div>
+                            ) : pedidos.length === 0 ? (
+                                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-8 rounded-xl text-center shadow-sm`}>
+                                    <p className="text-slate-400 mb-4 text-sm">Nenhum pedido encontrado na sua conta.</p>
+                                    <button onClick={voltar} className="text-elora-gold font-bold uppercase text-xs tracking-widest hover:underline">Ir para a Loja</button>
+                                </div>
+                            ) : (
+                                pedidos.map(pedido => {
+                                    const dataPedido = new Date(pedido.dataCriacao);
+                                    let totalDisplay = '0.00';
+                                    if (pedido.valorTotal) totalDisplay = Number(pedido.valorTotal).toFixed(2);
+                                    else if (pedido.produto && pedido.produto.preco) totalDisplay = Number(pedido.produto.preco).toFixed(2);
+
+                                    return (
+                                        <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
+                                            <div className={`${darkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'} border-b p-4 sm:p-5 flex justify-between items-center text-xs`}>
+                                                <div><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Pedido {pedido.order_nsu}</span><span className="font-medium">{dataPedido.toLocaleDateString('pt-BR')}</span></div>
+                                                <div className="text-right"><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Status</span><span className="font-bold text-elora-gold bg-elora-gold/10 px-2.5 py-1 rounded-full text-[11px]">{pedido.status || 'Aguardando Pagamento'}</span></div>
+                                            </div>
+                                            <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 items-center">
+                                                <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 sm:w-24 sm:h-24 rounded-md flex items-center justify-center flex-shrink-0"><Icon name="shopping-bag" className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" /></div>
+                                                <div className="flex-grow text-center sm:text-left">
+                                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">Total da Compra</span>
+                                                    <h4 className="text-base sm:text-lg font-serif">R$ {totalDisplay}</h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 h-fit shadow-xl rounded-xl`}>
+                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="user" className="w-5 h-5 text-elora-gold" /> Dados Cadastrais</h3>
+                            <div className="space-y-4 text-xs sm:text-sm text-slate-400">
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">Nome</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.nome}</p></div>
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">E-mail</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.email}</p></div>
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">CPF</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.cpf || 'Não informado'}</p></div>
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">WhatsApp</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.telefone || 'Não informado'}</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         function App() {
             const [view, setView] = useState('store'); 
             const [quizOpen, setQuizOpen] = useState(false);
