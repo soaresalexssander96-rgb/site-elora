@@ -3,8 +3,6 @@
 <head>
 
 <script type="module">
-  // Removemos o Firebase Storage daqui para não dar conflito. 
-  // Mantemos apenas o banco de dados principal (Firestore) que já está a funcionar perfeitamente.
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
@@ -294,12 +292,6 @@
 
             const handleSubmitProduto = async (e) => {
                 e.preventDefault();
-                
-                if (IMGBB_API_KEY === "COLE_SUA_CHAVE_AQUI" && imagensArquivos.length > 0) {
-                    alert("Por favor, cole a sua chave da API do ImgBB na configuração do código.");
-                    return;
-                }
-
                 setCarregando(true);
                 setCarregandoText("Preparando...");
                 
@@ -422,7 +414,6 @@
                                         <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Estoque</label><input type="number" value={novoProduto.estoque} onChange={(e) => setNovoProduto({...novoProduto, estoque: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required /></div>
                                     </div>
                                     
-                                    {/* UPLOAD DE IMAGEM 100% NATIVO (VIA IMGBB) */}
                                     <div className="border border-dashed border-slate-300 dark:border-slate-700 p-4 rounded-md text-center bg-slate-50 dark:bg-slate-800/50">
                                         <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold cursor-pointer">
                                             <Icon name="upload-cloud" className="w-6 h-6 mx-auto mb-2 text-elora-gold" />
@@ -431,7 +422,6 @@
                                             <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
                                         </label>
                                         
-                                        {/* Preview das imagens escolhidas na hora */}
                                         {previewImgs.length > 0 && (
                                             <div className="mt-3 flex flex-wrap gap-2 justify-center">
                                                 {previewImgs.map((src, i) => (
@@ -810,7 +800,7 @@
                     </header>
 
                     <main className="flex-grow">
-                        {view === 'admin' && user?.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} />}
+                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} />}
                         {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={logout} voltar={() => setView('store')} darkMode={darkMode} />}
                         {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} />}
                         
