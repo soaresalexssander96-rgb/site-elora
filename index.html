@@ -89,6 +89,11 @@
             return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
         };
 
+        const getImagemPrincipal = (produto) => {
+            if (produto.imagens && produto.imagens.length > 0) return produto.imagens[0];
+            return produto.imagem || './royal-amber.jpeg';
+        };
+
         // --- COMPRESSOR DE IMAGENS À PROVA DE BALA PARA TELEMÓVEL ---
         const compressImage = (file) => {
             return new Promise((resolve) => {
@@ -119,7 +124,6 @@
 
                         canvas.toBlob((blob) => {
                             if (blob) {
-                                // Cria um File a partir do Blob para o ImgBB aceitar perfeitamente
                                 resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
                             } else {
                                 resolve(file);
@@ -152,20 +156,17 @@
             );
         }
 
-        // --- CARTÃO DE PRODUTO COMPLETO E CORRIGIDO (COM PROTEÇÃO CONTRA LINKS VAZIOS) ---
+        // --- CARTÃO DE PRODUTO COMPLETO E CORRIGIDO (COM LINK NO WHATSAPP) ---
         function ProductCard({ produto, onClick, onAddToCart, darkMode }) {
             const [imgIndex, setImgIndex] = useState(0);
             const [isFav, setIsFav] = useState(false);
             
-            // Filtro rigoroso: Ignora links em branco ou nulos criados por erro de rede
             const imagens = (produto.imagens && produto.imagens.filter(Boolean).length > 0) 
                 ? produto.imagens.filter(Boolean) 
                 : [produto.imagem || './royal-amber.jpeg'];
 
-            // Imagem exibida atualmente
             const currentImg = imagens[imgIndex] || imagens[0];
 
-            // Matemática Blindada: Força a conversão para número
             const precoSeguro = Number(produto.preco) || 0;
             const parcelado = (precoSeguro / 10).toFixed(2);
             const pix = (precoSeguro * 0.95).toFixed(2);
@@ -177,14 +178,15 @@
             const shareWhats = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por R$${precoSeguro.toFixed(2)}!`);
+                // Link oficial do site agora incluído na mensagem
+                const linkSite = "https://site-elora.vercel.app";
+                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por R$ ${precoSeguro.toFixed(2)}!\n\nConfira aqui: ${linkSite}`);
                 window.open(`https://wa.me/?text=${text}`, '_blank');
             };
 
             return (
                 <div className={`group flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg hover:shadow-2xl transition-all duration-500 p-4 sm:p-5 rounded-xl relative`}>
                     
-                    {/* Botões Flutuantes Favoritos/Partilha */}
                     <div className="absolute top-6 right-6 z-30 flex flex-col gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={toggleFav} className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow hover:scale-110 transition-transform">
                             <Icon name="heart" className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
@@ -199,7 +201,6 @@
                         
                         <img src={currentImg} className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
                         
-                        {/* Setas Visíveis no Mobile sempre e on hover no PC */}
                         {imagens.length > 1 && (
                             <React.Fragment>
                                 <button onClick={prevImg} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full text-slate-800 opacity-100 lg:opacity-0 lg:group-hover/img:opacity-100 transition-opacity shadow-md z-20"><Icon name="chevron-left" className="w-4 h-4"/></button>
@@ -283,7 +284,7 @@
                                 <h3 className="text-3xl font-serif text-elora-gold mb-2">Seu Par Perfeito</h3>
                                 <p className="text-slate-500 text-sm mb-6">A fragrância ideal para o seu perfil.</p>
                                 <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} border p-6 flex flex-col items-center mb-6 rounded-xl`}>
-                                    <img src={((resultado.imagens || []).filter(Boolean)[0]) || resultado.imagem} className="w-40 h-40 object-cover mb-6 rounded-md shadow-md" alt={resultado.nome} />
+                                    <img src={getImagemPrincipal(resultado)} className="w-40 h-40 object-cover mb-6 rounded-md shadow-md" alt={resultado.nome} />
                                     <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-2">{resultado.marca}</span>
                                     <h4 className="text-2xl font-serif">{resultado.nome}</h4>
                                     <p className="text-elora-gold font-medium text-xl mt-3">R$ {(Number(resultado.preco) || 0).toFixed(2)}</p>
@@ -367,7 +368,7 @@
                             {cart.length === 0 ? <div className="text-center text-slate-400 py-12">Sua sacola está vazia.</div> : (
                                 cart.map((item, index) => (
                                     <div key={index} className="flex gap-4 items-center">
-                                        <img src={item.imagens ? item.imagens[0] : item.imagem} alt={item.nome} className="w-16 h-16 object-cover rounded-md bg-slate-100 dark:bg-slate-800" />
+                                        <img src={getImagemPrincipal(item)} alt={item.nome} className="w-16 h-16 object-cover rounded-md bg-slate-100 dark:bg-slate-800" />
                                         <div className="flex-1">
                                             <p className="font-serif text-sm">{item.nome}</p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{item.marca}</p>
@@ -437,7 +438,6 @@
                         for (let i = 0; i < imagensArquivos.length; i++) {
                             setCarregandoText(`A enviar foto ${i + 1} de ${imagensArquivos.length}...`);
                             
-                            // Comprime a foto antes de enviar (Resolve o problema do atraso de 1 minuto)
                             const imagemLeve = await compressImage(imagensArquivos[i]);
 
                             const formData = new FormData();
@@ -457,9 +457,9 @@
                         }
                     }
 
-                    urlsFinais = urlsFinais.filter(Boolean); // Limpa links vazios que causem tela branca
+                    urlsFinais = urlsFinais.filter(Boolean);
                     if (urlsFinais.length === 0) {
-                        urlsFinais = ['./royal-amber.jpeg']; // Foto de segurança
+                        urlsFinais = ['./royal-amber.jpeg'];
                     }
 
                     setCarregandoText("A guardar produto...");
@@ -585,7 +585,7 @@
                                         <tbody>
                                             {produtos.length === 0 ? <tr><td colSpan="3" className="py-8 text-center text-slate-500 text-xs">Catálogo vazio.</td></tr> : (
                                                 produtos.map(p => {
-                                                    const imgValida = p.imagens ? p.imagens.filter(Boolean)[0] : p.imagem;
+                                                    const imgValida = (p.imagens && p.imagens.filter(Boolean)[0]) || p.imagem;
                                                     return (
                                                     <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                                         <td className="py-3 flex items-center gap-3"><img src={imgValida} className="w-10 h-10 object-cover rounded" /><div><span className="text-elora-gold text-[9px] uppercase font-bold block tracking-widest">{p.marca}</span><span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span></div></td>
@@ -638,85 +638,6 @@
                             </div>
                         </div>
                     )}
-                </div>
-            );
-        }
-
-        function CustomerAccount({ user, logout, voltar, darkMode }) {
-            const [pedidos, setPedidos] = useState([]);
-            const [loading, setLoading] = useState(true);
-
-            useEffect(() => {
-                const buscarPedidos = async () => {
-                    if (window.db && window.collection && window.query) {
-                        try {
-                            const q = window.query(window.collection(window.db, "pedidos"), window.where("cliente.email", "==", user.email));
-                            const querySnapshot = await window.getDocs(q);
-                            const lista = [];
-                            querySnapshot.forEach((doc) => { lista.push({ id: doc.id, ...doc.data() }); });
-                            lista.sort((a,b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
-                            setPedidos(lista);
-                        } catch (e) { console.error(e); }
-                    }
-                    setLoading(false);
-                };
-                buscarPedidos();
-            }, [user.email]);
-
-            return (
-                <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 animate-fade-in">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 md:mb-12 border-b border-slate-200 dark:border-slate-800 pb-6">
-                        <div>
-                            <h2 className="text-3xl md:text-4xl font-serif">Minha Conta</h2>
-                            <p className="text-slate-400 mt-1 text-sm">Bem-vindo(a), {user.nome.split(' ')[0]}</p>
-                        </div>
-                        <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair</button>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-6">
-                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="package" className="w-5 h-5 text-elora-gold" /> Meus Pedidos</h3>
-                            {loading ? (
-                                <div className="text-center py-12 text-slate-400"><Icon name="loader-2" className="w-8 h-8 animate-spin mx-auto" /></div>
-                            ) : pedidos.length === 0 ? (
-                                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-8 rounded-xl text-center shadow-sm`}>
-                                    <p className="text-slate-400 mb-4 text-sm">Nenhum pedido encontrado na sua conta.</p>
-                                    <button onClick={voltar} className="text-elora-gold font-bold uppercase text-xs tracking-widest hover:underline">Ir para a Loja</button>
-                                </div>
-                            ) : (
-                                pedidos.map(pedido => {
-                                    const dataPedido = new Date(pedido.dataCriacao);
-                                    let totalDisplay = '0.00';
-                                    if (pedido.valorTotal) totalDisplay = Number(pedido.valorTotal).toFixed(2);
-                                    else if (pedido.produto && pedido.produto.preco) totalDisplay = Number(pedido.produto.preco).toFixed(2);
-
-                                    return (
-                                        <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
-                                            <div className={`${darkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'} border-b p-4 sm:p-5 flex justify-between items-center text-xs`}>
-                                                <div><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Pedido {pedido.order_nsu}</span><span className="font-medium">{dataPedido.toLocaleDateString('pt-BR')}</span></div>
-                                                <div className="text-right"><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Status</span><span className="font-bold text-elora-gold bg-elora-gold/10 px-2.5 py-1 rounded-full text-[11px]">{pedido.status || 'Aguardando Pagamento'}</span></div>
-                                            </div>
-                                            <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 items-center">
-                                                <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 sm:w-24 sm:h-24 rounded-md flex items-center justify-center flex-shrink-0"><Icon name="shopping-bag" className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" /></div>
-                                                <div className="flex-grow text-center sm:text-left">
-                                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">Total da Compra</span>
-                                                    <h4 className="text-base sm:text-lg font-serif">R$ {totalDisplay}</h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                })
-                            )}
-                        </div>
-                        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 h-fit shadow-xl rounded-xl`}>
-                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="user" className="w-5 h-5 text-elora-gold" /> Dados Cadastrais</h3>
-                            <div className="space-y-4 text-xs sm:text-sm text-slate-400">
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">Nome</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.nome}</p></div>
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">E-mail</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.email}</p></div>
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">CPF</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.cpf || 'Não informado'}</p></div>
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">WhatsApp</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.telefone || 'Não informado'}</p></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             );
         }
