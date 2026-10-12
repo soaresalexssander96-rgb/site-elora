@@ -81,14 +81,6 @@
             height: 1px;
             background-color: #D4AF37;
         }
-        .logo-ornament {
-            width: 80px;
-            height: 20px;
-            margin: 4px auto 0;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 30' fill='none' stroke='%23D4AF37' stroke-width='1.5'%3E%3Cpath d='M50 25c-5 0-10-5-15-5s-10 5-15 5-15-10-15-10 5-10 15-10 10 5 15 5 10-5 15-5 15 10 15 10-10 10-15 10z'/%3E%3Cpath d='M50 25v-15'/%3E%3Ccircle cx='50' cy='5' r='2' fill='%23D4AF37'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: center;
-        }
     </style>
 </head>
 <body class="antialiased selection:bg-elora-gold selection:text-white">
@@ -110,7 +102,7 @@
 
         // --- COMPONENTE: BOTÃO WHATSAPP ---
         function WhatsAppButton() {
-            const telefone = "5511999999999"; 
+            const telefone = "5551994378685"; 
             const mensagem = encodeURIComponent("Olá, Elora Parfums! Preciso de ajuda no site.");
             return (
                 <a href={`https://wa.me/${telefone}?text=${mensagem}`} target="_blank" rel="noreferrer" 
@@ -132,7 +124,6 @@
                             Parfums
                         </span>
                     </div>
-                    <div className="logo-ornament"></div>
                 </div>
             );
         }
@@ -475,7 +466,7 @@
         }
 
         // --- COMPONENTE: PAINEL ADMIN (GESTÃO COMPLETA) ---
-        function AdminDashboard({ produtos, setProdutos, darkMode }) {
+        function AdminDashboard({ produtos, setProdutos, darkMode, logout }) {
             const [aba, setAba] = useState('produtos');
             const [pedidosAll, setPedidosAll] = useState([]);
             const [produtoEditando, setProdutoEditando] = useState(null);
@@ -554,6 +545,7 @@
                             <Icon name="layout-dashboard" className="text-elora-gold w-8 h-8" />
                             <div><h2 className="text-2xl sm:text-3xl font-serif">Painel de Gestão ERP</h2><p className="text-xs text-slate-400 mt-1">Acesso Exclusivo Administrador</p></div>
                         </div>
+                        <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair do Painel</button>
                     </div>
                     <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8">
                         <button onClick={() => setAba('produtos')} className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${aba === 'produtos' ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Catálogo de Produtos</button>
@@ -848,7 +840,7 @@
                     </header>
 
                     <main className="flex-grow">
-                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} />}
+                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} />}
                         {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={logout} voltar={() => setView('store')} darkMode={darkMode} />}
                         {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} />}
                         
