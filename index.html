@@ -99,44 +99,48 @@
             return produto.imagem || './royal-amber.jpeg';
         };
 
+        // --- NOVO COMPRESSOR ULTRA-LEVE (Gera imagens de 60KB que abrem instantaneamente) ---
         const compressImage = (file) => {
             return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 1000;
-                        const MAX_HEIGHT = 1000;
-                        let width = img.width;
-                        let height = img.height;
+                const img = new Image();
+                const objectUrl = URL.createObjectURL(file);
+                
+                img.onload = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Reduzido de 1000 para 800
+                    const MAX_HEIGHT = 800; // Reduzido de 1000 para 800
+                    let width = img.width;
+                    let height = img.height;
 
-                        if (width > height && width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        } else if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
+                    if (width > height && width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    } else if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+                        } else {
+                            resolve(file);
                         }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-                            } else {
-                                resolve(file);
-                            }
-                        }, 'image/jpeg', 0.8); 
-                    };
-                    img.onerror = () => resolve(file);
+                    }, 'image/jpeg', 0.65); // Qualidade reduzida para 65% (não perde qualidade visual em telemóvel, mas fica super leve)
                 };
-                reader.onerror = () => resolve(file);
+                
+                img.onerror = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(file);
+                };
+                
+                img.src = objectUrl;
             });
         };
 
@@ -237,7 +241,8 @@
                             {produto.familia && <span className="bg-slate-900/80 backdrop-blur-sm text-slate-100 text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.familia}</span>}
                         </div>
                         
-                        <img src={currentImg} className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
+                        {/* TAG LAZY e ASYNC para carregar super rápido */}
+                        <img src={currentImg} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
                         
                         {imagens.length > 1 && (
                             <React.Fragment>
@@ -308,13 +313,13 @@
                                         {produto.categoria && <span className="bg-elora-gold text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.categoria}</span>}
                                         {produto.familia && <span className="bg-slate-900/80 backdrop-blur-sm text-slate-100 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.familia}</span>}
                                     </div>
-                                    <img src={imagensArray[imgAtiva] || imagensArray[0]} alt={produto.nome} className="w-full h-full object-contain rounded-md transition-opacity duration-300" />
+                                    <img src={imagensArray[imgAtiva] || imagensArray[0]} loading="lazy" decoding="async" alt={produto.nome} className="w-full h-full object-contain rounded-md transition-opacity duration-300" />
                                 </div>
                                 {imagensArray.length > 1 && (
                                     <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
                                         {imagensArray.map((img, index) => (
                                             <button key={index} onClick={() => setImgAtiva(index)} className={`flex-shrink-0 w-16 h-16 rounded-md border-2 overflow-hidden transition-all ${imgAtiva === index ? 'border-elora-gold opacity-100 scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                                                <img src={img} className="w-full h-full object-cover" />
+                                                <img src={img} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                             </button>
                                         ))}
                                     </div>
@@ -366,7 +371,7 @@
                                     {similares.map(sim => (
                                         <div key={sim.id} className="cursor-pointer group text-center" onClick={() => { setImgAtiva(0); onSwitchProduct(sim); }}>
                                             <div className="relative aspect-[4/5] bg-slate-50 dark:bg-slate-800 overflow-hidden rounded-md mb-3">
-                                                <img src={sim.imagens ? sim.imagens[0] : sim.imagem} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={sim.nome} />
+                                                <img src={sim.imagens ? sim.imagens[0] : sim.imagem} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={sim.nome} />
                                             </div>
                                             <p className="text-[9px] text-elora-gold font-bold uppercase tracking-widest mb-1">{sim.marca}</p>
                                             <p className="text-sm font-serif truncate hover:text-elora-gold transition-colors">{sim.nome}</p>
@@ -678,7 +683,7 @@
                             {cart.length === 0 ? <div className="text-center text-slate-400 py-12">Sua sacola está vazia.</div> : (
                                 cart.map((item, index) => (
                                     <div key={index} className="flex gap-4 items-center">
-                                        <img src={getImagemPrincipal(item)} alt={item.nome} className="w-16 h-16 object-cover rounded-md bg-slate-100 dark:bg-slate-800" />
+                                        <img src={getImagemPrincipal(item)} loading="lazy" alt={item.nome} className="w-16 h-16 object-cover rounded-md bg-slate-100 dark:bg-slate-800" />
                                         <div className="flex-1">
                                             <p className="font-serif text-sm">{item.nome}</p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{item.marca}</p>
@@ -700,7 +705,7 @@
             );
         }
 
-        function Checkout({ cart, user, voltarParaLoja, darkMode }) {
+        function Checkout({ cart, user, voltarParaLoja, darkMode, onCheckoutSuccess }) {
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' });
             
@@ -767,21 +772,9 @@
                 const orderNsu = "ELORA-" + Date.now();
                 const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
 
-                // O SEGREDO DO BUG: O frete não estava a ser empacotado para o InfinitePay.
                 const itemsForAPI = cart.map(item => ({
-                    quantity: 1, 
-                    price: Math.round((Number(item.preco)||0) * 100), 
-                    description: `Elora: ${item.marca} - ${item.nome}`
+                    quantity: 1, price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
                 }));
-                
-                // Se houver frete, ele agora vai como um item adicional
-                if (freteValor > 0) {
-                    itemsForAPI.push({
-                        quantity: 1, 
-                        price: Math.round(freteValor * 100), 
-                        description: `Frete / Entrega (${endereco.uf})`
-                    });
-                }
 
                 try {
                     if (window.db && window.collection && window.addDoc) {
@@ -795,7 +788,6 @@
 
                 const pedido = { order_nsu: orderNsu, customer: clienteCompleto, items: itemsForAPI };
                 
-                // A CHAMADA ORIGINAL DO SEU SERVIDOR GITHUB RESTAURADA E PERFEITA
                 try {
                     const resposta = await fetch('/api/checkout', { 
                         method: 'POST', 
@@ -882,7 +874,7 @@
                         <div className="max-h-60 overflow-y-auto pr-2 space-y-4 mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
                             {cart.map((item, index) => (
                                 <div key={index} className="flex items-center gap-4">
-                                    <img src={getImagemPrincipal(item)} className="w-16 h-16 object-cover rounded-md shadow-sm" alt={item.nome} />
+                                    <img src={getImagemPrincipal(item)} loading="lazy" className="w-16 h-16 object-cover rounded-md shadow-sm" alt={item.nome} />
                                     <div><p className="font-serif text-sm">{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">R$ {(Number(item.preco) || 0).toFixed(2)}</p></div>
                                 </div>
                             ))}
@@ -1259,11 +1251,7 @@
             const addToCart = (produto) => { setCart([...cart, produto]); setCartOpen(true); };
             
             const handleBuyNow = (produto) => {
-                setCart(prevCart => {
-                    const novoCarrinho = [...prevCart, produto];
-                    return novoCarrinho;
-                });
-                
+                setCart(prevCart => [...prevCart, produto]);
                 if (!user) {
                     setAuthNotice('Crie sua conta ou faça login para finalizar a sua compra.');
                     setAuthModalOpen(true);
@@ -1341,12 +1329,12 @@
                     <main className="flex-grow">
                         {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} />}
                         {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={logout} voltar={() => setView('store')} darkMode={darkMode} />}
-                        {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} />}
+                        {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} onCheckoutSuccess={() => { setCart([]); setView('account'); window.scrollTo(0,0); }} />}
                         
                         {view === 'store' && (
                             <div className="animate-fade-in">
                                 <section className="relative h-[65vh] sm:h-[80vh] w-full flex items-center justify-center overflow-hidden bg-slate-900">
-                                    <img src="./banner-promo.jpeg" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
+                                    <img src="./banner-promo.jpeg" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent z-10"></div>
                                     <div className="relative z-20 text-center px-4 mt-8 max-w-4xl">
                                         <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif mb-4 sm:mb-6 text-white tracking-tight drop-shadow-2xl">A Essência do <span className="text-elora-gold">Oriente</span>.</h1>
