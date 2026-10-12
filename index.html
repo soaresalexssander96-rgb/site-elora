@@ -41,7 +41,6 @@
             theme: {
                 extend: {
                     colors: {
-                        // Azul corrigido baseado na imagem 2
                         elora: { deepblue: '#0A1128', gold: '#D4AF37', light: '#FDFBF7', darkbg: '#0B1320' }
                     }
                 }
@@ -74,6 +73,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
         
         .logo-parfums-line { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .logo-parfums-line::before, .logo-parfums-line::after { content: ""; display: block; width: 25px; height: 1px; background-color: #D4AF37; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -176,7 +176,6 @@
             );
         }
 
-        // Lógica de Corrigir o Logo Deepblue
         function LogoPremium({ onClick, isSmall = false, darkMode }) {
             const textColor = darkMode ? 'text-elora-gold' : 'text-elora-deepblue';
             const lineColor = darkMode ? 'bg-elora-gold' : 'bg-elora-deepblue';
@@ -768,9 +767,21 @@
                 const orderNsu = "ELORA-" + Date.now();
                 const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
 
+                // O SEGREDO DO BUG: O frete não estava a ser empacotado para o InfinitePay.
                 const itemsForAPI = cart.map(item => ({
-                    quantity: 1, price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
+                    quantity: 1, 
+                    price: Math.round((Number(item.preco)||0) * 100), 
+                    description: `Elora: ${item.marca} - ${item.nome}`
                 }));
+                
+                // Se houver frete, ele agora vai como um item adicional
+                if (freteValor > 0) {
+                    itemsForAPI.push({
+                        quantity: 1, 
+                        price: Math.round(freteValor * 100), 
+                        description: `Frete / Entrega (${endereco.uf})`
+                    });
+                }
 
                 try {
                     if (window.db && window.collection && window.addDoc) {
@@ -780,15 +791,30 @@
                             dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
                         });
                     }
-                } catch (err) { console.error(err); }
+                } catch (err) { console.error("Erro no Firebase", err); }
 
                 const pedido = { order_nsu: orderNsu, customer: clienteCompleto, items: itemsForAPI };
+                
+                // A CHAMADA ORIGINAL DO SEU SERVIDOR GITHUB RESTAURADA E PERFEITA
                 try {
-                    const resposta = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) });
+                    const resposta = await fetch('/api/checkout', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify(pedido) 
+                    });
                     const dados = await resposta.json();
-                    if (dados.url || dados.checkout_url) window.location.href = dados.url || dados.checkout_url;
-                    else setLoading(false);
-                } catch (erro) { alert("Aviso: Backend de pagamento (InfinitePay) ainda não ativado. O pedido foi salvo no sistema."); setLoading(false); }
+                    
+                    if (dados.url || dados.checkout_url) {
+                        window.location.href = dados.url || dados.checkout_url;
+                    } else {
+                        alert("Erro: O seu servidor não retornou o link de pagamento.");
+                        setLoading(false);
+                    }
+                } catch (erro) { 
+                    console.error(erro);
+                    alert("Erro ao tentar abrir a plataforma de pagamento."); 
+                    setLoading(false); 
+                }
             };
 
             return (
@@ -802,7 +828,7 @@
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-6">
                                     <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Calcular Frete Automático</label>
                                     <div className="flex gap-2">
-                                        <input name="cep" value={endereco.cep} onChange={handleChange} maxLength="9" className={`flex-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Digite seu CEP" />
+                                        <input name="cep" value={endereco.cep} onChange={handleChange} maxLength="9" className={`flex-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Digite seu CEP (Somente números)" />
                                         <button type="button" onClick={calcularFreteViaCep} disabled={buscandoFrete} className="bg-slate-800 dark:bg-slate-700 text-white px-4 py-3 rounded-md text-xs font-bold uppercase tracking-widest hover:bg-elora-gold transition-colors whitespace-nowrap">
                                             {buscandoFrete ? 'Calculando...' : 'Calcular'}
                                         </button>
@@ -920,7 +946,7 @@
             const handleSubmitProduto = async (e) => {
                 e.preventDefault();
                 setCarregando(true);
-                setCarregandoText("A iniciar compressão...");
+                setCarregandoText("A iniciar compressão ultra-rápida...");
                 
                 try {
                     let urlsFinais = produtoEditando && novoProduto.imagensExistentes ? [...novoProduto.imagensExistentes] : [];
@@ -1233,7 +1259,11 @@
             const addToCart = (produto) => { setCart([...cart, produto]); setCartOpen(true); };
             
             const handleBuyNow = (produto) => {
-                setCart(prevCart => [...prevCart, produto]);
+                setCart(prevCart => {
+                    const novoCarrinho = [...prevCart, produto];
+                    return novoCarrinho;
+                });
+                
                 if (!user) {
                     setAuthNotice('Crie sua conta ou faça login para finalizar a sua compra.');
                     setAuthModalOpen(true);
