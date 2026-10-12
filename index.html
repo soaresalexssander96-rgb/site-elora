@@ -73,9 +73,6 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
-        
-        .logo-parfums-line { display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .logo-parfums-line::before, .logo-parfums-line::after { content: ""; display: block; width: 25px; height: 1px; background-color: #D4AF37; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -145,22 +142,33 @@
             });
         };
 
+        // --- BOTÃO WHATSAPP OFICIAL ---
         function WhatsAppButton() {
             const telefone = "5551994378685"; 
             const mensagem = encodeURIComponent("Olá, Elora Parfums! Preciso de ajuda no site.");
             return (
                 <a href={`https://wa.me/${telefone}?text=${mensagem}`} target="_blank" rel="noreferrer" 
-                   className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 transition-colors z-50 flex items-center justify-center hover:scale-110">
-                    <Icon name="message-circle" className="w-6 h-6" />
+                   className="fixed bottom-6 right-6 bg-[#25D366] p-3.5 rounded-full shadow-2xl hover:bg-[#128C7E] transition-colors z-50 flex items-center justify-center hover:scale-110">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51h-.57c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
                 </a>
             );
         }
 
-        function LogoPremium({ onClick, isSmall = false }) {
+        // --- LOGO INTELIGENTE (Azul no Claro, Dourado no Escuro) ---
+        function LogoPremium({ onClick, isSmall = false, darkMode }) {
+            const textColor = darkMode ? 'text-elora-gold' : 'text-elora-deepblue';
+            const lineColor = darkMode ? 'bg-elora-gold' : 'bg-elora-deepblue';
+            
             return (
                 <div className={`font-cinzel cursor-pointer flex flex-col items-center leading-none ${isSmall ? 'scale-75' : ''}`} onClick={onClick}>
-                    <span className="text-3xl sm:text-4xl md:text-5xl tracking-[0.15em] uppercase text-elora-gold font-semibold drop-shadow-sm pb-1">ELORA</span>
-                    <div className="logo-parfums-line"><span className="text-[10px] sm:text-[12px] tracking-[0.3em] font-serif text-elora-gold font-medium uppercase">Parfums</span></div>
+                    <span className={`text-3xl sm:text-4xl md:text-5xl tracking-[0.15em] uppercase font-semibold drop-shadow-sm pb-1 ${textColor} transition-colors`}>ELORA</span>
+                    <div className="flex items-center justify-center gap-2">
+                        <span className={`block w-5 sm:w-7 h-[1px] ${lineColor} transition-colors`}></span>
+                        <span className={`text-[10px] sm:text-[12px] tracking-[0.3em] font-serif font-medium uppercase ${textColor} transition-colors`}>Parfums</span>
+                        <span className={`block w-5 sm:w-7 h-[1px] ${lineColor} transition-colors`}></span>
+                    </div>
                 </div>
             );
         }
@@ -246,20 +254,37 @@
             );
         }
 
+        // --- QUIZ PROFUNDO (4 PERGUNTAS) ---
         function QuizModal({ onClose, produtos, irParaCheckout, darkMode }) {
             const [step, setStep] = useState(1);
+            const [perfil, setPerfil] = useState({ genero: '', familia: '', intensidade: '', ocasiao: '' });
             const [resultado, setResultado] = useState(null);
 
-            const handleResponder = (tipo) => {
+            const handleResponder = (campo, valor) => {
                 if (produtos.length === 0) {
                     alert("O catálogo está vazio no momento.");
                     onClose();
                     return;
                 }
-                if (step === 1) setStep(2);
-                else {
-                    const rec = tipo === 'noite' ? produtos[1] : produtos[0]; 
-                    setResultado(rec || produtos[0]);
+
+                const novoPerfil = { ...perfil, [campo]: valor };
+                setPerfil(novoPerfil);
+
+                if (step < 4) {
+                    setStep(step + 1);
+                } else {
+                    // Tenta filtrar pela categoria base (Feminino/Masculino)
+                    let recomendados = produtos;
+                    if (novoPerfil.genero === 'Feminino') {
+                        recomendados = produtos.filter(p => p.categoria === 'Feminino');
+                    } else if (novoPerfil.genero === 'Masculino') {
+                        recomendados = produtos.filter(p => p.categoria === 'Masculino');
+                    }
+                    
+                    if (recomendados.length === 0) recomendados = produtos; // Prevenção se não houver da categoria
+                    
+                    // Pega o primeiro ou embaralha levemente para parecer mágico
+                    setResultado(recomendados[Math.floor(Math.random() * recomendados.length)] || produtos[0]);
                 }
             };
 
@@ -271,20 +296,34 @@
                             <div className="text-center">
                                 <Icon name="flask-conical" className="w-12 h-12 text-elora-gold mx-auto mb-6" />
                                 <h3 className="text-3xl font-serif mb-2">Descubra sua Assinatura</h3>
-                                <p className="text-slate-500 text-sm mb-8 tracking-widest uppercase">Etapa {step} de 2</p>
+                                <p className="text-slate-500 text-sm mb-8 tracking-widest uppercase font-semibold">Etapa {step} de 4</p>
 
                                 {step === 1 && (
                                     <div className="animate-fade-in space-y-4">
-                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual atmosfera te atrai mais?</p>
-                                        <button onClick={() => handleResponder('madeira')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Madeiras & Especiarias</button>
-                                        <button onClick={() => handleResponder('doce')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Doces & Flores</button>
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Para quem é a fragrância?</p>
+                                        <button onClick={() => handleResponder('genero', 'Feminino')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Para Ela</button>
+                                        <button onClick={() => handleResponder('genero', 'Masculino')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Para Ele</button>
                                     </div>
                                 )}
                                 {step === 2 && (
                                     <div className="animate-fade-in space-y-4">
-                                        <p className="text-lg text-slate-500 mb-6 font-medium">Onde usará esta joia?</p>
-                                        <button onClick={() => handleResponder('noite')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Encontros Noturnos</button>
-                                        <button onClick={() => handleResponder('dia')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Eventos Diários</button>
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual a sua família olfativa favorita?</p>
+                                        <button onClick={() => handleResponder('familia', 'Doces')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Adocicados & Florais</button>
+                                        <button onClick={() => handleResponder('familia', 'Amadeirados')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Madeiras & Especiarias</button>
+                                    </div>
+                                )}
+                                {step === 3 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual a intensidade ideal?</p>
+                                        <button onClick={() => handleResponder('intensidade', 'Suave')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Suave e Elegante</button>
+                                        <button onClick={() => handleResponder('intensidade', 'Forte')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Forte e Marcante</button>
+                                    </div>
+                                )}
+                                {step === 4 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Onde pretende usar essa joia?</p>
+                                        <button onClick={() => handleResponder('ocasiao', 'Dia')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Dia a dia e Trabalho</button>
+                                        <button onClick={() => handleResponder('ocasiao', 'Noite')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Noite e Eventos Especiais</button>
                                     </div>
                                 )}
                             </div>
@@ -355,10 +394,10 @@
                             
                             <div className="grid grid-cols-2 gap-3 w-full">
                                 <button onClick={() => { onAddToCart(produto); onClose(); }} className="w-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-md flex items-center justify-center gap-2">
-                                    <Icon name="shopping-bag" className="w-4 h-4" /> Adicionar à Sacola
+                                    <Icon name="shopping-bag" className="w-4 h-4" /> Adicionar
                                 </button>
                                 <button onClick={() => { onBuyNow(produto); onClose(); }} className="w-full bg-elora-gold text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20 flex items-center justify-center gap-2">
-                                    <Icon name="zap" className="w-4 h-4" /> Comprar Agora
+                                    <Icon name="zap" className="w-4 h-4" /> Comprar
                                 </button>
                             </div>
                         </div>
@@ -367,7 +406,6 @@
             );
         }
 
-        // --- AUTH MODAL (COM VALIDAÇÃO DE SENHA FORTE) ---
         function AuthModal({ onClose, onSuccess, mensagemExtra, darkMode }) {
             const [viewMode, setViewMode] = useState('login'); 
             const [loading, setLoading] = useState(false);
@@ -375,7 +413,6 @@
 
             const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-            // Validador visual de força da senha
             const checkPasswordStrength = (pass) => {
                 let score = 0;
                 if (pass.length >= 6) score++;
@@ -400,7 +437,6 @@
                 setLoading(true);
 
                 try {
-                    // FLUXO: ESQUECI A SENHA
                     if (viewMode === 'forgot') {
                         if (window.db && window.collection && window.query) {
                             const q = window.query(window.collection(window.db, "usuarios"), window.where("email", "==", formData.email));
@@ -416,7 +452,6 @@
                         return;
                     }
 
-                    // FLUXO: LOGIN DO ADMIN
                     if (viewMode === 'login' && formData.email === 'admin' && formData.senha === 'elora2026') {
                         const adminUser = { nome: 'Administrador', email: 'admin', role: 'admin', cpf: '', telefone: '' };
                         localStorage.setItem('elora_user', JSON.stringify(adminUser));
@@ -424,7 +459,6 @@
                         return;
                     }
 
-                    // FLUXO: CRIAR CONTA (Com validação estrita)
                     if (viewMode === 'register') {
                         if (formData.senha !== formData.confirmarSenha) {
                             alert("As senhas não coincidem. Por favor, verifique.");
@@ -452,7 +486,6 @@
                         localStorage.setItem('elora_user', JSON.stringify(userObj));
                         onSuccess(userObj);
                     } 
-                    // FLUXO: LOGIN NORMAL
                     else if (viewMode === 'login') {
                         if (window.db && window.collection && window.query) {
                             const q = window.query(window.collection(window.db, "usuarios"), window.where("email", "==", formData.email));
@@ -526,7 +559,7 @@
                                                     <div className={`h-full transition-all duration-300 ${strengthScore >= 5 ? strengthColor : 'bg-transparent'} w-1/5`}></div>
                                                 </div>
                                                 <p className="text-[9px] text-slate-500 mt-1 flex justify-between">
-                                                    <span>Mín. 6 chars, A-z, 0-9 e !@#$</span>
+                                                    <span>Mín. 6 chars, Maiúscula, número e !@#$</span>
                                                     {strengthLabel && <strong className={strengthScore < 5 ? "text-slate-600" : "text-emerald-500"}>{strengthLabel}</strong>}
                                                 </p>
                                             </div>
@@ -604,7 +637,6 @@
             );
         }
 
-        // --- CHECKOUT COM INTEGRAÇÃO VIACEP E LÓGICA DE FRETE ---
         function Checkout({ cart, user, voltarParaLoja, darkMode }) {
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' });
@@ -627,7 +659,6 @@
                 
                 setBuscandoFrete(true);
                 try {
-                    // Chamada real à API dos Correios (ViaCEP)
                     const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
                     const data = await response.json();
                     
@@ -637,7 +668,6 @@
                         return;
                     }
 
-                    // Auto-preenchimento Mágico
                     setEndereco(prev => ({
                         ...prev,
                         rua: data.logradouro,
@@ -646,7 +676,6 @@
                         uf: data.uf
                     }));
 
-                    // Lógica Regional de Frete (Origem: Campo Bom - RS)
                     let basePac = 28.90; let baseSedex = 45.50; let prazoPac = '5 a 8 dias úteis'; let prazoSedex = '2 a 3 dias úteis';
                     
                     if (data.uf === 'RS') {
@@ -797,7 +826,7 @@
             const IMGBB_API_KEY = "ba8a5660412f8f7e42b2fddb2fe006c3"; 
 
             const [produtoEditando, setProdutoEditando] = useState(null);
-            const [novoProduto, setNovoProduto] = useState({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Compartilhável', imagensExistentes: [] });
+            const [novoProduto, setNovoProduto] = useState({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Feminino', imagensExistentes: [] });
             const [imagensArquivos, setImagensArquivos] = useState([]); 
             const [previewImgs, setPreviewImgs] = useState([]); 
             const [carregando, setCarregando] = useState(false);
@@ -867,7 +896,7 @@
                         marca: novoProduto.marca,
                         preco: Number(novoProduto.preco) || 0, 
                         estoque: parseInt(novoProduto.estoque) || 0,
-                        categoria: novoProduto.categoria || 'Compartilhável',
+                        categoria: novoProduto.categoria || 'Feminino',
                         imagens: urlsFinais, 
                         tag: 'Oficial'
                     };
@@ -897,7 +926,7 @@
             const editarProduto = (p) => {
                 setProdutoEditando(p.id);
                 setNovoProduto({ 
-                    nome: p.nome, marca: p.marca, preco: p.preco, estoque: p.estoque, categoria: p.categoria || 'Compartilhável',
+                    nome: p.nome, marca: p.marca, preco: p.preco, estoque: p.estoque, categoria: p.categoria || 'Feminino',
                     imagensExistentes: p.imagens ? p.imagens.filter(Boolean) : (p.imagem ? [p.imagem] : []) 
                 });
                 setPreviewImgs(p.imagens ? p.imagens.filter(Boolean) : (p.imagem ? [p.imagem] : []));
@@ -906,7 +935,7 @@
 
             const cancelarEdicao = () => {
                 setProdutoEditando(null);
-                setNovoProduto({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Compartilhável', imagensExistentes: [] });
+                setNovoProduto({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Feminino', imagensExistentes: [] });
                 setPreviewImgs([]);
                 setImagensArquivos([]);
             };
@@ -951,7 +980,7 @@
                                         <div>
                                             <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Público</label>
                                             <select value={novoProduto.categoria} onChange={(e) => setNovoProduto({...novoProduto, categoria: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md cursor-pointer`}>
-                                                <option value="Compartilhável">Compartilhável</option><option value="Feminino">Feminino</option><option value="Masculino">Masculino</option>
+                                                <option value="Feminino">Feminino</option><option value="Masculino">Masculino</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1088,6 +1117,7 @@
             );
         }
 
+        // --- APP COM INTEGRAÇÃO DAS MELHORIAS ---
         function App() {
             const [view, setView] = useState('store'); 
             const [quizOpen, setQuizOpen] = useState(false);
@@ -1132,15 +1162,11 @@
 
             const addToCart = (produto) => { setCart([...cart, produto]); setCartOpen(true); };
             
-            // Função Mágica: Compra Imediata
+            // Comprar Imediatamente
             const handleBuyNow = (produto) => {
-                setCart(prevCart => {
-                    const novoCarrinho = [...prevCart, produto];
-                    return novoCarrinho;
-                });
-                
+                setCart(prevCart => [...prevCart, produto]);
                 if (!user) {
-                    setAuthNotice('Crie sua conta para finalizar a compra do seu perfume.');
+                    setAuthNotice('Crie sua conta ou faça login para finalizar a sua compra.');
                     setAuthModalOpen(true);
                 } else {
                     setView('checkout');
@@ -1189,7 +1215,7 @@
                             </div>
 
                             <div className="absolute left-1/2 -translate-x-1/2">
-                                <LogoPremium onClick={() => setView('store')} />
+                                <LogoPremium onClick={() => setView('store')} darkMode={darkMode} />
                             </div>
 
                             <div className="flex items-center justify-end space-x-4 w-1/3">
@@ -1248,7 +1274,7 @@
                                             </div>
 
                                             <div className="flex flex-wrap justify-center gap-2">
-                                                {['Todos', 'Compartilhável', 'Feminino', 'Masculino'].map((cat) => (
+                                                {['Todos', 'Feminino', 'Masculino'].map((cat) => (
                                                     <button 
                                                         key={cat}
                                                         onClick={() => setFiltroAtivo(cat)}
@@ -1292,7 +1318,7 @@
                     </main>
 
                     <footer className={`${darkMode ? 'bg-elora-darkbg border-slate-800' : 'bg-white border-slate-200'} border-t py-12 mt-auto text-center transition-colors`}>
-                        <LogoPremium isSmall={true} />
+                        <LogoPremium isSmall={true} darkMode={darkMode} />
                         <p className="text-slate-400 text-[10px] tracking-widest mt-6 uppercase">Todos os direitos reservados &copy; 2026.</p>
                     </footer>
 
