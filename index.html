@@ -85,15 +85,74 @@
             return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
         };
 
-        // --- COMPONENTE: BOTÃO DO WHATSAPP ---
+        // --- COMPONENTE: BOTÃO WHATSAPP ---
         function WhatsAppButton() {
-            const telefone = "5511999999999"; // Substitua pelo número real da loja
+            const telefone = "5511999999999"; 
             const mensagem = encodeURIComponent("Olá, Elora Parfums! Preciso de ajuda no site.");
             return (
                 <a href={`https://wa.me/${telefone}?text=${mensagem}`} target="_blank" rel="noreferrer" 
                    className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 transition-colors z-50 flex items-center justify-center hover:scale-110">
                     <Icon name="message-circle" className="w-6 h-6" />
                 </a>
+            );
+        }
+
+        // --- MODAL DO QUIZ (Faltava este!) ---
+        function QuizModal({ onClose, produtos, irParaCheckout, darkMode }) {
+            const [step, setStep] = useState(1);
+            const [resultado, setResultado] = useState(null);
+
+            const handleResponder = (tipo) => {
+                if (step === 1) setStep(2);
+                else {
+                    const rec = tipo === 'noite' ? produtos[1] : produtos[0]; 
+                    setResultado(rec || produtos[0]);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+                    <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border p-8 md:p-12 max-w-lg w-full relative animate-fade-in shadow-2xl rounded-xl`}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors">
+                            <Icon name="x" className="w-6 h-6" />
+                        </button>
+                        
+                        {!resultado ? (
+                            <div className="text-center">
+                                <Icon name="flask-conical" className="w-12 h-12 text-elora-gold mx-auto mb-6" />
+                                <h3 className="text-3xl font-serif mb-2">Descubra sua Assinatura</h3>
+                                <p className="text-slate-500 text-sm mb-8 tracking-widest uppercase">Etapa {step} de 2</p>
+
+                                {step === 1 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual atmosfera te atrai mais?</p>
+                                        <button onClick={() => handleResponder('madeira')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Madeiras & Especiarias</button>
+                                        <button onClick={() => handleResponder('doce')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Doces & Flores</button>
+                                    </div>
+                                )}
+                                {step === 2 && (
+                                    <div className="animate-fade-in space-y-4">
+                                        <p className="text-lg text-slate-500 mb-6 font-medium">Onde usará esta joia?</p>
+                                        <button onClick={() => handleResponder('noite')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Encontros Noturnos</button>
+                                        <button onClick={() => handleResponder('dia')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Eventos Diários</button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-center animate-fade-in">
+                                <h3 className="text-3xl font-serif text-elora-gold mb-2">Seu Par Perfeito</h3>
+                                <p className="text-slate-500 text-sm mb-6">A fragrância ideal para o seu perfil.</p>
+                                <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} border p-6 flex flex-col items-center mb-6 rounded-xl`}>
+                                    <img src={resultado.imagem} className="w-40 h-40 object-cover mb-6 rounded-md shadow-md" alt={resultado.nome} />
+                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-2">{resultado.marca}</span>
+                                    <h4 className="text-2xl font-serif">{resultado.nome}</h4>
+                                    <p className="text-elora-gold font-medium text-xl mt-3">R$ {resultado.preco.toFixed(2)}</p>
+                                </div>
+                                <button onClick={() => irParaCheckout(resultado)} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Comprar Esta Joia</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             );
         }
 
@@ -106,7 +165,7 @@
                             <Icon name="x" className="w-6 h-6" />
                         </button>
                         
-                        <div className="w-full sm:w-1/2 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+                        <div className={`w-full sm:w-1/2 flex items-center justify-center ${darkMode ? 'bg-slate-800' : 'bg-slate-50'} rounded-xl p-4`}>
                             <img src={produto.imagem} alt={produto.nome} className="w-full max-h-64 object-contain rounded-md" />
                         </div>
                         
@@ -127,7 +186,7 @@
                             </div>
 
                             <button onClick={() => { onAddToCart(produto); onClose(); }} className="w-full bg-elora-gold text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20 flex items-center justify-center gap-2">
-                                <Icon name="shopping-cart" className="w-4 h-4" /> Adicionar ao Carrinho
+                                <Icon name="shopping-cart" className="w-4 h-4" /> Adicionar à Sacola
                             </button>
                         </div>
                     </div>
@@ -147,7 +206,7 @@
                         
                         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
                             <h2 className="text-xl font-serif flex items-center gap-2">
-                                <Icon name="shopping-bag" className="w-5 h-5 text-elora-gold" /> Sacola
+                                <Icon name="shopping-bag" className="w-5 h-5 text-elora-gold" /> Sua Sacola
                             </h2>
                             <button onClick={onClose} className="text-slate-400 hover:text-elora-gold transition-colors">
                                 <Icon name="x" className="w-6 h-6" />
@@ -538,7 +597,6 @@
                 const orderNsu = "ELORA-" + Date.now();
                 const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
 
-                // Prepara itens para a InfinitePay
                 const itemsForAPI = cart.map(item => ({
                     quantity: 1, price: Math.round(item.preco * 100), description: `Elora: ${item.marca} - ${item.nome}`
                 }));
@@ -619,13 +677,12 @@
 
         // --- COMPONENTE PRINCIPAL APP ---
         function App() {
-            const [view, setView] = useState('store');
+            const [view, setView] = useState('store'); 
             const [quizOpen, setQuizOpen] = useState(false);
             const [authModalOpen, setAuthModalOpen] = useState(false);
             const [authNotice, setAuthNotice] = useState('');
             const [produtos, setProdutos] = useState([]); 
             
-            // Novos Estados para o Carrinho e Modais
             const [cart, setCart] = useState([]);
             const [cartOpen, setCartOpen] = useState(false);
             const [produtoSelecionado, setProdutoSelecionado] = useState(null);
@@ -673,6 +730,12 @@
                     setView('checkout');
                     window.scrollTo(0,0);
                 }
+            };
+
+            const logout = () => {
+                localStorage.removeItem('elora_user');
+                setUser(null);
+                setView('store');
             };
 
             const handleAuthSuccess = (loggedUser) => {
@@ -730,7 +793,7 @@
                     <main className="flex-grow">
                         {view === 'admin' && user?.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} />}
                         {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={() => {localStorage.removeItem('elora_user'); setUser(null); setView('store');}} voltar={() => setView('store')} darkMode={darkMode} />}
-                        {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => setCartOpen(true)} darkMode={darkMode} />}
+                        {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} />}
                         
                         {view === 'store' && (
                             <div className="animate-fade-in">
@@ -788,7 +851,7 @@
 
                     <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} onCheckout={iniciarCheckout} darkMode={darkMode} />
                     {produtoSelecionado && <ProductModal produto={produtoSelecionado} onClose={() => setProdutoSelecionado(null)} onAddToCart={addToCart} darkMode={darkMode} />}
-                    {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={(p) => { addToCart(p); setQuizOpen(false); }} />}
+                    {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={(p) => { addToCart(p); setQuizOpen(false); }} darkMode={darkMode} />}
                     {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} onSuccess={handleAuthSuccess} mensagemExtra={authNotice} darkMode={darkMode} />}
                 </div>
             );
