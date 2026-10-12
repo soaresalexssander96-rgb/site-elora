@@ -59,7 +59,9 @@
         h1, h2, h3, h4, .font-serif { font-family: 'Playfair Display', serif; }
         .font-cinzel { font-family: 'Cinzel', serif; }
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -83,6 +85,111 @@
             return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
         };
 
+        // --- COMPONENTE: BOTÃO DO WHATSAPP ---
+        function WhatsAppButton() {
+            const telefone = "5511999999999"; // Substitua pelo número real da loja
+            const mensagem = encodeURIComponent("Olá, Elora Parfums! Preciso de ajuda no site.");
+            return (
+                <a href={`https://wa.me/${telefone}?text=${mensagem}`} target="_blank" rel="noreferrer" 
+                   className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 transition-colors z-50 flex items-center justify-center hover:scale-110">
+                    <Icon name="message-circle" className="w-6 h-6" />
+                </a>
+            );
+        }
+
+        // --- MODAL DE DETALHES DO PRODUTO ---
+        function ProductModal({ produto, onClose, onAddToCart, darkMode }) {
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+                    <div className={`${darkMode ? 'bg-slate-900 text-slate-100 border-slate-800' : 'bg-white text-slate-900 border-slate-200'} border p-6 sm:p-8 max-w-2xl w-full relative animate-fade-in shadow-2xl rounded-2xl flex flex-col sm:flex-row gap-8`}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors z-10">
+                            <Icon name="x" className="w-6 h-6" />
+                        </button>
+                        
+                        <div className="w-full sm:w-1/2 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+                            <img src={produto.imagem} alt={produto.nome} className="w-full max-h-64 object-contain rounded-md" />
+                        </div>
+                        
+                        <div className="w-full sm:w-1/2 flex flex-col justify-center">
+                            <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-1">{produto.marca}</span>
+                            <h2 className="text-3xl font-serif mb-2">{produto.nome}</h2>
+                            <p className="text-2xl font-medium mb-6">R$ {Number(produto.preco).toFixed(2)}</p>
+                            
+                            {produto.estoque < 3 && (
+                                <p className="text-xs text-red-500 font-bold uppercase tracking-widest mb-4 flex items-center gap-1">
+                                    <Icon name="alert-circle" className="w-4 h-4" /> Últimas Unidades
+                                </p>
+                            )}
+
+                            <div className="space-y-4 mb-8 text-sm text-slate-500 dark:text-slate-400">
+                                <p><strong>Família Olfativa:</strong> {produto.categoria || 'Oriental'}</p>
+                                <p>Uma experiência luxuosa, com excelente fixação e projeção marcante, ideal para quem deseja deixar rastro.</p>
+                            </div>
+
+                            <button onClick={() => { onAddToCart(produto); onClose(); }} className="w-full bg-elora-gold text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20 flex items-center justify-center gap-2">
+                                <Icon name="shopping-cart" className="w-4 h-4" /> Adicionar ao Carrinho
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- CARRINHO DE COMPRAS LATERAL ---
+        function CartSidebar({ isOpen, onClose, cart, removeFromCart, onCheckout, darkMode }) {
+            if (!isOpen) return null;
+            const total = cart.reduce((sum, item) => sum + item.preco, 0);
+
+            return (
+                <div className="fixed inset-0 z-[100] flex justify-end">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+                    <div className={`${darkMode ? 'bg-slate-900 text-slate-100 border-l-slate-800' : 'bg-white text-slate-900 border-l-slate-200'} w-full sm:w-96 h-full relative z-10 flex flex-col animate-slide-in-right border-l shadow-2xl`}>
+                        
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+                            <h2 className="text-xl font-serif flex items-center gap-2">
+                                <Icon name="shopping-bag" className="w-5 h-5 text-elora-gold" /> Sacola
+                            </h2>
+                            <button onClick={onClose} className="text-slate-400 hover:text-elora-gold transition-colors">
+                                <Icon name="x" className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {cart.length === 0 ? (
+                                <div className="text-center text-slate-400 py-12">Sua sacola está vazia.</div>
+                            ) : (
+                                cart.map((item, index) => (
+                                    <div key={index} className="flex gap-4 items-center">
+                                        <img src={item.imagem} alt={item.nome} className="w-16 h-16 object-cover rounded-md bg-slate-100 dark:bg-slate-800" />
+                                        <div className="flex-1">
+                                            <p className="font-serif text-sm">{item.nome}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">{item.marca}</p>
+                                            <p className="font-medium text-sm mt-1">R$ {item.preco.toFixed(2)}</p>
+                                        </div>
+                                        <button onClick={() => removeFromCart(index)} className="text-red-400 hover:text-red-600 p-2">
+                                            <Icon name="trash-2" className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {cart.length > 0 && (
+                            <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                                <div className="flex justify-between font-serif text-xl mb-6">
+                                    <span>Subtotal</span>
+                                    <span className="text-elora-gold">R$ {total.toFixed(2)}</span>
+                                </div>
+                                <button onClick={onCheckout} className="w-full bg-elora-gold text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">
+                                    Finalizar Compra
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         // --- MODAL DE AUTENTICAÇÃO ---
         function AuthModal({ onClose, onSuccess, mensagemExtra, darkMode }) {
             const [isRegister, setIsRegister] = useState(true);
@@ -96,7 +203,6 @@
                 setLoading(true);
 
                 try {
-                    // LOGIN DO ADMIN OCULTO
                     if (!isRegister && formData.email === 'admin' && formData.senha === 'elora2026') {
                         const adminUser = { nome: 'Administrador', email: 'admin', role: 'admin', cpf: '', telefone: '' };
                         localStorage.setItem('elora_user', JSON.stringify(adminUser));
@@ -153,56 +259,26 @@
             return (
                 <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-3 sm:p-4 backdrop-blur-md">
                     <div className={`${darkMode ? 'bg-slate-900 text-slate-100 border-slate-800' : 'bg-white text-slate-900 border-slate-200'} border p-6 sm:p-8 max-w-md w-full relative animate-fade-in shadow-2xl rounded-2xl`}>
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors">
-                            <Icon name="x" className="w-6 h-6" />
-                        </button>
-
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors"><Icon name="x" className="w-6 h-6" /></button>
                         <div className="text-center mb-6">
                             <Icon name="user" className="w-10 h-10 text-elora-gold mx-auto mb-2" />
                             <h3 className="text-2xl font-serif">{isRegister ? 'Criar Sua Conta' : 'Acessar Sua Conta'}</h3>
-                            {mensagemExtra ? (
-                                <p className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-2.5 rounded-md mt-2 font-medium">{mensagemExtra}</p>
-                            ) : (
-                                <p className="text-xs text-slate-400 mt-1">{isRegister ? 'Cadastre-se para gerenciar seus pedidos e entregas.' : 'Digite suas credenciais para acessar sua área.'}</p>
-                            )}
+                            {mensagemExtra && <p className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-2.5 rounded-md mt-2 font-medium">{mensagemExtra}</p>}
                         </div>
-
                         <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
                             <button onClick={() => setIsRegister(true)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${isRegister ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400'}`}>Criar Conta</button>
                             <button onClick={() => setIsRegister(false)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${!isRegister ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400'}`}>Já Sou Cliente</button>
                         </div>
-
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {isRegister && (
-                                <div>
-                                    <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Nome Completo *</label>
-                                    <input name="nome" value={formData.nome} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Ex: Maria Silva" />
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">{isRegister ? 'E-mail *' : 'E-mail ou Usuário *'}</label>
-                                <input type="text" name="email" value={formData.email} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="seu@email.com" />
-                            </div>
-
+                            {isRegister && <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Nome Completo *</label><input name="nome" value={formData.nome} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Ex: Maria Silva" /></div>}
+                            <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">{isRegister ? 'E-mail *' : 'E-mail ou Usuário *'}</label><input type="text" name="email" value={formData.email} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="seu@email.com" /></div>
                             {isRegister && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">CPF *</label>
-                                        <input name="cpf" value={formData.cpf} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="000.000.000-00" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">WhatsApp *</label>
-                                        <input name="telefone" value={formData.telefone} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="(11) 99999-9999" />
-                                    </div>
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">CPF *</label><input name="cpf" value={formData.cpf} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="000.000.000-00" /></div>
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">WhatsApp *</label><input name="telefone" value={formData.telefone} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="(11) 99999-9999" /></div>
                                 </div>
                             )}
-
-                            <div>
-                                <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Senha *</label>
-                                <input type="password" name="senha" value={formData.senha} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="••••••••" />
-                            </div>
-
+                            <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Senha *</label><input type="password" name="senha" value={formData.senha} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="••••••••" /></div>
                             <button type="submit" disabled={loading} className="w-full bg-elora-gold text-white py-4 mt-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20 flex items-center justify-center gap-2">
                                 {loading ? <Icon name="loader-2" className="w-5 h-5 animate-spin" /> : (isRegister ? 'Cadastrar e Continuar' : 'Entrar na Conta')}
                             </button>
@@ -241,16 +317,11 @@
                             <h2 className="text-3xl md:text-4xl font-serif">Minha Conta</h2>
                             <p className="text-slate-400 mt-1 text-sm">Bem-vindo(a), {user.nome.split(' ')[0]}</p>
                         </div>
-                        <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors">
-                            <Icon name="log-out" className="w-4 h-4" /> Sair
-                        </button>
+                        <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair</button>
                     </div>
-
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 space-y-6">
-                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6">
-                                <Icon name="package" className="w-5 h-5 text-elora-gold" /> Meus Pedidos
-                            </h3>
+                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="package" className="w-5 h-5 text-elora-gold" /> Meus Pedidos</h3>
                             {loading ? (
                                 <div className="text-center py-12 text-slate-400"><Icon name="loader-2" className="w-8 h-8 animate-spin mx-auto" /></div>
                             ) : pedidos.length === 0 ? (
@@ -263,27 +334,17 @@
                                     const dataPedido = new Date(pedido.dataCriacao);
                                     const dataEntrega = new Date(dataPedido);
                                     dataEntrega.setDate(dataEntrega.getDate() + 7);
-
                                     return (
                                         <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
                                             <div className={`${darkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'} border-b p-4 sm:p-5 flex justify-between items-center text-xs`}>
-                                                <div>
-                                                    <span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Pedido {pedido.order_nsu}</span>
-                                                    <span className="font-medium">{dataPedido.toLocaleDateString('pt-BR')}</span>
-                                                </div>
-                                                <div className="text-right">
-                                                    <span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Status</span>
-                                                    <span className="font-bold text-elora-gold bg-elora-gold/10 px-2.5 py-1 rounded-full text-[11px]">{pedido.status || 'Aguardando Pagamento'}</span>
-                                                </div>
+                                                <div><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Pedido {pedido.order_nsu}</span><span className="font-medium">{dataPedido.toLocaleDateString('pt-BR')}</span></div>
+                                                <div className="text-right"><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Status</span><span className="font-bold text-elora-gold bg-elora-gold/10 px-2.5 py-1 rounded-full text-[11px]">{pedido.status || 'Aguardando Pagamento'}</span></div>
                                             </div>
                                             <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 items-center">
-                                                <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 sm:w-24 sm:h-24 rounded-md flex items-center justify-center flex-shrink-0">
-                                                    <Icon name="flask-conical" className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" />
-                                                </div>
+                                                <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 sm:w-24 sm:h-24 rounded-md flex items-center justify-center flex-shrink-0"><Icon name="shopping-bag" className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" /></div>
                                                 <div className="flex-grow text-center sm:text-left">
-                                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">{pedido.produto.marca}</span>
-                                                    <h4 className="text-base sm:text-lg font-serif">{pedido.produto.nome}</h4>
-                                                    <p className="text-slate-400 font-medium text-sm mt-1">R$ {pedido.produto.preco.toFixed(2)}</p>
+                                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">Total da Compra</span>
+                                                    <h4 className="text-base sm:text-lg font-serif">R$ {pedido.valorTotal?.toFixed(2) || (pedido.produto?.preco?.toFixed(2))}</h4>
                                                 </div>
                                             </div>
                                         </div>
@@ -292,9 +353,7 @@
                             )}
                         </div>
                         <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 h-fit shadow-xl rounded-xl`}>
-                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6">
-                                <Icon name="user" className="w-5 h-5 text-elora-gold" /> Dados Cadastrais
-                            </h3>
+                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="user" className="w-5 h-5 text-elora-gold" /> Dados Cadastrais</h3>
                             <div className="space-y-4 text-xs sm:text-sm text-slate-400">
                                 <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">Nome</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.nome}</p></div>
                                 <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">E-mail</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.email}</p></div>
@@ -309,17 +368,13 @@
 
         // --- COMPONENTE: PAINEL ADMIN (GESTÃO COMPLETA) ---
         function AdminDashboard({ produtos, setProdutos, darkMode }) {
-            const [aba, setAba] = useState('produtos'); // 'produtos' ou 'pedidos'
+            const [aba, setAba] = useState('produtos');
             const [pedidosAll, setPedidosAll] = useState([]);
-            
-            // Estado para Formulário de Produtos
             const [produtoEditando, setProdutoEditando] = useState(null);
             const [novoProduto, setNovoProduto] = useState({ nome: '', marca: '', preco: '', estoque: '', imagem: '' });
             const [carregando, setCarregando] = useState(false);
 
-            useEffect(() => {
-                if (aba === 'pedidos') carregarPedidos();
-            }, [aba]);
+            useEffect(() => { if (aba === 'pedidos') carregarPedidos(); }, [aba]);
 
             const carregarPedidos = async () => {
                 if (window.db && window.collection && window.getDocs) {
@@ -333,7 +388,6 @@
                 }
             };
 
-            // ---- Ações de Produtos ----
             const handleSubmitProduto = async (e) => {
                 e.preventDefault();
                 setCarregando(true);
@@ -378,7 +432,6 @@
                 } catch (e) { alert("Erro ao excluir."); }
             };
 
-            // ---- Ações de Pedidos ----
             const atualizarStatusPedido = async (id, novoStatus) => {
                 try {
                     await window.updateDoc(window.doc(window.db, "pedidos", id), { status: novoStatus });
@@ -391,95 +444,43 @@
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 border-b border-slate-200 dark:border-slate-800 pb-6">
                         <div className="flex items-center gap-3">
                             <Icon name="layout-dashboard" className="text-elora-gold w-8 h-8" />
-                            <div>
-                                <h2 className="text-2xl sm:text-3xl font-serif">Painel de Gestão ERP</h2>
-                                <p className="text-xs text-slate-400 mt-1">Acesso Exclusivo Administrador</p>
-                            </div>
+                            <div><h2 className="text-2xl sm:text-3xl font-serif">Painel de Gestão ERP</h2><p className="text-xs text-slate-400 mt-1">Acesso Exclusivo Administrador</p></div>
                         </div>
                     </div>
-
-                    {/* Abas de Navegação Admin */}
                     <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8">
-                        <button onClick={() => setAba('produtos')} className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${aba === 'produtos' ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>
-                            Catálogo de Produtos
-                        </button>
-                        <button onClick={() => setAba('pedidos')} className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${aba === 'pedidos' ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>
-                            Gestão de Pedidos
-                        </button>
+                        <button onClick={() => setAba('produtos')} className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${aba === 'produtos' ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Catálogo de Produtos</button>
+                        <button onClick={() => setAba('pedidos')} className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${aba === 'pedidos' ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Gestão de Pedidos</button>
                     </div>
 
                     {aba === 'produtos' && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
-                            {/* Formulário de Cadastro/Edição */}
                             <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 h-fit rounded-xl shadow-xl`}>
-                                <h3 className="text-lg font-serif mb-6 flex items-center gap-2">
-                                    <Icon name={produtoEditando ? "edit-3" : "plus-circle"} className="w-5 h-5 text-elora-gold" /> 
-                                    {produtoEditando ? "Editar Fragrância" : "Nova Fragrância"}
-                                </h3>
+                                <h3 className="text-lg font-serif mb-6 flex items-center gap-2"><Icon name={produtoEditando ? "edit-3" : "plus-circle"} className="w-5 h-5 text-elora-gold" />{produtoEditando ? "Editar Fragrância" : "Nova Fragrância"}</h3>
                                 <form onSubmit={handleSubmitProduto} className="space-y-4">
-                                    <div>
-                                        <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Nome</label>
-                                        <input value={novoProduto.nome} onChange={(e) => setNovoProduto({...novoProduto, nome: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Marca</label>
-                                        <input value={novoProduto.marca} onChange={(e) => setNovoProduto({...novoProduto, marca: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required />
-                                    </div>
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Nome</label><input value={novoProduto.nome} onChange={(e) => setNovoProduto({...novoProduto, nome: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required /></div>
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Marca</label><input value={novoProduto.marca} onChange={(e) => setNovoProduto({...novoProduto, marca: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required /></div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Preço (R$)</label>
-                                            <input type="number" step="0.01" value={novoProduto.preco} onChange={(e) => setNovoProduto({...novoProduto, preco: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Estoque</label>
-                                            <input type="number" value={novoProduto.estoque} onChange={(e) => setNovoProduto({...novoProduto, estoque: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required />
-                                        </div>
+                                        <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Preço (R$)</label><input type="number" step="0.01" value={novoProduto.preco} onChange={(e) => setNovoProduto({...novoProduto, preco: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required /></div>
+                                        <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Estoque</label><input type="number" value={novoProduto.estoque} onChange={(e) => setNovoProduto({...novoProduto, estoque: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required /></div>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Arquivo da foto (ex: ./asad.jpeg)</label>
-                                        <input value={novoProduto.imagem} onChange={(e) => setNovoProduto({...novoProduto, imagem: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} placeholder="./royal-amber.jpeg" />
-                                    </div>
-                                    
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Arquivo da foto (ex: ./asad.jpeg)</label><input value={novoProduto.imagem} onChange={(e) => setNovoProduto({...novoProduto, imagem: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} placeholder="./royal-amber.jpeg" /></div>
                                     <div className="flex gap-2 mt-4">
-                                        <button type="submit" disabled={carregando} className="flex-1 bg-elora-gold text-white py-3.5 text-[11px] font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-md">
-                                            {carregando ? 'Salvando...' : (produtoEditando ? 'Guardar' : 'Cadastrar')}
-                                        </button>
-                                        {produtoEditando && (
-                                            <button type="button" onClick={cancelarEdicao} className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-4 py-3.5 rounded-md text-[11px] font-bold uppercase tracking-widest hover:bg-slate-300 transition-colors">Cancelar</button>
-                                        )}
+                                        <button type="submit" disabled={carregando} className="flex-1 bg-elora-gold text-white py-3.5 text-[11px] font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-md">{carregando ? 'Salvando...' : (produtoEditando ? 'Guardar' : 'Cadastrar')}</button>
+                                        {produtoEditando && <button type="button" onClick={cancelarEdicao} className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-4 py-3.5 rounded-md text-[11px] font-bold uppercase tracking-widest hover:bg-slate-300 transition-colors">Cancelar</button>}
                                     </div>
                                 </form>
                             </div>
-
-                            {/* Tabela de Produtos */}
                             <div className={`lg:col-span-2 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 rounded-xl shadow-xl`}>
                                 <h3 className="text-lg font-serif mb-6 flex items-center gap-2"><Icon name="package" className="w-5 h-5 text-elora-gold" /> Catálogo Ativo</h3>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-xs sm:text-sm text-slate-400">
-                                        <thead>
-                                            <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-widest">
-                                                <th className="pb-3 font-semibold">Produto</th>
-                                                <th className="pb-3 font-semibold">Preço / Estoque</th>
-                                                <th className="pb-3 font-semibold text-right">Ações</th>
-                                            </tr>
-                                        </thead>
+                                        <thead><tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-widest"><th className="pb-3 font-semibold">Produto</th><th className="pb-3 font-semibold">Preço / Estoque</th><th className="pb-3 font-semibold text-right">Ações</th></tr></thead>
                                         <tbody>
-                                            {produtos.length === 0 ? (
-                                                <tr><td colSpan="3" className="py-8 text-center text-slate-500 text-xs">Catálogo vazio.</td></tr>
-                                            ) : (
+                                            {produtos.length === 0 ? <tr><td colSpan="3" className="py-8 text-center text-slate-500 text-xs">Catálogo vazio.</td></tr> : (
                                                 produtos.map(p => (
                                                     <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                                        <td className="py-3 flex items-center gap-3">
-                                                            <img src={p.imagem} className="w-10 h-10 object-cover rounded" />
-                                                            <div>
-                                                                <span className="text-elora-gold text-[9px] uppercase font-bold block tracking-widest">{p.marca}</span>
-                                                                <span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-3">
-                                                            <div className="font-medium">R$ {Number(p.preco).toFixed(2)}</div>
-                                                            <div className="text-[10px] mt-0.5">{p.estoque} un. disponíveis</div>
-                                                        </td>
+                                                        <td className="py-3 flex items-center gap-3"><img src={p.imagem} className="w-10 h-10 object-cover rounded" /><div><span className="text-elora-gold text-[9px] uppercase font-bold block tracking-widest">{p.marca}</span><span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span></div></td>
+                                                        <td className="py-3"><div className="font-medium">R$ {Number(p.preco).toFixed(2)}</div><div className="text-[10px] mt-0.5">{p.estoque} un. disponíveis</div></td>
                                                         <td className="py-3 text-right space-x-2">
                                                             <button onClick={() => editarProduto(p)} className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors" title="Editar"><Icon name="pencil" className="w-4 h-4" /></button>
                                                             <button onClick={() => apagarProduto(p.id)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors" title="Apagar"><Icon name="trash-2" className="w-4 h-4" /></button>
@@ -493,49 +494,22 @@
                             </div>
                         </div>
                     )}
-
                     {aba === 'pedidos' && (
                         <div className={`animate-fade-in ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 rounded-xl shadow-xl`}>
                             <h3 className="text-lg font-serif mb-6 flex items-center gap-2"><Icon name="shopping-bag" className="w-5 h-5 text-elora-gold" /> Controle de Vendas</h3>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs text-slate-400">
-                                    <thead>
-                                        <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-widest">
-                                            <th className="pb-3 font-semibold">Data / NSU</th>
-                                            <th className="pb-3 font-semibold">Cliente</th>
-                                            <th className="pb-3 font-semibold">Produto</th>
-                                            <th className="pb-3 font-semibold">Status</th>
-                                        </tr>
-                                    </thead>
+                                    <thead><tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-widest"><th className="pb-3 font-semibold">Data / NSU</th><th className="pb-3 font-semibold">Cliente</th><th className="pb-3 font-semibold">Total (R$)</th><th className="pb-3 font-semibold">Status</th></tr></thead>
                                     <tbody>
-                                        {pedidosAll.length === 0 ? (
-                                            <tr><td colSpan="4" className="py-8 text-center text-slate-500">Nenhum pedido recebido.</td></tr>
-                                        ) : (
+                                        {pedidosAll.length === 0 ? <tr><td colSpan="4" className="py-8 text-center text-slate-500">Nenhum pedido recebido.</td></tr> : (
                                             pedidosAll.map(p => (
                                                 <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                                    <td className="py-4"><div className="font-medium text-slate-700 dark:text-slate-200">{new Date(p.dataCriacao).toLocaleDateString('pt-BR')}</div><div className="text-[9px] tracking-wider mt-0.5">{p.order_nsu}</div></td>
+                                                    <td className="py-4"><div className="font-medium text-slate-700 dark:text-slate-200">{p.cliente.nome}</div><div className="text-[10px]">{p.cliente.telefone}</div></td>
+                                                    <td className="py-4"><div className="font-medium text-elora-gold">R$ {p.valorTotal?.toFixed(2) || (p.produto?.preco?.toFixed(2))}</div></td>
                                                     <td className="py-4">
-                                                        <div className="font-medium text-slate-700 dark:text-slate-200">{new Date(p.dataCriacao).toLocaleDateString('pt-BR')}</div>
-                                                        <div className="text-[9px] tracking-wider mt-0.5">{p.order_nsu}</div>
-                                                    </td>
-                                                    <td className="py-4">
-                                                        <div className="font-medium text-slate-700 dark:text-slate-200">{p.cliente.nome}</div>
-                                                        <div className="text-[10px]">{p.cliente.telefone}</div>
-                                                    </td>
-                                                    <td className="py-4">
-                                                        <div className="font-medium text-elora-gold">{p.produto.nome}</div>
-                                                        <div className="text-[10px]">R$ {Number(p.produto.preco).toFixed(2)}</div>
-                                                    </td>
-                                                    <td className="py-4">
-                                                        <select 
-                                                            value={p.status || 'Aguardando Pagamento'}
-                                                            onChange={(e) => atualizarStatusPedido(p.id, e.target.value)}
-                                                            className={`text-[10px] font-bold uppercase tracking-wider p-1.5 rounded outline-none cursor-pointer border ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                                                        >
-                                                            <option value="Aguardando Pagamento">Aguardando Pagamento</option>
-                                                            <option value="Pagamento Aprovado">Pagamento Aprovado</option>
-                                                            <option value="Em Rota de Entrega">Em Rota de Entrega</option>
-                                                            <option value="Entregue">Entregue</option>
-                                                            <option value="Cancelado">Cancelado</option>
+                                                        <select value={p.status || 'Aguardando Pagamento'} onChange={(e) => atualizarStatusPedido(p.id, e.target.value)} className={`text-[10px] font-bold uppercase tracking-wider p-1.5 rounded outline-none cursor-pointer border ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                                            <option value="Aguardando Pagamento">Aguardando Pagamento</option><option value="Pagamento Aprovado">Pagamento Aprovado</option><option value="Em Rota de Entrega">Em Rota de Entrega</option><option value="Entregue">Entregue</option><option value="Cancelado">Cancelado</option>
                                                         </select>
                                                     </td>
                                                 </tr>
@@ -550,30 +524,36 @@
             );
         }
 
-        // --- COMPONENTE: CHECKOUT (CLIENTE FAZENDO COMPRA) ---
-        function Checkout({ produto, user, voltarParaLoja, darkMode }) {
+        // --- COMPONENTE: CHECKOUT (FINALIZAÇÃO COM O CARRINHO) ---
+        function Checkout({ cart, user, voltarParaLoja, darkMode }) {
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'SP' });
+            
+            const total = cart.reduce((sum, item) => sum + item.preco, 0);
             const handleChange = (e) => setEndereco({ ...endereco, [e.target.name]: e.target.value });
 
             const processarPedido = async (e) => {
                 e.preventDefault();
                 setLoading(true);
                 const orderNsu = "ELORA-" + Date.now();
-                const precoCentavos = Math.round(produto.preco * 100);
                 const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
+
+                // Prepara itens para a InfinitePay
+                const itemsForAPI = cart.map(item => ({
+                    quantity: 1, price: Math.round(item.preco * 100), description: `Elora: ${item.marca} - ${item.nome}`
+                }));
 
                 try {
                     if (window.db && window.collection && window.addDoc) {
                         await window.addDoc(window.collection(window.db, "pedidos"), {
                             order_nsu: orderNsu, cliente: clienteCompleto, 
-                            produto: { id: produto.id, nome: produto.nome, marca: produto.marca, preco: produto.preco },
+                            itens: cart, valorTotal: total,
                             dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
                         });
                     }
                 } catch (err) { console.error(err); }
 
-                const pedido = { order_nsu: orderNsu, customer: clienteCompleto, items: [ { quantity: 1, price: precoCentavos, description: `Elora Parfums: ${produto.marca} - ${produto.nome}` } ] };
+                const pedido = { order_nsu: orderNsu, customer: clienteCompleto, items: itemsForAPI };
                 try {
                     const resposta = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) });
                     const dados = await resposta.json();
@@ -585,7 +565,7 @@
             return (
                 <div className="max-w-7xl mx-auto px-4 py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 animate-fade-in">
                     <div>
-                        <button onClick={voltarParaLoja} className="flex items-center gap-2 text-slate-400 hover:text-elora-gold mb-6 text-xs uppercase tracking-widest font-semibold transition-colors"><Icon name="arrow-left" className="w-4 h-4" /> Voltar</button>
+                        <button onClick={voltarParaLoja} className="flex items-center gap-2 text-slate-400 hover:text-elora-gold mb-6 text-xs uppercase tracking-widest font-semibold transition-colors"><Icon name="arrow-left" className="w-4 h-4" /> Voltar ao Carrinho</button>
                         <form onSubmit={processarPedido} className="space-y-6">
                             <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 shadow-xl rounded-xl`}>
                                 <h3 className="text-xl font-serif mb-6 flex items-center gap-3"><Icon name="map-pin" className="text-elora-gold w-5 h-5" /> Endereço de Entrega</h3>
@@ -612,21 +592,25 @@
                     </div>
                     
                     <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-10 h-fit shadow-2xl rounded-xl relative overflow-hidden lg:sticky lg:top-28`}>
-                        <h3 className="text-xl sm:text-2xl font-serif mb-6">Resumo do Pedido</h3>
+                        <h3 className="text-xl sm:text-2xl font-serif mb-6">Resumo do Pedido ({cart.length} itens)</h3>
                         <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-lg flex items-center gap-3 mb-6">
                             <Icon name="sparkles" className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium"><strong>Ganhe 5% OFF no PIX!</strong> Aplicado automaticamente no pagamento.</p>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium"><strong>Ganhe 5% OFF no PIX!</strong> Aplicado no pagamento.</p>
                         </div>
-                        <div className="flex items-center gap-4 sm:gap-6 mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-                            <img src={produto.imagem} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md shadow-md" alt={produto.nome} />
-                            <div>
-                                <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">{produto.marca}</span>
-                                <p className="text-base sm:text-lg font-serif mb-1">{produto.nome}</p>
-                                <p className="text-slate-400 font-medium text-xs sm:text-sm">R$ {produto.preco.toFixed(2)}</p>
-                            </div>
+
+                        <div className="max-h-60 overflow-y-auto pr-2 space-y-4 mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+                            {cart.map((item, index) => (
+                                <div key={index} className="flex items-center gap-4">
+                                    <img src={item.imagem} className="w-16 h-16 object-cover rounded-md shadow-sm" alt={item.nome} />
+                                    <div>
+                                        <p className="font-serif text-sm">{item.nome}</p>
+                                        <p className="text-slate-400 font-medium text-xs mt-1">R$ {item.preco.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                        <div className="flex justify-between font-serif text-2xl sm:text-3xl mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-                            <span>Total</span><span className="text-elora-gold">R$ {produto.preco.toFixed(2)}</span>
+                        <div className="flex justify-between font-serif text-2xl sm:text-3xl mt-6">
+                            <span>Total</span><span className="text-elora-gold">R$ {total.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -635,14 +619,18 @@
 
         // --- COMPONENTE PRINCIPAL APP ---
         function App() {
-            const [view, setView] = useState('store'); // 'store', 'checkout', 'account', 'admin'
+            const [view, setView] = useState('store');
             const [quizOpen, setQuizOpen] = useState(false);
             const [authModalOpen, setAuthModalOpen] = useState(false);
             const [authNotice, setAuthNotice] = useState('');
             const [produtos, setProdutos] = useState([]); 
-            const [produtoCheckout, setProdutoCheckout] = useState(null);
-            const [darkMode, setDarkMode] = useState(false);
+            
+            // Novos Estados para o Carrinho e Modais
+            const [cart, setCart] = useState([]);
+            const [cartOpen, setCartOpen] = useState(false);
+            const [produtoSelecionado, setProdutoSelecionado] = useState(null);
 
+            const [darkMode, setDarkMode] = useState(false);
             const [user, setUser] = useState(() => {
                 const saved = localStorage.getItem('elora_user');
                 return saved ? JSON.parse(saved) : null;
@@ -662,16 +650,22 @@
                     }, 800);
                 };
                 carregarPerfumes();
-            }, [view]); // Recarrega os perfumes quando mudar a view (ex: sair do admin)
+            }, [view]);
 
-            const logout = () => {
-                localStorage.removeItem('elora_user');
-                setUser(null);
-                setView('store');
+            const addToCart = (produto) => {
+                setCart([...cart, produto]);
+                setCartOpen(true);
             };
 
-            const handleComprar = (produto) => {
-                setProdutoCheckout(produto);
+            const removeFromCart = (index) => {
+                const newCart = [...cart];
+                newCart.splice(index, 1);
+                setCart(newCart);
+                if (newCart.length === 0) setCartOpen(false);
+            };
+
+            const iniciarCheckout = () => {
+                setCartOpen(false);
                 if (!user) {
                     setAuthNotice('Crie sua conta para prosseguir com a compra.');
                     setAuthModalOpen(true);
@@ -686,18 +680,16 @@
                 setAuthModalOpen(false);
                 setAuthNotice('');
 
-                if (loggedUser.role === 'admin') {
-                    setView('admin');
-                } else if (produtoCheckout) {
-                    setView('checkout');
-                    window.scrollTo(0,0);
-                } else {
-                    setView('account');
-                }
+                if (loggedUser.role === 'admin') setView('admin');
+                else if (cart.length > 0) { setView('checkout'); window.scrollTo(0,0); }
+                else setView('account');
             };
 
             return (
                 <div className={`min-h-screen font-sans flex flex-col transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-100 dark' : 'bg-[#FDFBF7] text-slate-900'}`}>
+                    
+                    <WhatsAppButton />
+
                     <header className={`${darkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-slate-200'} backdrop-blur-md border-b py-4 md:py-6 sticky top-0 z-50 shadow-sm transition-colors`}>
                         <div className="max-w-7xl w-full mx-auto px-4 flex justify-between items-center relative">
                             <div className="w-1/3 flex items-center gap-3">
@@ -705,7 +697,6 @@
                                     <Icon name={darkMode ? "sun" : "moon"} className={`w-4 h-4 ${darkMode ? 'text-amber-400' : ''}`} />
                                     <span className="hidden md:inline font-semibold uppercase tracking-wider text-[10px]">{darkMode ? 'Claro' : 'Escuro'}</span>
                                 </button>
-                                {/* Botão Rápido pro Admin (Só aparece se já estiver logado como admin) */}
                                 {user && user.role === 'admin' && view !== 'admin' && (
                                     <button onClick={() => setView('admin')} className="text-[10px] font-bold uppercase tracking-widest text-elora-gold hover:text-amber-600 hidden lg:block border border-elora-gold px-3 py-1.5 rounded">Painel</button>
                                 )}
@@ -723,32 +714,31 @@
                                     else { setAuthNotice(''); setAuthModalOpen(true); }
                                 }} className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors py-1">
                                     <Icon name={user && user.role === 'admin' ? "layout-dashboard" : "user"} className="w-4 h-4 sm:w-5 sm:h-5" />
-                                    <span className="hidden sm:inline">
-                                        {user && user.role === 'admin' ? 'Gestão ERP' : (user ? 'Minha Conta' : 'Entrar')}
-                                    </span>
+                                    <span className="hidden sm:inline">{user && user.role === 'admin' ? 'Gestão ERP' : (user ? 'Minha Conta' : 'Entrar')}</span>
                                 </button>
-                                {user && (
-                                     <button onClick={logout} className="text-red-500 hover:text-red-700 p-1 hidden sm:block" title="Sair"><Icon name="log-out" className="w-4 h-4"/></button>
+                                
+                                {user && user.role !== 'admin' && (
+                                    <button onClick={() => setCartOpen(true)} className="relative text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors p-1">
+                                        <Icon name="shopping-bag" className="w-5 h-5" />
+                                        {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">{cart.length}</span>}
+                                    </button>
                                 )}
                             </div>
                         </div>
                     </header>
 
                     <main className="flex-grow">
-                        {/* Rotas de Visualização */}
                         {view === 'admin' && user?.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} />}
-                        {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={logout} voltar={() => setView('store')} darkMode={darkMode} />}
-                        {view === 'checkout' && produtoCheckout && user && <Checkout produto={produtoCheckout} user={user} voltarParaLoja={() => setView('store')} darkMode={darkMode} />}
+                        {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={() => {localStorage.removeItem('elora_user'); setUser(null); setView('store');}} voltar={() => setView('store')} darkMode={darkMode} />}
+                        {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => setCartOpen(true)} darkMode={darkMode} />}
                         
                         {view === 'store' && (
                             <div className="animate-fade-in">
                                 <section className="relative h-[65vh] sm:h-[80vh] w-full flex items-center justify-center overflow-hidden bg-slate-900">
-                                    <img src="./banner-promo.jpeg" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" alt="Banner Promoção" />
+                                    <img src="./banner-promo.jpeg" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent z-10"></div>
                                     <div className="relative z-20 text-center px-4 mt-8 max-w-4xl">
-                                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif mb-4 sm:mb-6 text-white tracking-tight drop-shadow-2xl">
-                                            A Essência do <span className="text-elora-gold">Oriente</span>.
-                                        </h1>
+                                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif mb-4 sm:mb-6 text-white tracking-tight drop-shadow-2xl">A Essência do <span className="text-elora-gold">Oriente</span>.</h1>
                                         <p className="text-sm sm:text-lg text-slate-200 mb-8 max-w-2xl mx-auto font-medium drop-shadow">Fragrâncias árabes exclusivas e refinadas.</p>
                                         <button onClick={() => setQuizOpen(true)} className="bg-elora-gold text-white px-6 sm:px-10 py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-all shadow-2xl flex items-center mx-auto gap-2.5 rounded-md hover:scale-105">
                                             <Icon name="flask-conical" className="w-4 h-4" /> Encontrar Minha Fragrância
@@ -762,22 +752,24 @@
                                         <div className="text-center py-16 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl p-8">
                                             <Icon name="sparkles" className="w-12 h-12 text-elora-gold mx-auto mb-4 opacity-80" />
                                             <h3 className="text-2xl font-serif mb-2">Catálogo Oficial em Preparação</h3>
-                                            <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto mb-6">Acesse o seu painel de administrador para cadastrar os produtos reais.</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                                             {produtos.map((produto) => (
                                                 <div key={produto.id} className={`group flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg hover:shadow-2xl hover:border-elora-gold/30 transition-all duration-500 p-4 sm:p-5 rounded-xl`}>
-                                                    <div className="relative aspect-[4/5] bg-slate-50 dark:bg-slate-800 overflow-hidden flex items-center justify-center p-4 mb-5 rounded-md">
+                                                    <div className="relative aspect-[4/5] bg-slate-50 dark:bg-slate-800 overflow-hidden flex items-center justify-center p-4 mb-5 rounded-md cursor-pointer" onClick={() => setProdutoSelecionado(produto)}>
                                                         {produto.tag && <div className="absolute top-3 left-3 bg-elora-gold text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 z-10 rounded-sm shadow-sm">{produto.tag}</div>}
                                                         <img src={produto.imagem} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                                                            <span className="text-white text-xs font-bold uppercase tracking-widest border border-white px-4 py-2 rounded">Ver Detalhes</span>
+                                                        </div>
                                                     </div>
                                                     <div className="text-center mt-auto flex flex-col items-center">
                                                         <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-1.5 block">{produto.marca}</span>
                                                         <h3 className="text-lg font-serif mb-2 group-hover:text-elora-gold transition-colors">{produto.nome}</h3>
                                                         <p className="text-slate-400 mb-5 font-medium text-base">R$ {Number(produto.preco).toFixed(2)}</p>
-                                                        <button onClick={() => handleComprar(produto)} className="w-full border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 py-3.5 text-xs font-bold uppercase tracking-widest hover:bg-elora-gold hover:border-elora-gold hover:text-white transition-all rounded-md flex justify-center items-center gap-2">
-                                                            <Icon name="shopping-bag" className="w-4 h-4" /> Comprar
+                                                        <button onClick={() => addToCart(produto)} className="w-full border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 py-3.5 text-xs font-bold uppercase tracking-widest hover:bg-elora-gold hover:border-elora-gold hover:text-white transition-all rounded-md flex justify-center items-center gap-2">
+                                                            <Icon name="shopping-cart" className="w-4 h-4" /> Adicionar
                                                         </button>
                                                     </div>
                                                 </div>
@@ -790,13 +782,13 @@
                     </main>
 
                     <footer className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-t py-10 mt-auto text-center transition-colors`}>
-                        <div className="text-2xl sm:text-3xl font-cinzel tracking-[0.2em] uppercase text-elora-gold mb-4 leading-none">
-                            ELORA <span className="text-slate-900 dark:text-slate-100 text-[9px] font-sans tracking-[0.4em] block mt-2">PARFUMS</span>
-                        </div>
+                        <div className="text-2xl sm:text-3xl font-cinzel tracking-[0.2em] uppercase text-elora-gold mb-4 leading-none">ELORA <span className="text-slate-900 dark:text-slate-100 text-[9px] font-sans tracking-[0.4em] block mt-2">PARFUMS</span></div>
                         <p className="text-slate-400 text-xs tracking-wide">Todos os direitos reservados &copy; 2026.</p>
                     </footer>
 
-                    {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={(p) => handleComprar(p)} />}
+                    <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} onCheckout={iniciarCheckout} darkMode={darkMode} />
+                    {produtoSelecionado && <ProductModal produto={produtoSelecionado} onClose={() => setProdutoSelecionado(null)} onAddToCart={addToCart} darkMode={darkMode} />}
+                    {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={(p) => { addToCart(p); setQuizOpen(false); }} />}
                     {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} onSuccess={handleAuthSuccess} mensagemExtra={authNotice} darkMode={darkMode} />}
                 </div>
             );
