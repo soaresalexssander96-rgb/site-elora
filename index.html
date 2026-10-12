@@ -129,12 +129,11 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Usa Blob diretamente (funciona em iOS antigos e Androids sem erro)
                         canvas.toBlob((blob) => {
                             if (blob) {
                                 resolve(blob);
                             } else {
-                                resolve(file); // Segurança: Se falhar, envia a foto original
+                                resolve(file);
                             }
                         }, 'image/jpeg', 0.7); 
                     };
@@ -164,14 +163,13 @@
             );
         }
 
-        // --- NOVO CARTÃO DE PRODUTO COMPLETO (COM MATEMÁTICA PROTEGIDA) ---
+        // --- CARTÃO DE PRODUTO COMPLETO E CORRIGIDO ---
         function ProductCard({ produto, onClick, onAddToCart, darkMode }) {
             const [imgIndex, setImgIndex] = useState(0);
             const [isFav, setIsFav] = useState(false);
             
             const imagens = produto.imagens && produto.imagens.length > 0 ? produto.imagens : [produto.imagem || './royal-amber.jpeg'];
 
-            // Proteção Extrema: Converter o preço para Número forçadamente
             const precoSeguro = Number(produto.preco) || 0;
             const parcelado = (precoSeguro / 10).toFixed(2);
             const pix = (precoSeguro * 0.95).toFixed(2);
@@ -189,7 +187,6 @@
             return (
                 <div className={`group flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg hover:shadow-2xl transition-all duration-500 p-4 sm:p-5 rounded-xl relative`}>
                     
-                    {/* Botões Superiores Flutuantes */}
                     <div className="absolute top-6 right-6 z-20 flex flex-col gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={toggleFav} className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow hover:scale-110 transition-transform">
                             <Icon name="heart" className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
@@ -204,15 +201,15 @@
                         
                         <img src={imagens[imgIndex]} className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
                         
-                        {/* Setas de Navegação */}
+                        {/* Correção vital: Utilizando React.Fragment em vez de <> */}
                         {imagens.length > 1 && (
-                            <>
+                            <React.Fragment>
                                 <button onClick={prevImg} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-1.5 rounded-full text-slate-800 opacity-0 group-hover/img:opacity-100 transition-opacity shadow"><Icon name="chevron-left" className="w-4 h-4"/></button>
                                 <button onClick={nextImg} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-1.5 rounded-full text-slate-800 opacity-0 group-hover/img:opacity-100 transition-opacity shadow"><Icon name="chevron-right" className="w-4 h-4"/></button>
                                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white text-[9px] px-2 py-0.5 rounded-full backdrop-blur-sm">
                                     {imgIndex + 1} / {imagens.length}
                                 </div>
-                            </>
+                            </React.Fragment>
                         )}
 
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity duration-300 pointer-events-none">
@@ -225,7 +222,6 @@
                         <h3 className="text-lg font-serif mb-1 group-hover:text-elora-gold transition-colors">{produto.nome}</h3>
                         <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-1">R$ {precoSeguro.toFixed(2)}</p>
                         
-                        {/* Condições de Pagamento Dinâmicas */}
                         <div className="flex flex-col items-center gap-1 mb-5 w-full">
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">10x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros</span>
                             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded font-semibold w-fit">R$ {pix} no PIX (5% OFF)</span>
@@ -392,7 +388,6 @@
             );
         }
 
-        // --- PAINEL ADMIN (FIREBASE NATIVO OTIMIZADO + COMPRESSÃO INTELIGENTE) ---
         function AdminDashboard({ produtos, setProdutos, darkMode, logout }) {
             const [aba, setAba] = useState('produtos');
             const [pedidosAll, setPedidosAll] = useState([]);
@@ -429,19 +424,17 @@
             const handleSubmitProduto = async (e) => {
                 e.preventDefault();
                 setCarregando(true);
-                setCarregandoText("A iniciar...");
+                setCarregandoText("Preparando...");
                 
                 try {
                     let urlsFinais = produtoEditando && novoProduto.imagensExistentes ? [...novoProduto.imagensExistentes] : [];
 
-                    // Envio sequencial com compressão extrema 
                     if (imagensArquivos.length > 0) {
                         if (window.storage && window.storageRef && window.uploadBytes && window.getDownloadURL) {
                             for (let i = 0; i < imagensArquivos.length; i++) {
                                 setCarregandoText(`A comprimir e enviar foto ${i + 1} de ${imagensArquivos.length}...`);
                                 
                                 const imagemComprimida = await compressImage(imagensArquivos[i]);
-                                // Removemos caracteres especiais do nome que podem travar o upload
                                 const nomeLimpo = imagensArquivos[i].name.replace(/[^a-zA-Z0-9.]/g, '');
                                 
                                 const imgRef = window.storageRef(window.storage, `perfumes/${Date.now()}_${nomeLimpo}`);
@@ -455,10 +448,10 @@
                     }
 
                     if (urlsFinais.length === 0) {
-                        urlsFinais = ['./royal-amber.jpeg']; // Foto de segurança
+                        urlsFinais = ['./royal-amber.jpeg'];
                     }
 
-                    setCarregandoText("A guardar produto...");
+                    setCarregandoText("A guardar dados...");
                     const precoTratado = parseFloat(novoProduto.preco) || 0;
                     
                     const obj = {
@@ -638,7 +631,6 @@
             );
         }
 
-        // --- COMPONENTE: MINHA CONTA (CLIENTE) ---
         function CustomerAccount({ user, logout, voltar, darkMode }) {
             const [pedidos, setPedidos] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -682,13 +674,9 @@
                             ) : (
                                 pedidos.map(pedido => {
                                     const dataPedido = new Date(pedido.dataCriacao);
-                                    
                                     let totalDisplay = '0.00';
-                                    if (pedido.valorTotal) {
-                                        totalDisplay = Number(pedido.valorTotal).toFixed(2);
-                                    } else if (pedido.produto && pedido.produto.preco) {
-                                        totalDisplay = Number(pedido.produto.preco).toFixed(2);
-                                    }
+                                    if (pedido.valorTotal) totalDisplay = Number(pedido.valorTotal).toFixed(2);
+                                    else if (pedido.produto && pedido.produto.preco) totalDisplay = Number(pedido.produto.preco).toFixed(2);
 
                                     return (
                                         <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
@@ -716,190 +704,6 @@
                                 <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">CPF</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.cpf || 'Não informado'}</p></div>
                                 <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">WhatsApp</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.telefone || 'Não informado'}</p></div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function AuthModal({ onClose, onSuccess, mensagemExtra, darkMode }) {
-            const [isRegister, setIsRegister] = useState(true);
-            const [loading, setLoading] = useState(false);
-            const [formData, setFormData] = useState({ nome: '', email: '', telefone: '', cpf: '', senha: '' });
-
-            const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-
-                try {
-                    if (!isRegister && formData.email === 'admin' && formData.senha === 'elora2026') {
-                        const adminUser = { nome: 'Administrador', email: 'admin', role: 'admin', cpf: '', telefone: '' };
-                        localStorage.setItem('elora_user', JSON.stringify(adminUser));
-                        onSuccess(adminUser);
-                        return;
-                    }
-
-                    if (isRegister) {
-                        if (window.db && window.collection && window.query) {
-                            const q = window.query(window.collection(window.db, "usuarios"), window.where("email", "==", formData.email));
-                            const snapshot = await window.getDocs(q);
-                            if (!snapshot.empty) {
-                                alert("Este e-mail já possui uma conta cadastrada. Faça login!");
-                                setIsRegister(false);
-                                setLoading(false);
-                                return;
-                            }
-                            await window.addDoc(window.collection(window.db, "usuarios"), { ...formData, dataCadastro: new Date().toISOString() });
-                        }
-                        const userObj = { nome: formData.nome, email: formData.email, cpf: formData.cpf, telefone: formData.telefone, role: 'cliente' };
-                        localStorage.setItem('elora_user', JSON.stringify(userObj));
-                        onSuccess(userObj);
-                    } else {
-                        if (window.db && window.collection && window.query) {
-                            const q = window.query(window.collection(window.db, "usuarios"), window.where("email", "==", formData.email));
-                            const snapshot = await window.getDocs(q);
-                            if (snapshot.empty) {
-                                alert("E-mail não encontrado. Crie uma conta primeiro!");
-                                setIsRegister(true);
-                                setLoading(false);
-                                return;
-                            }
-                            let userData = null;
-                            snapshot.forEach(doc => { userData = doc.data(); });
-
-                            if (userData.senha && userData.senha !== formData.senha) {
-                                alert("Senha incorreta!");
-                                setLoading(false);
-                                return;
-                            }
-                            const userObj = { nome: userData.nome, email: userData.email, cpf: userData.cpf, telefone: userData.telefone, role: 'cliente' };
-                            localStorage.setItem('elora_user', JSON.stringify(userObj));
-                            onSuccess(userObj);
-                        }
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert("Erro ao conectar com o servidor.");
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            return (
-                <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-3 sm:p-4 backdrop-blur-md">
-                    <div className={`${darkMode ? 'bg-slate-900 text-slate-100 border-slate-800' : 'bg-white text-slate-900 border-slate-200'} border p-6 sm:p-8 max-w-md w-full relative animate-fade-in shadow-2xl rounded-2xl`}>
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors"><Icon name="x" className="w-6 h-6" /></button>
-                        <div className="text-center mb-6">
-                            <Icon name="user" className="w-10 h-10 text-elora-gold mx-auto mb-2" />
-                            <h3 className="text-2xl font-serif">{isRegister ? 'Criar Sua Conta' : 'Acessar Sua Conta'}</h3>
-                            {mensagemExtra && <p className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-2.5 rounded-md mt-2 font-medium">{mensagemExtra}</p>}
-                        </div>
-                        <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
-                            <button onClick={() => setIsRegister(true)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${isRegister ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400'}`}>Criar Conta</button>
-                            <button onClick={() => setIsRegister(false)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${!isRegister ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400'}`}>Já Sou Cliente</button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {isRegister && <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Nome Completo *</label><input name="nome" value={formData.nome} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Ex: Maria Silva" /></div>}
-                            <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">{isRegister ? 'E-mail *' : 'E-mail ou Usuário *'}</label><input type="text" name="email" value={formData.email} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="seu@email.com" /></div>
-                            {isRegister && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">CPF *</label><input name="cpf" value={formData.cpf} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="000.000.000-00" /></div>
-                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">WhatsApp *</label><input name="telefone" value={formData.telefone} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="(11) 99999-9999" /></div>
-                                </div>
-                            )}
-                            <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Senha *</label><input type="password" name="senha" value={formData.senha} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="••••••••" /></div>
-                            <button type="submit" disabled={loading} className="w-full bg-elora-gold text-white py-4 mt-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20 flex items-center justify-center gap-2">
-                                {loading ? <Icon name="loader-2" className="w-5 h-5 animate-spin" /> : (isRegister ? 'Cadastrar e Continuar' : 'Entrar na Conta')}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            );
-        }
-
-        function Checkout({ cart, user, voltarParaLoja, darkMode }) {
-            const [loading, setLoading] = useState(false);
-            const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'SP' });
-            
-            const total = cart.reduce((sum, item) => sum + (Number(item.preco) || 0), 0);
-            const handleChange = (e) => setEndereco({ ...endereco, [e.target.name]: e.target.value });
-
-            const processarPedido = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                const orderNsu = "ELORA-" + Date.now();
-                const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
-
-                const itemsForAPI = cart.map(item => ({
-                    quantity: 1, price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
-                }));
-
-                try {
-                    if (window.db && window.collection && window.addDoc) {
-                        await window.addDoc(window.collection(window.db, "pedidos"), {
-                            order_nsu: orderNsu, cliente: clienteCompleto, 
-                            itens: cart, valorTotal: total,
-                            dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
-                        });
-                    }
-                } catch (err) { console.error(err); }
-
-                const pedido = { order_nsu: orderNsu, customer: clienteCompleto, items: itemsForAPI };
-                try {
-                    const resposta = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) });
-                    const dados = await resposta.json();
-                    if (dados.url || dados.checkout_url) window.location.href = dados.url || dados.checkout_url;
-                    else setLoading(false);
-                } catch (erro) { alert("Erro ao conectar."); setLoading(false); }
-            };
-
-            return (
-                <div className="max-w-7xl mx-auto px-4 py-8 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 animate-fade-in">
-                    <div>
-                        <button onClick={voltarParaLoja} className="flex items-center gap-2 text-slate-400 hover:text-elora-gold mb-6 text-xs uppercase tracking-widest font-semibold transition-colors"><Icon name="arrow-left" className="w-4 h-4" /> Voltar ao Carrinho</button>
-                        <form onSubmit={processarPedido} className="space-y-6">
-                            <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 shadow-xl rounded-xl`}>
-                                <h3 className="text-xl font-serif mb-6 flex items-center gap-3"><Icon name="map-pin" className="text-elora-gold w-5 h-5" /> Endereço de Entrega</h3>
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">CEP *</label><input name="cep" value={endereco.cep} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="00000-000" /></div>
-                                        <div className="sm:col-span-2"><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Rua / Avenida *</label><input name="rua" value={endereco.rua} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Nome da rua" /></div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Número *</label><input name="numero" value={endereco.numero} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="123" /></div>
-                                        <div className="sm:col-span-2"><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Complemento</label><input name="complemento" value={endereco.complemento} onChange={handleChange} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Apto, Bloco, etc." /></div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Bairro *</label><input name="bairro" value={endereco.bairro} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} /></div>
-                                        <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Cidade *</label><input name="cidade" value={endereco.cidade} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} /></div>
-                                        <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Estado *</label><input name="uf" value={endereco.uf} onChange={handleChange} required maxLength="2" className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md uppercase`} placeholder="SP" /></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="submit" disabled={loading} className="w-full bg-elora-gold text-white py-4 text-xs sm:text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-xl shadow-elora-gold/20 flex items-center justify-center gap-3">
-                                {loading ? <Icon name="loader-2" className="w-5 h-5 animate-spin" /> : 'Confirmar Endereço e Pagar'}
-                            </button>
-                        </form>
-                    </div>
-                    
-                    <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-10 h-fit shadow-2xl rounded-xl relative overflow-hidden lg:sticky lg:top-28`}>
-                        <h3 className="text-xl sm:text-2xl font-serif mb-6">Resumo do Pedido ({cart.length} itens)</h3>
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-lg flex items-center gap-3 mb-6">
-                            <Icon name="sparkles" className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium"><strong>Ganhe 5% OFF no PIX!</strong> Aplicado no pagamento.</p>
-                        </div>
-                        <div className="max-h-60 overflow-y-auto pr-2 space-y-4 mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-                            {cart.map((item, index) => (
-                                <div key={index} className="flex items-center gap-4">
-                                    <img src={getImagemPrincipal(item)} className="w-16 h-16 object-cover rounded-md shadow-sm" alt={item.nome} />
-                                    <div><p className="font-serif text-sm">{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">R$ {(Number(item.preco) || 0).toFixed(2)}</p></div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-between font-serif text-2xl sm:text-3xl mt-6">
-                            <span>Total</span><span className="text-elora-gold">R$ {total.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
