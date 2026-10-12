@@ -101,7 +101,7 @@
             return produto.imagem || './royal-amber.jpeg';
         };
 
-        // --- COMPRESSOR DE IMAGENS (Deixa o upload até 10x mais rápido) ---
+        // --- COMPRESSOR DE IMAGENS À PROVA DE BALA (Compatível com 100% dos telemóveis) ---
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -129,11 +129,18 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
+                        // Usa Blob diretamente (funciona em iOS antigos e Androids sem erro)
                         canvas.toBlob((blob) => {
-                            resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-                        }, 'image/jpeg', 0.7); // Reduz qualidade para 70%
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                resolve(file); // Segurança: Se falhar, envia a foto original
+                            }
+                        }, 'image/jpeg', 0.7); 
                     };
+                    img.onerror = () => resolve(file);
                 };
+                reader.onerror = () => resolve(file);
             });
         };
 
@@ -157,15 +164,17 @@
             );
         }
 
-        // --- NOVO CARTÃO DE PRODUTO COMPLETO ---
+        // --- NOVO CARTÃO DE PRODUTO COMPLETO (COM MATEMÁTICA PROTEGIDA) ---
         function ProductCard({ produto, onClick, onAddToCart, darkMode }) {
             const [imgIndex, setImgIndex] = useState(0);
             const [isFav, setIsFav] = useState(false);
             
             const imagens = produto.imagens && produto.imagens.length > 0 ? produto.imagens : [produto.imagem || './royal-amber.jpeg'];
 
-            const parcelado = (produto.preco / 10).toFixed(2);
-            const pix = (produto.preco * 0.95).toFixed(2);
+            // Proteção Extrema: Converter o preço para Número forçadamente
+            const precoSeguro = Number(produto.preco) || 0;
+            const parcelado = (precoSeguro / 10).toFixed(2);
+            const pix = (precoSeguro * 0.95).toFixed(2);
 
             const nextImg = (e) => { e.stopPropagation(); setImgIndex((prev) => (prev + 1) % imagens.length); };
             const prevImg = (e) => { e.stopPropagation(); setImgIndex((prev) => (prev === 0 ? imagens.length - 1 : prev - 1)); };
@@ -173,14 +182,14 @@
             
             const shareWhats = (e) => {
                 e.stopPropagation();
-                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por R$${produto.preco.toFixed(2)}!`);
+                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por R$${precoSeguro.toFixed(2)}!`);
                 window.open(`https://wa.me/?text=${text}`, '_blank');
             };
 
             return (
                 <div className={`group flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg hover:shadow-2xl transition-all duration-500 p-4 sm:p-5 rounded-xl relative`}>
                     
-                    {/* Botões Superiores Invisíveis até passar o rato (ou sempre visíveis no mobile) */}
+                    {/* Botões Superiores Flutuantes */}
                     <div className="absolute top-6 right-6 z-20 flex flex-col gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={toggleFav} className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow hover:scale-110 transition-transform">
                             <Icon name="heart" className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
@@ -214,9 +223,9 @@
                     <div className="text-center mt-auto flex flex-col items-center">
                         <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-1 block">{produto.marca}</span>
                         <h3 className="text-lg font-serif mb-1 group-hover:text-elora-gold transition-colors">{produto.nome}</h3>
-                        <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-1">R$ {Number(produto.preco).toFixed(2)}</p>
+                        <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-1">R$ {precoSeguro.toFixed(2)}</p>
                         
-                        {/* Condições de Pagamento */}
+                        {/* Condições de Pagamento Dinâmicas */}
                         <div className="flex flex-col items-center gap-1 mb-5 w-full">
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">10x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros</span>
                             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded font-semibold w-fit">R$ {pix} no PIX (5% OFF)</span>
@@ -235,6 +244,11 @@
             const [resultado, setResultado] = useState(null);
 
             const handleResponder = (tipo) => {
+                if (produtos.length === 0) {
+                    alert("O catálogo está vazio no momento.");
+                    onClose();
+                    return;
+                }
                 if (step === 1) setStep(2);
                 else {
                     const rec = tipo === 'noite' ? produtos[1] : produtos[0]; 
@@ -275,7 +289,7 @@
                                     <img src={getImagemPrincipal(resultado)} className="w-40 h-40 object-cover mb-6 rounded-md shadow-md" alt={resultado.nome} />
                                     <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-2">{resultado.marca}</span>
                                     <h4 className="text-2xl font-serif">{resultado.nome}</h4>
-                                    <p className="text-elora-gold font-medium text-xl mt-3">R$ {resultado.preco.toFixed(2)}</p>
+                                    <p className="text-elora-gold font-medium text-xl mt-3">R$ {(Number(resultado.preco) || 0).toFixed(2)}</p>
                                 </div>
                                 <button onClick={() => irParaCheckout(resultado)} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Adicionar à Sacola</button>
                             </div>
@@ -289,8 +303,9 @@
             const [imgAtiva, setImgAtiva] = useState(0);
             const imagensArray = produto.imagens && produto.imagens.length > 0 ? produto.imagens : [produto.imagem || './royal-amber.jpeg'];
             
-            const parcelado = (produto.preco / 10).toFixed(2);
-            const pix = (produto.preco * 0.95).toFixed(2);
+            const precoSeguro = Number(produto.preco) || 0;
+            const parcelado = (precoSeguro / 10).toFixed(2);
+            const pix = (precoSeguro * 0.95).toFixed(2);
 
             return (
                 <div className="fixed inset-0 bg-slate-900/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
@@ -315,7 +330,7 @@
                         <div className="w-full sm:w-1/2 flex flex-col justify-center">
                             <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-1">{produto.marca}</span>
                             <h2 className="text-3xl font-serif mb-2">{produto.nome}</h2>
-                            <p className="text-3xl font-medium mb-2">R$ {Number(produto.preco).toFixed(2)}</p>
+                            <p className="text-3xl font-medium mb-2">R$ {precoSeguro.toFixed(2)}</p>
                             
                             <div className="flex flex-col gap-1 mb-6 border-b border-slate-200 dark:border-slate-800 pb-6">
                                 <span className="text-xs text-slate-500 dark:text-slate-400">10x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros no cartão</span>
@@ -341,7 +356,7 @@
 
         function CartSidebar({ isOpen, onClose, cart, removeFromCart, onCheckout, darkMode }) {
             if (!isOpen) return null;
-            const total = cart.reduce((sum, item) => sum + item.preco, 0);
+            const total = cart.reduce((sum, item) => sum + (Number(item.preco) || 0), 0);
 
             return (
                 <div className="fixed inset-0 z-[100] flex justify-end">
@@ -359,7 +374,7 @@
                                         <div className="flex-1">
                                             <p className="font-serif text-sm">{item.nome}</p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{item.marca}</p>
-                                            <p className="font-medium text-sm mt-1">R$ {item.preco.toFixed(2)}</p>
+                                            <p className="font-medium text-sm mt-1">R$ {(Number(item.preco) || 0).toFixed(2)}</p>
                                         </div>
                                         <button onClick={() => removeFromCart(index)} className="text-red-400 hover:text-red-600 p-2"><Icon name="trash-2" className="w-4 h-4" /></button>
                                     </div>
@@ -377,7 +392,7 @@
             );
         }
 
-        // --- PAINEL ADMIN (FIREBASE NATIVO OTIMIZADO) ---
+        // --- PAINEL ADMIN (FIREBASE NATIVO OTIMIZADO + COMPRESSÃO INTELIGENTE) ---
         function AdminDashboard({ produtos, setProdutos, darkMode, logout }) {
             const [aba, setAba] = useState('produtos');
             const [pedidosAll, setPedidosAll] = useState([]);
@@ -414,40 +429,43 @@
             const handleSubmitProduto = async (e) => {
                 e.preventDefault();
                 setCarregando(true);
-                setCarregandoText("Preparando...");
+                setCarregandoText("A iniciar...");
                 
-                let urlsFinais = produtoEditando && novoProduto.imagensExistentes ? [...novoProduto.imagensExistentes] : [];
-
                 try {
-                    // Envio ao FIREBASE STORAGE com compressão prévia!
+                    let urlsFinais = produtoEditando && novoProduto.imagensExistentes ? [...novoProduto.imagensExistentes] : [];
+
+                    // Envio sequencial com compressão extrema 
                     if (imagensArquivos.length > 0) {
                         if (window.storage && window.storageRef && window.uploadBytes && window.getDownloadURL) {
                             for (let i = 0; i < imagensArquivos.length; i++) {
                                 setCarregandoText(`A comprimir e enviar foto ${i + 1} de ${imagensArquivos.length}...`);
                                 
-                                // Compressão mágica aqui
                                 const imagemComprimida = await compressImage(imagensArquivos[i]);
-
-                                const imgRef = window.storageRef(window.storage, `perfumes/${Date.now()}_${imagemComprimida.name}`);
+                                // Removemos caracteres especiais do nome que podem travar o upload
+                                const nomeLimpo = imagensArquivos[i].name.replace(/[^a-zA-Z0-9.]/g, '');
+                                
+                                const imgRef = window.storageRef(window.storage, `perfumes/${Date.now()}_${nomeLimpo}`);
                                 await window.uploadBytes(imgRef, imagemComprimida);
                                 const downloadURL = await window.getDownloadURL(imgRef);
                                 urlsFinais.push(downloadURL);
                             }
                         } else {
-                            throw new Error("Storage não configurado corretamente.");
+                            throw new Error("Sistema de nuvem não está conectado.");
                         }
                     }
 
                     if (urlsFinais.length === 0) {
-                        urlsFinais = ['./royal-amber.jpeg'];
+                        urlsFinais = ['./royal-amber.jpeg']; // Foto de segurança
                     }
 
-                    setCarregandoText("A guardar dados...");
+                    setCarregandoText("A guardar produto...");
+                    const precoTratado = parseFloat(novoProduto.preco) || 0;
+                    
                     const obj = {
                         nome: novoProduto.nome, 
                         marca: novoProduto.marca,
-                        preco: parseFloat(novoProduto.preco), 
-                        estoque: parseInt(novoProduto.estoque),
+                        preco: precoTratado, 
+                        estoque: parseInt(novoProduto.estoque) || 0,
                         imagens: urlsFinais, 
                         tag: 'Oficial'
                     };
@@ -460,17 +478,18 @@
                         } else {
                             const docRef = await window.addDoc(window.collection(window.db, "perfumes"), obj);
                             setProdutos([...produtos, { ...obj, id: docRef.id }]);
-                            alert("Produto cadastrado com sucesso!");
+                            alert("Produto cadastrado perfeitamente!");
                         }
                     }
+                    
+                    cancelarEdicao();
                 } catch (error) { 
                     console.error(error); 
-                    alert("Erro ao guardar o produto. Tente enviar fotos menores ou uma de cada vez."); 
+                    alert("Aviso: Ocorreu uma instabilidade na rede. Tente novamente."); 
+                } finally {
+                    setCarregando(false);
+                    setCarregandoText('');
                 }
-                
-                cancelarEdicao();
-                setCarregando(false);
-                setCarregandoText('');
             };
 
             const editarProduto = (p) => {
@@ -566,7 +585,7 @@
                                                 produtos.map(p => (
                                                     <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                                         <td className="py-3 flex items-center gap-3"><img src={getImagemPrincipal(p)} className="w-10 h-10 object-cover rounded" /><div><span className="text-elora-gold text-[9px] uppercase font-bold block tracking-widest">{p.marca}</span><span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span></div></td>
-                                                        <td className="py-3"><div className="font-medium">R$ {Number(p.preco).toFixed(2)}</div><div className="text-[10px] mt-0.5">{p.estoque} un. disponíveis</div></td>
+                                                        <td className="py-3"><div className="font-medium">R$ {(Number(p.preco)||0).toFixed(2)}</div><div className="text-[10px] mt-0.5">{p.estoque} un. disponíveis</div></td>
                                                         <td className="py-3 text-right space-x-2">
                                                             <button onClick={() => editarProduto(p)} className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors" title="Editar"><Icon name="pencil" className="w-4 h-4" /></button>
                                                             <button onClick={() => apagarProduto(p.id)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors" title="Apagar"><Icon name="trash-2" className="w-4 h-4" /></button>
@@ -591,9 +610,9 @@
                                             pedidosAll.map(p => {
                                                 let totalDisplayAdmin = '0.00';
                                                 if (p.valorTotal) {
-                                                    totalDisplayAdmin = p.valorTotal.toFixed(2);
+                                                    totalDisplayAdmin = Number(p.valorTotal).toFixed(2);
                                                 } else if (p.produto && p.produto.preco) {
-                                                    totalDisplayAdmin = p.produto.preco.toFixed(2);
+                                                    totalDisplayAdmin = Number(p.produto.preco).toFixed(2);
                                                 }
 
                                                 return (
@@ -615,6 +634,90 @@
                             </div>
                         </div>
                     )}
+                </div>
+            );
+        }
+
+        // --- COMPONENTE: MINHA CONTA (CLIENTE) ---
+        function CustomerAccount({ user, logout, voltar, darkMode }) {
+            const [pedidos, setPedidos] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const buscarPedidos = async () => {
+                    if (window.db && window.collection && window.query) {
+                        try {
+                            const q = window.query(window.collection(window.db, "pedidos"), window.where("cliente.email", "==", user.email));
+                            const querySnapshot = await window.getDocs(q);
+                            const lista = [];
+                            querySnapshot.forEach((doc) => { lista.push({ id: doc.id, ...doc.data() }); });
+                            lista.sort((a,b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+                            setPedidos(lista);
+                        } catch (e) { console.error(e); }
+                    }
+                    setLoading(false);
+                };
+                buscarPedidos();
+            }, [user.email]);
+
+            return (
+                <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 md:mb-12 border-b border-slate-200 dark:border-slate-800 pb-6">
+                        <div>
+                            <h2 className="text-3xl md:text-4xl font-serif">Minha Conta</h2>
+                            <p className="text-slate-400 mt-1 text-sm">Bem-vindo(a), {user.nome.split(' ')[0]}</p>
+                        </div>
+                        <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair</button>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-6">
+                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="package" className="w-5 h-5 text-elora-gold" /> Meus Pedidos</h3>
+                            {loading ? (
+                                <div className="text-center py-12 text-slate-400"><Icon name="loader-2" className="w-8 h-8 animate-spin mx-auto" /></div>
+                            ) : pedidos.length === 0 ? (
+                                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-8 rounded-xl text-center shadow-sm`}>
+                                    <p className="text-slate-400 mb-4 text-sm">Nenhum pedido encontrado na sua conta.</p>
+                                    <button onClick={voltar} className="text-elora-gold font-bold uppercase text-xs tracking-widest hover:underline">Ir para a Loja</button>
+                                </div>
+                            ) : (
+                                pedidos.map(pedido => {
+                                    const dataPedido = new Date(pedido.dataCriacao);
+                                    
+                                    let totalDisplay = '0.00';
+                                    if (pedido.valorTotal) {
+                                        totalDisplay = Number(pedido.valorTotal).toFixed(2);
+                                    } else if (pedido.produto && pedido.produto.preco) {
+                                        totalDisplay = Number(pedido.produto.preco).toFixed(2);
+                                    }
+
+                                    return (
+                                        <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
+                                            <div className={`${darkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'} border-b p-4 sm:p-5 flex justify-between items-center text-xs`}>
+                                                <div><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Pedido {pedido.order_nsu}</span><span className="font-medium">{dataPedido.toLocaleDateString('pt-BR')}</span></div>
+                                                <div className="text-right"><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Status</span><span className="font-bold text-elora-gold bg-elora-gold/10 px-2.5 py-1 rounded-full text-[11px]">{pedido.status || 'Aguardando Pagamento'}</span></div>
+                                            </div>
+                                            <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 items-center">
+                                                <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 sm:w-24 sm:h-24 rounded-md flex items-center justify-center flex-shrink-0"><Icon name="shopping-bag" className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" /></div>
+                                                <div className="flex-grow text-center sm:text-left">
+                                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">Total da Compra</span>
+                                                    <h4 className="text-base sm:text-lg font-serif">R$ {totalDisplay}</h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 h-fit shadow-xl rounded-xl`}>
+                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="user" className="w-5 h-5 text-elora-gold" /> Dados Cadastrais</h3>
+                            <div className="space-y-4 text-xs sm:text-sm text-slate-400">
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">Nome</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.nome}</p></div>
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">E-mail</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.email}</p></div>
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">CPF</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.cpf || 'Não informado'}</p></div>
+                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">WhatsApp</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.telefone || 'Não informado'}</p></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             );
         }
@@ -720,7 +823,7 @@
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'SP' });
             
-            const total = cart.reduce((sum, item) => sum + item.preco, 0);
+            const total = cart.reduce((sum, item) => sum + (Number(item.preco) || 0), 0);
             const handleChange = (e) => setEndereco({ ...endereco, [e.target.name]: e.target.value });
 
             const processarPedido = async (e) => {
@@ -730,7 +833,7 @@
                 const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
 
                 const itemsForAPI = cart.map(item => ({
-                    quantity: 1, price: Math.round(item.preco * 100), description: `Elora: ${item.marca} - ${item.nome}`
+                    quantity: 1, price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
                 }));
 
                 try {
@@ -791,7 +894,7 @@
                             {cart.map((item, index) => (
                                 <div key={index} className="flex items-center gap-4">
                                     <img src={getImagemPrincipal(item)} className="w-16 h-16 object-cover rounded-md shadow-sm" alt={item.nome} />
-                                    <div><p className="font-serif text-sm">{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">R$ {item.preco.toFixed(2)}</p></div>
+                                    <div><p className="font-serif text-sm">{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">R$ {(Number(item.preco) || 0).toFixed(2)}</p></div>
                                 </div>
                             ))}
                         </div>
@@ -803,7 +906,6 @@
             );
         }
 
-        // --- COMPONENTE PRINCIPAL APP ---
         function App() {
             const [view, setView] = useState('store'); 
             const [quizOpen, setQuizOpen] = useState(false);
@@ -871,7 +973,7 @@
                 setAuthModalOpen(false);
                 setAuthNotice('');
 
-                if (loggedUser.role === 'admin') setView('admin');
+                if (loggedUser && loggedUser.role === 'admin') setView('admin');
                 else if (cart.length > 0) { setView('checkout'); window.scrollTo(0,0); }
                 else setView('account');
             };
