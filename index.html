@@ -395,8 +395,13 @@
                                     const dataEntrega = new Date(dataPedido);
                                     dataEntrega.setDate(dataEntrega.getDate() + 7);
                                     
-                                    // Evitar o erro do Optional Chaining usando Operadores Ternários
-                                    const totalDisplay = pedido.valorTotal ? pedido.valorTotal.toFixed(2) : (pedido.produto && pedido.produto.preco ? pedido.produto.preco.toFixed(2) : '0.00');
+                                    // Cálculo de total seguro sem sintaxes novas
+                                    let totalDisplay = '0.00';
+                                    if (pedido.valorTotal) {
+                                        totalDisplay = pedido.valorTotal.toFixed(2);
+                                    } else if (pedido.produto && pedido.produto.preco) {
+                                        totalDisplay = pedido.produto.preco.toFixed(2);
+                                    }
 
                                     return (
                                         <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
@@ -567,7 +572,13 @@
                                     <tbody>
                                         {pedidosAll.length === 0 ? <tr><td colSpan="4" className="py-8 text-center text-slate-500">Nenhum pedido recebido.</td></tr> : (
                                             pedidosAll.map(p => {
-                                                const totalDisplayAdmin = p.valorTotal ? p.valorTotal.toFixed(2) : (p.produto && p.produto.preco ? p.produto.preco.toFixed(2) : '0.00');
+                                                let totalDisplayAdmin = '0.00';
+                                                if (p.valorTotal) {
+                                                    totalDisplayAdmin = p.valorTotal.toFixed(2);
+                                                } else if (p.produto && p.produto.preco) {
+                                                    totalDisplayAdmin = p.produto.preco.toFixed(2);
+                                                }
+
                                                 return (
                                                     <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30">
                                                         <td className="py-4"><div className="font-medium text-slate-700 dark:text-slate-200">{new Date(p.dataCriacao).toLocaleDateString('pt-BR')}</div><div className="text-[9px] tracking-wider mt-0.5">{p.order_nsu}</div></td>
@@ -799,8 +810,8 @@
                     </header>
 
                     <main className="flex-grow">
-                        {view === 'admin' && user?.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} />}
-                        {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={() => {localStorage.removeItem('elora_user'); setUser(null); setView('store');}} voltar={() => setView('store')} darkMode={darkMode} />}
+                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} />}
+                        {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={logout} voltar={() => setView('store')} darkMode={darkMode} />}
                         {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} />}
                         
                         {view === 'store' && (
