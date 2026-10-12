@@ -97,7 +97,7 @@
             );
         }
 
-        // --- MODAL DO QUIZ (Faltava este!) ---
+        // --- MODAL DO QUIZ ---
         function QuizModal({ onClose, produtos, irParaCheckout, darkMode }) {
             const [step, setStep] = useState(1);
             const [resultado, setResultado] = useState(null);
@@ -112,7 +112,7 @@
 
             return (
                 <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-                    <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border p-8 md:p-12 max-w-lg w-full relative animate-fade-in shadow-2xl rounded-xl`}>
+                    <div className={`${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'} border p-8 md:p-12 max-w-lg w-full relative animate-fade-in shadow-2xl rounded-xl`}>
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors">
                             <Icon name="x" className="w-6 h-6" />
                         </button>
@@ -148,7 +148,9 @@
                                     <h4 className="text-2xl font-serif">{resultado.nome}</h4>
                                     <p className="text-elora-gold font-medium text-xl mt-3">R$ {resultado.preco.toFixed(2)}</p>
                                 </div>
-                                <button onClick={() => irParaCheckout(resultado)} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Comprar Esta Joia</button>
+                                <button onClick={() => irParaCheckout(resultado)} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">
+                                    Adicionar à Sacola
+                                </button>
                             </div>
                         )}
                     </div>
@@ -181,7 +183,6 @@
                             )}
 
                             <div className="space-y-4 mb-8 text-sm text-slate-500 dark:text-slate-400">
-                                <p><strong>Família Olfativa:</strong> {produto.categoria || 'Oriental'}</p>
                                 <p>Uma experiência luxuosa, com excelente fixação e projeção marcante, ideal para quem deseja deixar rastro.</p>
                             </div>
 
@@ -393,6 +394,10 @@
                                     const dataPedido = new Date(pedido.dataCriacao);
                                     const dataEntrega = new Date(dataPedido);
                                     dataEntrega.setDate(dataEntrega.getDate() + 7);
+                                    
+                                    // Evitar o erro do Optional Chaining usando Operadores Ternários
+                                    const totalDisplay = pedido.valorTotal ? pedido.valorTotal.toFixed(2) : (pedido.produto && pedido.produto.preco ? pedido.produto.preco.toFixed(2) : '0.00');
+
                                     return (
                                         <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
                                             <div className={`${darkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'} border-b p-4 sm:p-5 flex justify-between items-center text-xs`}>
@@ -403,7 +408,7 @@
                                                 <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 sm:w-24 sm:h-24 rounded-md flex items-center justify-center flex-shrink-0"><Icon name="shopping-bag" className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" /></div>
                                                 <div className="flex-grow text-center sm:text-left">
                                                     <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">Total da Compra</span>
-                                                    <h4 className="text-base sm:text-lg font-serif">R$ {pedido.valorTotal?.toFixed(2) || (pedido.produto?.preco?.toFixed(2))}</h4>
+                                                    <h4 className="text-base sm:text-lg font-serif">R$ {totalDisplay}</h4>
                                                 </div>
                                             </div>
                                         </div>
@@ -433,8 +438,6 @@
             const [novoProduto, setNovoProduto] = useState({ nome: '', marca: '', preco: '', estoque: '', imagem: '' });
             const [carregando, setCarregando] = useState(false);
 
-            useEffect(() => { if (aba === 'pedidos') carregarPedidos(); }, [aba]);
-
             const carregarPedidos = async () => {
                 if (window.db && window.collection && window.getDocs) {
                     try {
@@ -446,6 +449,8 @@
                     } catch (e) { console.error(e); }
                 }
             };
+
+            useEffect(() => { if (aba === 'pedidos') carregarPedidos(); }, [aba]);
 
             const handleSubmitProduto = async (e) => {
                 e.preventDefault();
@@ -561,18 +566,21 @@
                                     <thead><tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-widest"><th className="pb-3 font-semibold">Data / NSU</th><th className="pb-3 font-semibold">Cliente</th><th className="pb-3 font-semibold">Total (R$)</th><th className="pb-3 font-semibold">Status</th></tr></thead>
                                     <tbody>
                                         {pedidosAll.length === 0 ? <tr><td colSpan="4" className="py-8 text-center text-slate-500">Nenhum pedido recebido.</td></tr> : (
-                                            pedidosAll.map(p => (
-                                                <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                                                    <td className="py-4"><div className="font-medium text-slate-700 dark:text-slate-200">{new Date(p.dataCriacao).toLocaleDateString('pt-BR')}</div><div className="text-[9px] tracking-wider mt-0.5">{p.order_nsu}</div></td>
-                                                    <td className="py-4"><div className="font-medium text-slate-700 dark:text-slate-200">{p.cliente.nome}</div><div className="text-[10px]">{p.cliente.telefone}</div></td>
-                                                    <td className="py-4"><div className="font-medium text-elora-gold">R$ {p.valorTotal?.toFixed(2) || (p.produto?.preco?.toFixed(2))}</div></td>
-                                                    <td className="py-4">
-                                                        <select value={p.status || 'Aguardando Pagamento'} onChange={(e) => atualizarStatusPedido(p.id, e.target.value)} className={`text-[10px] font-bold uppercase tracking-wider p-1.5 rounded outline-none cursor-pointer border ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                                                            <option value="Aguardando Pagamento">Aguardando Pagamento</option><option value="Pagamento Aprovado">Pagamento Aprovado</option><option value="Em Rota de Entrega">Em Rota de Entrega</option><option value="Entregue">Entregue</option><option value="Cancelado">Cancelado</option>
-                                                        </select>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                            pedidosAll.map(p => {
+                                                const totalDisplayAdmin = p.valorTotal ? p.valorTotal.toFixed(2) : (p.produto && p.produto.preco ? p.produto.preco.toFixed(2) : '0.00');
+                                                return (
+                                                    <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                                        <td className="py-4"><div className="font-medium text-slate-700 dark:text-slate-200">{new Date(p.dataCriacao).toLocaleDateString('pt-BR')}</div><div className="text-[9px] tracking-wider mt-0.5">{p.order_nsu}</div></td>
+                                                        <td className="py-4"><div className="font-medium text-slate-700 dark:text-slate-200">{p.cliente.nome}</div><div className="text-[10px]">{p.cliente.telefone}</div></td>
+                                                        <td className="py-4"><div className="font-medium text-elora-gold">R$ {totalDisplayAdmin}</div></td>
+                                                        <td className="py-4">
+                                                            <select value={p.status || 'Aguardando Pagamento'} onChange={(e) => atualizarStatusPedido(p.id, e.target.value)} className={`text-[10px] font-bold uppercase tracking-wider p-1.5 rounded outline-none cursor-pointer border ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                                                <option value="Aguardando Pagamento">Aguardando Pagamento</option><option value="Pagamento Aprovado">Pagamento Aprovado</option><option value="Em Rota de Entrega">Em Rota de Entrega</option><option value="Entregue">Entregue</option><option value="Cancelado">Cancelado</option>
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })
                                         )}
                                     </tbody>
                                 </table>
