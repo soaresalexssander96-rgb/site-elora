@@ -20,6 +20,7 @@ export default async function handler(req, res) {
     handle: INFINITE_TAG,
     redirect_url: req.headers.referer || "https://site-elora.vercel.app",
     order_nsu: order_nsu || "ELORA-" + Date.now(),
+    webhook_url: "https://site-elora.vercel.app/api/webhook", // <-- AQUI ESTÁ A LIGAÇÃO AUTOMÁTICA!
     items: formattedItems
   };
 
@@ -30,7 +31,9 @@ export default async function handler(req, res) {
       phone_number: customer.telefone ? "+55" + customer.telefone.replace(/\D/g, '') : "",
       document_number: customer.cpf ? customer.cpf.replace(/\D/g, '') : ""
     };
-    payload.billing_address = {
+    
+    // Adicionado tanto endereço de cobrança quanto de entrega para tentar forçar o autopreenchimento
+    const enderecoFormatado = {
       line1: customer.numero ? `${customer.rua}, ${customer.numero}` : customer.rua || "",
       line2: customer.complemento || "",
       neighborhood: customer.bairro || "",
@@ -39,6 +42,9 @@ export default async function handler(req, res) {
       zip: customer.cep ? customer.cep.replace(/\D/g, '') : "",
       country: "BR"
     };
+
+    payload.billing_address = enderecoFormatado;
+    payload.shipping_address = enderecoFormatado;
   }
 
   try {
