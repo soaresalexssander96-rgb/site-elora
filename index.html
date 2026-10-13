@@ -697,7 +697,7 @@
             );
         }
 
-        // --- CHECKOUT COM CUPOM E PACOTE INFINITEPAY ---
+        // --- CHECKOUT COM CUPOM INTELIGENTE E PACOTE INFINITEPAY REFORÇADO ---
         function Checkout({ cart, user, voltarParaLoja, darkMode, onCheckoutSuccess }) {
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' });
@@ -712,7 +712,6 @@
 
             const totalProdutos = cart.reduce((sum, item) => sum + (Number(item.preco) || 0), 0);
             
-            // Lógica do Cupom
             const descontoFrete = (cupomAtivo && cupomAtivo.tipo === 'frete') ? freteValor : 0;
             const totalComFrete = totalProdutos + freteValor - descontoFrete;
             
@@ -772,6 +771,21 @@
                     }
                     
                     setVerificandoCupom(true);
+                    
+                    // EXCEÇÃO "MODO TESTE"
+                    const isTeste = cart.some(item => 
+                        (item.nome && item.nome.toLowerCase().includes('teste')) || 
+                        (item.marca && item.marca.toLowerCase().includes('teste'))
+                    );
+
+                    if (isTeste) {
+                        setCupomAtivo({ codigo: 'PRIMEIROGRATIS', tipo: 'frete' });
+                        alert("Cupom aplicado com sucesso (Modo Teste)! Frete Grátis ativado.");
+                        setVerificandoCupom(false);
+                        return;
+                    }
+
+                    // VALIDAÇÃO REAL ANTI-FRAUDE
                     try {
                         const q = window.query(window.collection(window.db, "pedidos"), window.where("cliente.email", "==", user.email));
                         const snapshot = await window.getDocs(q);
@@ -806,7 +820,6 @@
                     quantity: 1, price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
                 }));
 
-                // O valor real do frete cobrado ao cliente (já com o desconto)
                 const valorFreteReal = (cupomAtivo && cupomAtivo.tipo === 'frete') ? 0 : freteValor;
 
                 if (valorFreteReal > 0) {
@@ -828,18 +841,13 @@
                     }
                 } catch (err) { console.error("Erro no Firebase", err); }
 
-                // PACOTE INFINITEPAY REESTRUTURADO (Endereço formatado)
+                // PACOTE INFINITEPAY REFORÇADO (Para tentar forçar a aceitação do endereço)
                 const pedido = { 
                     order_nsu: orderNsu, 
                     customer: clienteCompleto, 
-                    address: {
-                        line1: `${endereco.rua}, ${endereco.numero}`,
-                        line2: endereco.complemento || '',
-                        city: endereco.cidade,
-                        state: endereco.uf,
-                        zip: endereco.cep,
-                        country: 'BR'
-                    },
+                    address: { line1: `${endereco.rua}, ${endereco.numero}`, line2: endereco.complemento || '', city: endereco.cidade, state: endereco.uf, zip: endereco.cep, country: 'BR' },
+                    shipping_address: { zip: endereco.cep, street: endereco.rua, number: endereco.numero, complement: endereco.complemento, neighborhood: endereco.bairro, city: endereco.cidade, state: endereco.uf, country: 'BR' },
+                    billing_address: { zip: endereco.cep, street: endereco.rua, number: endereco.numero, complement: endereco.complemento, neighborhood: endereco.bairro, city: endereco.cidade, state: endereco.uf, country: 'BR' },
                     items: itemsForAPI 
                 };
                 
@@ -935,7 +943,6 @@
                             ))}
                         </div>
                         
-                        {/* SISTEMA DE CUPONS */}
                         <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
                             <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Tem um cupom de desconto?</label>
                             <div className="flex gap-2">
@@ -1331,11 +1338,7 @@
             const addToCart = (produto) => { setCart([...cart, produto]); setCartOpen(true); };
             
             const handleBuyNow = (produto) => {
-                setCart(prevCart => {
-                    const novoCarrinho = [...prevCart, produto];
-                    return novoCarrinho;
-                });
-                
+                setCart(prevCart => [...prevCart, produto]);
                 if (!user) {
                     setAuthNotice('Crie sua conta ou faça login para finalizar a sua compra.');
                     setAuthModalOpen(true);
