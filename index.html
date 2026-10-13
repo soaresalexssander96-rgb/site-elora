@@ -192,9 +192,9 @@
             );
         }
 
-        function ProductCard({ produto, onClick, onAddToCart, onBuyNow, darkMode }) {
+        // CARTÃO DE PRODUTO AGORA RECEBE isFav E onToggleFav DE FORA
+        function ProductCard({ produto, onClick, onAddToCart, onBuyNow, darkMode, isFav, onToggleFav }) {
             const [imgIndex, setImgIndex] = useState(0);
-            const [isFav, setIsFav] = useState(false);
             
             const imagens = (produto.imagens && produto.imagens.filter(Boolean).length > 0) 
                 ? produto.imagens.filter(Boolean) 
@@ -209,7 +209,7 @@
 
             const nextImg = (e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev + 1) % imagens.length); };
             const prevImg = (e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev === 0 ? imagens.length - 1 : prev - 1)); };
-            const toggleFav = (e) => { e.preventDefault(); e.stopPropagation(); setIsFav(!isFav); };
+            const toggleFav = (e) => { e.preventDefault(); e.stopPropagation(); onToggleFav(); };
             
             const shareWhats = (e) => {
                 e.preventDefault();
@@ -280,6 +280,47 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            );
+        }
+
+        // PÁGINA "MEUS FAVORITOS"
+        function FavoritesPage({ produtos, favorites, onToggleFav, onAddToCart, onBuyNow, darkMode, voltarParaLoja, onSwitchProduct }) {
+            const favoritedProducts = produtos.filter(p => favorites.includes(p.id));
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 py-12 sm:py-20 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 md:mb-12 border-b border-slate-200 dark:border-slate-800 pb-6">
+                        <div>
+                            <h2 className="text-3xl md:text-4xl font-serif">Meus Favoritos</h2>
+                            <p className="text-slate-400 mt-1 text-sm">{favoritedProducts.length} {favoritedProducts.length === 1 ? 'fragrância salva' : 'fragrâncias salvas'}</p>
+                        </div>
+                        <button onClick={voltarParaLoja} className="flex items-center gap-2 text-slate-400 hover:text-elora-gold text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="arrow-left" className="w-4 h-4" /> Voltar à Loja</button>
+                    </div>
+
+                    {favoritedProducts.length === 0 ? (
+                        <div className="text-center py-16 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl p-8">
+                            <Icon name="heart" className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-4 opacity-80" />
+                            <h3 className="text-2xl font-serif mb-2">Sua lista de desejos está vazia</h3>
+                            <p className="text-slate-500 mb-6">Explore nosso catálogo e salve as suas fragrâncias favoritas para não as perder de vista.</p>
+                            <button onClick={voltarParaLoja} className="bg-elora-gold text-white px-8 py-3 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Ver Catálogo</button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                            {favoritedProducts.map((produto) => (
+                                <ProductCard 
+                                    key={produto.id} 
+                                    produto={produto} 
+                                    onClick={onSwitchProduct} 
+                                    onAddToCart={onAddToCart} 
+                                    onBuyNow={onBuyNow}
+                                    darkMode={darkMode}
+                                    isFav={true}
+                                    onToggleFav={() => onToggleFav(produto.id)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -697,7 +738,6 @@
             );
         }
 
-        // --- CHECKOUT COM CUPOM INTELIGENTE E PACOTE INFINITEPAY REFORÇADO ---
         function Checkout({ cart, user, voltarParaLoja, darkMode, onCheckoutSuccess }) {
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' });
@@ -772,7 +812,6 @@
                     
                     setVerificandoCupom(true);
                     
-                    // EXCEÇÃO "MODO TESTE"
                     const isTeste = cart.some(item => 
                         (item.nome && item.nome.toLowerCase().includes('teste')) || 
                         (item.marca && item.marca.toLowerCase().includes('teste'))
@@ -785,7 +824,6 @@
                         return;
                     }
 
-                    // VALIDAÇÃO REAL ANTI-FRAUDE
                     try {
                         const q = window.query(window.collection(window.db, "pedidos"), window.where("cliente.email", "==", user.email));
                         const snapshot = await window.getDocs(q);
@@ -841,7 +879,6 @@
                     }
                 } catch (err) { console.error("Erro no Firebase", err); }
 
-                // PACOTE INFINITEPAY REFORÇADO (Para tentar forçar a aceitação do endereço)
                 const pedido = { 
                     order_nsu: orderNsu, 
                     customer: clienteCompleto, 
@@ -1214,85 +1251,7 @@
             );
         }
 
-        function CustomerAccount({ user, logout, voltar, darkMode }) {
-            const [pedidos, setPedidos] = useState([]);
-            const [loading, setLoading] = useState(true);
-
-            useEffect(() => {
-                const buscarPedidos = async () => {
-                    if (window.db && window.collection && window.query) {
-                        try {
-                            const q = window.query(window.collection(window.db, "pedidos"), window.where("cliente.email", "==", user.email));
-                            const querySnapshot = await window.getDocs(q);
-                            const lista = [];
-                            querySnapshot.forEach((doc) => { lista.push({ id: doc.id, ...doc.data() }); });
-                            lista.sort((a,b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
-                            setPedidos(lista);
-                        } catch (e) { console.error(e); }
-                    }
-                    setLoading(false);
-                };
-                buscarPedidos();
-            }, [user.email]);
-
-            return (
-                <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 animate-fade-in">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 md:mb-12 border-b border-slate-200 dark:border-slate-800 pb-6">
-                        <div>
-                            <h2 className="text-3xl md:text-4xl font-serif">Minha Conta</h2>
-                            <p className="text-slate-400 mt-1 text-sm">Bem-vindo(a), {user.nome.split(' ')[0]}</p>
-                        </div>
-                        <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair</button>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-6">
-                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="package" className="w-5 h-5 text-elora-gold" /> Meus Pedidos</h3>
-                            {loading ? (
-                                <div className="text-center py-12 text-slate-400"><Icon name="loader-2" className="w-8 h-8 animate-spin mx-auto" /></div>
-                            ) : pedidos.length === 0 ? (
-                                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-8 rounded-xl text-center shadow-sm`}>
-                                    <p className="text-slate-400 mb-4 text-sm">Nenhum pedido encontrado na sua conta.</p>
-                                    <button onClick={voltar} className="text-elora-gold font-bold uppercase text-xs tracking-widest hover:underline">Ir para a Loja</button>
-                                </div>
-                            ) : (
-                                pedidos.map(pedido => {
-                                    const dataPedido = new Date(pedido.dataCriacao);
-                                    let totalDisplay = '0.00';
-                                    if (pedido.valorTotal) totalDisplay = Number(pedido.valorTotal).toFixed(2);
-                                    else if (pedido.produto && pedido.produto.preco) totalDisplay = Number(pedido.produto.preco).toFixed(2);
-
-                                    return (
-                                        <div key={pedido.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border shadow-lg rounded-xl overflow-hidden`}>
-                                            <div className={`${darkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'} border-b p-4 sm:p-5 flex justify-between items-center text-xs`}>
-                                                <div><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Pedido {pedido.order_nsu}</span><span className="font-medium">{dataPedido.toLocaleDateString('pt-BR')}</span></div>
-                                                <div className="text-right"><span className="text-slate-400 uppercase tracking-widest font-semibold block text-[10px]">Status</span><span className="font-bold text-elora-gold bg-elora-gold/10 px-2.5 py-1 rounded-full text-[11px]">{pedido.status || 'Aguardando Pagamento'}</span></div>
-                                            </div>
-                                            <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 items-center">
-                                                <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 sm:w-24 sm:h-24 rounded-md flex items-center justify-center flex-shrink-0"><Icon name="shopping-bag" className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" /></div>
-                                                <div className="flex-grow text-center sm:text-left">
-                                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">Total da Compra</span>
-                                                    <h4 className="text-base sm:text-lg font-serif">R$ {totalDisplay}</h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                })
-                            )}
-                        </div>
-                        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 h-fit shadow-xl rounded-xl`}>
-                            <h3 className="text-xl font-serif flex items-center gap-3 mb-6"><Icon name="user" className="w-5 h-5 text-elora-gold" /> Dados Cadastrais</h3>
-                            <div className="space-y-4 text-xs sm:text-sm text-slate-400">
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">Nome</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.nome}</p></div>
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">E-mail</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.email}</p></div>
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">CPF</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.cpf || 'Não informado'}</p></div>
-                                <div><span className="block text-[10px] uppercase tracking-widest font-semibold mb-1">WhatsApp</span><p className="font-medium text-slate-200 dark:text-slate-100">{user.telefone || 'Não informado'}</p></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
+        // --- APP PRINCIPAL INTEGRANDO FAVORITOS ---
         function App() {
             const [view, setView] = useState('store'); 
             const [quizOpen, setQuizOpen] = useState(false);
@@ -1307,6 +1266,13 @@
             const [cartOpen, setCartOpen] = useState(false);
             const [produtoSelecionado, setProdutoSelecionado] = useState(null);
             const [darkMode, setDarkMode] = useState(false);
+            
+            // INTELIGÊNCIA: ESTADO DOS FAVORITOS COM MEMÓRIA
+            const [favorites, setFavorites] = useState(() => {
+                const saved = localStorage.getItem('elora_favorites');
+                return saved ? JSON.parse(saved) : [];
+            });
+
             const [user, setUser] = useState(() => {
                 const saved = localStorage.getItem('elora_user');
                 return saved ? JSON.parse(saved) : null;
@@ -1355,6 +1321,15 @@
                 if (newCart.length === 0) setCartOpen(false);
             };
 
+            // INTELIGÊNCIA: FUNÇÃO DE SALVAR FAVORITOS
+            const toggleFav = (id) => {
+                setFavorites(prev => {
+                    const newFavs = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+                    localStorage.setItem('elora_favorites', JSON.stringify(newFavs));
+                    return newFavs;
+                });
+            };
+
             const iniciarCheckout = () => {
                 setCartOpen(false);
                 if (!user) { setAuthNotice('Crie sua conta para prosseguir com a compra.'); setAuthModalOpen(true); } 
@@ -1393,7 +1368,7 @@
                                 <LogoPremium onClick={() => setView('store')} darkMode={darkMode} />
                             </div>
 
-                            <div className="flex items-center justify-end space-x-4 w-1/3">
+                            <div className="flex items-center justify-end space-x-2 sm:space-x-4 w-1/3">
                                 <button onClick={() => {
                                     if (user && user.role === 'admin') setView('admin');
                                     else if (user) setView('account');
@@ -1403,6 +1378,14 @@
                                     <span className="hidden sm:inline">{user && user.role === 'admin' ? 'Gestão' : (user ? 'Conta' : 'Entrar')}</span>
                                 </button>
                                 
+                                {/* BOTÃO MEUS FAVORITOS NO CABEÇALHO */}
+                                {user && user.role !== 'admin' && (
+                                    <button onClick={() => setView('favorites')} className="relative text-slate-500 dark:text-slate-300 hover:text-red-500 transition-colors p-1" title="Meus Favoritos">
+                                        <Icon name="heart" className="w-5 h-5" />
+                                        {favorites.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">{favorites.length}</span>}
+                                    </button>
+                                )}
+
                                 {user && user.role !== 'admin' && (
                                     <button onClick={() => setCartOpen(true)} className="relative text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors p-1">
                                         <Icon name="shopping-bag" className="w-5 h-5" />
@@ -1418,6 +1401,20 @@
                         {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={logout} voltar={() => setView('store')} darkMode={darkMode} />}
                         {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} onCheckoutSuccess={() => { setCart([]); setView('account'); window.scrollTo(0,0); }} />}
                         
+                        {/* RENDERIZAÇÃO DA PÁGINA DE FAVORITOS */}
+                        {view === 'favorites' && user && user.role !== 'admin' && (
+                            <FavoritesPage 
+                                produtos={produtos} 
+                                favorites={favorites} 
+                                onToggleFav={toggleFav} 
+                                onAddToCart={addToCart} 
+                                onBuyNow={handleBuyNow} 
+                                darkMode={darkMode} 
+                                voltarParaLoja={() => setView('store')} 
+                                onSwitchProduct={setProdutoSelecionado} 
+                            />
+                        )}
+
                         {view === 'store' && (
                             <div className="animate-fade-in">
                                 <section className="relative h-[65vh] sm:h-[80vh] w-full flex items-center justify-center overflow-hidden bg-slate-900">
@@ -1483,6 +1480,8 @@
                                                     onAddToCart={addToCart} 
                                                     onBuyNow={handleBuyNow}
                                                     darkMode={darkMode} 
+                                                    isFav={favorites.includes(produto.id)}
+                                                    onToggleFav={() => toggleFav(produto.id)}
                                                 />
                                             ))}
                                         </div>
