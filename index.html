@@ -4,7 +4,8 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, getDoc, setDoc, addDoc, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCPImRf4Mp7-AAsTzOXZNgS4NGvENeZsM4",
@@ -28,6 +29,12 @@
   window.deleteDoc = deleteDoc;
   window.updateDoc = updateDoc;
   window.doc = doc;
+
+  const auth = getAuth(app);
+  auth.languageCode = 'pt';
+  window.fb = { db, auth, collection, getDocs, getDoc, setDoc, addDoc, query, where, deleteDoc, doc, updateDoc,
+                onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut };
+  window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
     <meta charset="UTF-8">
@@ -93,6 +100,64 @@
             }, [name, className]);
             return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
         };
+
+        // ===== CONFIGURAÇÃO =====
+        // Cole aqui o UID da conta admin (Firebase > Authentication > Users > coluna "UID do usuário").
+        // O mesmo UID precisa estar no arquivo firestore.rules — é ele que protege de verdade.
+        const ADMIN_UIDS = ['VDHlilV28AZEcyhCHvw76IR4PmQ2'];
+
+        const STATUS_PEDIDO = ['Aguardando Pagamento', 'Pago', 'Em separação', 'Enviado', 'Entregue', 'Cancelado'];
+        const STATUS_CORES = {
+            'Aguardando Pagamento': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+            'Pago': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+            'Em separação': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+            'Enviado': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+            'Entregue': 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+            'Cancelado': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+        };
+
+        const getFb = () => new Promise((resolve) => {
+            if (window.fb) return resolve(window.fb);
+            window.addEventListener('firebase-ready', () => resolve(window.fb), { once: true });
+        });
+
+        const montarUsuario = async (fbUser) => {
+            const { db, doc, getDoc } = await getFb();
+            let perfil = {};
+            try {
+                const snap = await getDoc(doc(db, 'usuarios', fbUser.uid));
+                if (snap.exists()) perfil = snap.data();
+            } catch (e) { console.error(e); }
+            return {
+                uid: fbUser.uid,
+                email: fbUser.email,
+                nome: perfil.nome || '',
+                cpf: perfil.cpf || '',
+                telefone: perfil.telefone || '',
+                role: ADMIN_UIDS.includes(fbUser.uid) ? 'admin' : 'cliente'
+            };
+        };
+
+        const traduzirErroAuth = (code) => {
+            const erros = {
+                'auth/invalid-credential': 'E-mail ou senha incorretos.',
+                'auth/wrong-password': 'E-mail ou senha incorretos.',
+                'auth/user-not-found': 'E-mail ou senha incorretos.',
+                'auth/invalid-email': 'E-mail inválido.',
+                'auth/email-already-in-use': 'Este e-mail já possui uma conta. Faça login!',
+                'auth/weak-password': 'Senha muito fraca.',
+                'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
+                'auth/network-request-failed': 'Sem conexão. Verifique sua internet.'
+            };
+            return erros[code] || 'Não foi possível concluir. Tente novamente.';
+        };
+
+        const temControleEstoque = (p) => p.estoque !== undefined && p.estoque !== null && p.estoque !== '';
+        const estaEsgotado = (p) => temControleEstoque(p) && Number(p.estoque) <= 0;
+        const qtdItem = (item) => Number(item.qtd) || 1;
+        const totalItens = (cart) => cart.reduce((s, i) => s + qtdItem(i), 0);
+        const totalCarrinho = (cart) => cart.reduce((s, i) => s + (Number(i.preco) || 0) * qtdItem(i), 0);
+        const formatarData = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
 
         const getImagemPrincipal = (produto) => {
             if (produto.imagens && produto.imagens.length > 0) return produto.imagens[0];
@@ -206,6 +271,7 @@
             const pix = (precoSeguro * 0.95).toFixed(2);
             
             const numVendidos = 120 + (produto.nome.length * 14) + (Math.floor(precoSeguro) % 30);
+            const esgotado = estaEsgotado(produto);
 
             const nextImg = (e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev + 1) % imagens.length); };
             const prevImg = (e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev === 0 ? imagens.length - 1 : prev - 1)); };
@@ -234,6 +300,7 @@
                         <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5 items-start">
                             {produto.categoria && <span className="bg-elora-gold text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.categoria}</span>}
                             {produto.familia && <span className="bg-slate-900/80 backdrop-blur-sm text-slate-100 text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.familia}</span>}
+                            {esgotado && <span className="bg-red-600 text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">Esgotado</span>}
                         </div>
                         
                         <img src={currentImg} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
@@ -271,6 +338,9 @@
                             </span>
                         </div>
 
+                        {esgotado ? (
+                            <div className="w-full py-3 text-[10px] font-bold uppercase tracking-widest rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 text-center">Esgotado</div>
+                        ) : (
                         <div className="grid grid-cols-2 gap-2 w-full">
                             <button onClick={() => onAddToCart(produto)} className="w-full border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all rounded-md flex justify-center items-center gap-1.5" title="Adicionar à Sacola">
                                 <Icon name="shopping-bag" className="w-4 h-4" /> Sacola
@@ -279,6 +349,7 @@
                                 <Icon name="zap" className="w-4 h-4" /> Comprar
                             </button>
                         </div>
+                        )}
                     </div>
                 </div>
             );
@@ -388,6 +459,9 @@
                                     </div>
                                 </div>
                                 
+                                {estaEsgotado(produto) ? (
+                                    <div className="w-full mt-auto py-4 text-xs font-bold uppercase tracking-widest rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 text-center">Esgotado no momento</div>
+                                ) : (
                                 <div className="grid grid-cols-2 gap-3 w-full mt-auto">
                                     <button onClick={() => { onAddToCart(produto); onClose(); }} className="w-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-md flex items-center justify-center gap-2">
                                         <Icon name="shopping-bag" className="w-4 h-4" /> Adicionar à Sacola
@@ -396,6 +470,7 @@
                                         <Icon name="zap" className="w-4 h-4" /> Comprar Agora
                                     </button>
                                 </div>
+                                )}
                             </div>
                         </div>
 
@@ -535,84 +610,40 @@
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                setLoading(true);
+                const { db, auth, doc, setDoc, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } = await getFb();
+                const email = formData.email.trim().toLowerCase();
 
+                if (viewMode === 'register') {
+                    if (formData.senha !== formData.confirmarSenha) { alert("As senhas não coincidem. Por favor, verifique a digitação."); return; }
+                    if (strengthScore < 5) { alert("Sua senha precisa ter pelo menos 6 caracteres, com letra maiúscula, minúscula, número e um caractere especial (!@#$)."); return; }
+                }
+
+                setLoading(true);
                 try {
                     if (viewMode === 'forgot') {
-                        if (window.db && window.collection && window.query) {
-                            const q = window.query(window.collection(window.db, "usuarios"), window.where("email", "==", formData.email));
-                            const snapshot = await window.getDocs(q);
-                            if (snapshot.empty && formData.email !== 'admin') {
-                                alert("E-mail não encontrado no nosso sistema.");
-                            } else {
-                                alert("Um link de recuperação de senha foi enviado para o seu e-mail!");
-                                setViewMode('login');
-                            }
+                        try { await sendPasswordResetEmail(auth, email); } catch (err) {
+                            if (err.code === 'auth/invalid-email') { alert('E-mail inválido.'); return; }
                         }
-                        setLoading(false);
-                        return;
-                    }
-
-                    if (viewMode === 'login' && formData.email === 'admin' && formData.senha === 'elora2026') {
-                        const adminUser = { nome: 'Administrador', email: 'admin', role: 'admin', cpf: '', telefone: '' };
-                        localStorage.setItem('elora_user', JSON.stringify(adminUser));
-                        onSuccess(adminUser);
+                        // Mensagem neutra: não revela se o e-mail tem conta.
+                        alert("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha em instantes. Confira também a caixa de spam.");
+                        setViewMode('login');
                         return;
                     }
 
                     if (viewMode === 'register') {
-                        if (formData.senha !== formData.confirmarSenha) {
-                            alert("As senhas não coincidem. Por favor, verifique a digitação.");
-                            setLoading(false);
-                            return;
-                        }
-                        if (strengthScore < 5) {
-                            alert("A sua senha não cumpre todos os requisitos de segurança militar. Certifique-se de que tem pelo menos 6 caracteres, incluindo maiúsculas, minúsculas, números e um caractere especial (!@#$).");
-                            setLoading(false);
-                            return;
-                        }
-
-                        if (window.db && window.collection && window.query) {
-                            const q = window.query(window.collection(window.db, "usuarios"), window.where("email", "==", formData.email));
-                            const snapshot = await window.getDocs(q);
-                            if (!snapshot.empty) {
-                                alert("Este e-mail já possui uma conta cadastrada. Faça login!");
-                                setViewMode('login');
-                                setLoading(false);
-                                return;
-                            }
-                            await window.addDoc(window.collection(window.db, "usuarios"), { ...formData, dataCadastro: new Date().toISOString() });
-                        }
-                        const userObj = { nome: formData.nome, email: formData.email, cpf: formData.cpf, telefone: formData.telefone, role: 'cliente' };
-                        localStorage.setItem('elora_user', JSON.stringify(userObj));
-                        onSuccess(userObj);
-                    } 
-                    else if (viewMode === 'login') {
-                        if (window.db && window.collection && window.query) {
-                            const q = window.query(window.collection(window.db, "usuarios"), window.where("email", "==", formData.email));
-                            const snapshot = await window.getDocs(q);
-                            if (snapshot.empty) {
-                                alert("E-mail não encontrado. Crie uma conta primeiro!");
-                                setViewMode('register');
-                                setLoading(false);
-                                return;
-                            }
-                            let userData = null;
-                            snapshot.forEach(doc => { userData = doc.data(); });
-
-                            if (userData.senha && userData.senha !== formData.senha) {
-                                alert("Senha incorreta!");
-                                setLoading(false);
-                                return;
-                            }
-                            const userObj = { nome: userData.nome, email: userData.email, cpf: userData.cpf, telefone: userData.telefone, role: 'cliente' };
-                            localStorage.setItem('elora_user', JSON.stringify(userObj));
-                            onSuccess(userObj);
-                        }
+                        const cred = await createUserWithEmailAndPassword(auth, email, formData.senha);
+                        const perfil = { nome: formData.nome.trim(), email, cpf: formData.cpf.trim(), telefone: formData.telefone.trim(), dataCadastro: new Date().toISOString() };
+                        await setDoc(doc(db, 'usuarios', cred.user.uid), perfil);
+                        onSuccess({ uid: cred.user.uid, email, nome: perfil.nome, cpf: perfil.cpf, telefone: perfil.telefone, role: ADMIN_UIDS.includes(cred.user.uid) ? 'admin' : 'cliente' });
+                        return;
                     }
+
+                    const cred = await signInWithEmailAndPassword(auth, email, formData.senha);
+                    onSuccess(await montarUsuario(cred.user));
                 } catch (err) {
                     console.error(err);
-                    alert("Erro ao conectar com o servidor.");
+                    alert(traduzirErroAuth(err.code));
+                    if (err.code === 'auth/email-already-in-use') setViewMode('login');
                 } finally {
                     setLoading(false);
                 }
@@ -635,7 +666,7 @@
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {viewMode === 'register' && <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Nome Completo *</label><input name="nome" value={formData.nome} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="Ex: Maria Silva" /></div>}
                             
-                            <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">{viewMode === 'register' ? 'E-mail *' : 'E-mail ou Usuário *'}</label><input type="text" name="email" value={formData.email} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="seu@email.com" /></div>
+                            <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">E-mail *</label><input type="email" autoComplete="email" name="email" value={formData.email} onChange={handleChange} required className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`} placeholder="seu@email.com" /></div>
                             
                             {viewMode === 'register' && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -700,9 +731,9 @@
             );
         }
 
-        function CartSidebar({ isOpen, onClose, cart, removeFromCart, onCheckout, darkMode }) {
+        function CartSidebar({ isOpen, onClose, cart, removeFromCart, alterarQtd, onCheckout, darkMode }) {
             if (!isOpen) return null;
-            const total = cart.reduce((sum, item) => sum + (Number(item.preco) || 0), 0);
+            const total = totalCarrinho(cart);
 
             return (
                 <div className="fixed inset-0 z-[100] flex justify-end">
@@ -713,23 +744,36 @@
                             <button onClick={onClose} className="text-slate-400 hover:text-elora-gold transition-colors"><Icon name="x" className="w-6 h-6" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {cart.length === 0 ? <div className="text-center text-slate-400 py-12">Sua sacola está vazia.</div> : (
-                                cart.map((item, index) => (
-                                    <div key={index} className="flex gap-4 items-center">
+                            {cart.length === 0 ? (
+                                <div className="text-center text-slate-400 py-12">
+                                    <p className="mb-4">Sua sacola está vazia.</p>
+                                    <button onClick={onClose} className="text-elora-gold font-bold text-xs uppercase tracking-widest hover:underline">Continuar comprando</button>
+                                </div>
+                            ) : (
+                                cart.map((item) => (
+                                    <div key={item.id} className="flex gap-4 items-center">
                                         <img src={getImagemPrincipal(item)} loading="lazy" alt={item.nome} className="w-16 h-16 object-cover rounded-md bg-slate-100 dark:bg-slate-800" />
-                                        <div className="flex-1">
-                                            <p className="font-serif text-sm">{item.nome}</p>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-serif text-sm truncate">{item.nome}</p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{item.marca}</p>
-                                            <p className="font-medium text-sm mt-1">R$ {(Number(item.preco) || 0).toFixed(2)}</p>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-md">
+                                                    <button onClick={() => alterarQtd(item.id, -1)} className="px-2 py-1 text-slate-500 hover:text-elora-gold" aria-label="Diminuir"><Icon name="minus" className="w-3 h-3" /></button>
+                                                    <span className="text-xs font-bold w-6 text-center">{qtdItem(item)}</span>
+                                                    <button onClick={() => alterarQtd(item.id, 1)} className="px-2 py-1 text-slate-500 hover:text-elora-gold" aria-label="Aumentar"><Icon name="plus" className="w-3 h-3" /></button>
+                                                </div>
+                                                <p className="font-medium text-sm">R$ {((Number(item.preco) || 0) * qtdItem(item)).toFixed(2)}</p>
+                                            </div>
                                         </div>
-                                        <button onClick={() => removeFromCart(index)} className="text-red-400 hover:text-red-600 p-2"><Icon name="trash-2" className="w-4 h-4" /></button>
+                                        <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 p-2" aria-label="Remover"><Icon name="trash-2" className="w-4 h-4" /></button>
                                     </div>
                                 ))
                             )}
                         </div>
                         {cart.length > 0 && (
                             <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                                <div className="flex justify-between font-serif text-xl mb-6"><span>Subtotal</span><span className="text-elora-gold">R$ {total.toFixed(2)}</span></div>
+                                <div className="flex justify-between font-serif text-xl mb-1"><span>Subtotal</span><span className="text-elora-gold">R$ {total.toFixed(2)}</span></div>
+                                <p className="text-[10px] text-slate-500 mb-5 text-right">Frete calculado no próximo passo</p>
                                 <button onClick={onCheckout} className="w-full bg-elora-gold text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Finalizar Compra</button>
                             </div>
                         )}
@@ -738,11 +782,12 @@
             );
         }
 
-        function Checkout({ cart, user, voltarParaLoja, darkMode, onCheckoutSuccess }) {
+        function Checkout({ cart, user, voltarParaLoja, darkMode }) {
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' });
             
             const [freteValor, setFreteValor] = useState(0);
+            const [freteTipo, setFreteTipo] = useState('');
             const [freteOpcoes, setFreteOpcoes] = useState([]);
             const [buscandoFrete, setBuscandoFrete] = useState(false);
 
@@ -750,12 +795,15 @@
             const [cupomAtivo, setCupomAtivo] = useState(null);
             const [verificandoCupom, setVerificandoCupom] = useState(false);
 
-            const totalProdutos = cart.reduce((sum, item) => sum + (Number(item.preco) || 0), 0);
+            const totalProdutos = totalCarrinho(cart);
             
             const descontoFrete = (cupomAtivo && cupomAtivo.tipo === 'frete') ? freteValor : 0;
             const totalComFrete = totalProdutos + freteValor - descontoFrete;
             
-            const handleChange = (e) => setEndereco({ ...endereco, [e.target.name]: e.target.value });
+            const handleChange = (e) => {
+                setEndereco({ ...endereco, [e.target.name]: e.target.value });
+                if (e.target.name === 'cep') { setFreteOpcoes([]); setFreteValor(0); setFreteTipo(''); setCupomAtivo(null); }
+            };
 
             const calcularFreteViaCep = async () => {
                 const cepLimpo = endereco.cep.replace(/\D/g, '');
@@ -811,30 +859,18 @@
                     }
                     
                     setVerificandoCupom(true);
-                    
-                    const isTeste = cart.some(item => 
-                        (item.nome && item.nome.toLowerCase().includes('teste')) || 
-                        (item.marca && item.marca.toLowerCase().includes('teste'))
-                    );
-
-                    if (isTeste) {
-                        setCupomAtivo({ codigo: 'PRIMEIROGRATIS', tipo: 'frete' });
-                        alert("Cupom aplicado com sucesso (Modo Teste)! Frete Grátis ativado.");
-                        setVerificandoCupom(false);
-                        return;
-                    }
-
                     try {
-                        const q = window.query(window.collection(window.db, "pedidos"), window.where("cliente.email", "==", user.email));
-                        const snapshot = await window.getDocs(q);
-                        
-                        if (!snapshot.empty) {
+                        const { db, collection, query, where, getDocs } = await getFb();
+                        const snapshot = await getDocs(query(collection(db, "pedidos"), where("uid", "==", user.uid)));
+                        const jaComprou = snapshot.docs.some(d => ['Pago', 'Em separação', 'Enviado', 'Entregue'].includes(d.data().status));
+                        if (jaComprou) {
                             alert("Este cupom é válido apenas para a sua primeira compra na Elora Parfums.");
                         } else {
                             setCupomAtivo({ codigo: 'PRIMEIROGRATIS', tipo: 'frete' });
                             alert("Cupom aplicado com sucesso! Você ganhou Frete Grátis.");
                         }
                     } catch (e) {
+                        console.error(e);
                         alert("Erro ao validar o cupom. Tente novamente.");
                     }
                     setVerificandoCupom(false);
@@ -845,8 +881,8 @@
 
             const processarPedido = async (e) => {
                 e.preventDefault();
-                if (freteValor === 0 && freteOpcoes.length > 0) {
-                    alert("Por favor, selecione uma opção de frete antes de continuar.");
+                if (freteValor === 0) {
+                    alert(freteOpcoes.length > 0 ? "Por favor, selecione uma opção de frete antes de continuar." : "Digite seu CEP e clique em Calcular para escolher o frete.");
                     return;
                 }
 
@@ -855,7 +891,7 @@
                 const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
 
                 const itemsForAPI = cart.map(item => ({
-                    quantity: 1, price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
+                    quantity: qtdItem(item), price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
                 }));
 
                 const valorFreteReal = (cupomAtivo && cupomAtivo.tipo === 'frete') ? 0 : freteValor;
@@ -869,15 +905,21 @@
                 }
 
                 try {
-                    if (window.db && window.collection && window.addDoc) {
-                        await window.addDoc(window.collection(window.db, "pedidos"), {
-                            order_nsu: orderNsu, cliente: clienteCompleto, 
-                            itens: cart, valorFrete: freteValor, cupom: cupomAtivo ? cupomAtivo.codigo : null, 
-                            descontoFrete: descontoFrete, valorTotal: totalComFrete,
-                            dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
-                        });
-                    }
-                } catch (err) { console.error("Erro no Firebase", err); }
+                    const { db, collection, addDoc } = await getFb();
+                    await addDoc(collection(db, "pedidos"), {
+                        order_nsu: orderNsu, uid: user.uid, cliente: clienteCompleto,
+                        itens: cart.map(i => ({ id: i.id, nome: i.nome, marca: i.marca, preco: Number(i.preco) || 0, qtd: qtdItem(i), imagem: getImagemPrincipal(i) })),
+                        valorProdutos: totalProdutos, valorFrete: freteValor, freteTipo: freteTipo,
+                        cupom: cupomAtivo ? cupomAtivo.codigo : null,
+                        descontoFrete: descontoFrete, valorTotal: totalComFrete,
+                        dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
+                    });
+                } catch (err) {
+                    console.error("Erro no Firebase", err);
+                    alert("Não foi possível registrar seu pedido. Verifique sua conexão e tente novamente.");
+                    setLoading(false);
+                    return;
+                }
 
                 const pedido = { 
                     order_nsu: orderNsu, 
@@ -929,9 +971,9 @@
                                     {freteOpcoes.length > 0 && (
                                         <div className="mt-4 space-y-2">
                                             {freteOpcoes.map((opcao, i) => (
-                                                <label key={i} className={`flex items-center justify-between p-3 border rounded-md cursor-pointer transition-colors ${freteValor === opcao.valor ? 'border-elora-gold bg-elora-gold/5' : 'border-slate-200 dark:border-slate-700'}`}>
+                                                <label key={i} className={`flex items-center justify-between p-3 border rounded-md cursor-pointer transition-colors ${freteTipo === opcao.tipo ? 'border-elora-gold bg-elora-gold/5' : 'border-slate-200 dark:border-slate-700'}`}>
                                                     <div className="flex items-center gap-3">
-                                                        <input type="radio" name="frete" onChange={() => { setFreteValor(opcao.valor); setCupomAtivo(null); }} checked={freteValor === opcao.valor} className="text-elora-gold accent-elora-gold" />
+                                                        <input type="radio" name="frete" onChange={() => { setFreteValor(opcao.valor); setFreteTipo(opcao.tipo); }} checked={freteTipo === opcao.tipo} className="text-elora-gold accent-elora-gold" />
                                                         <div>
                                                             <p className="text-sm font-semibold dark:text-white">{opcao.tipo}</p>
                                                             <p className="text-[10px] text-slate-500 uppercase">{opcao.prazo}</p>
@@ -966,16 +1008,16 @@
                     </div>
                     
                     <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-10 h-fit shadow-2xl rounded-xl relative overflow-hidden lg:sticky lg:top-28`}>
-                        <h3 className="text-xl sm:text-2xl font-serif mb-6">Resumo do Pedido ({cart.length} itens)</h3>
+                        <h3 className="text-xl sm:text-2xl font-serif mb-6">Resumo do Pedido ({totalItens(cart)} {totalItens(cart) === 1 ? 'item' : 'itens'})</h3>
                         <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-lg flex items-center gap-3 mb-6">
                             <Icon name="sparkles" className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                             <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium"><strong>Ganhe 5% OFF no PIX!</strong> Aplicado no pagamento.</p>
                         </div>
                         <div className="max-h-60 overflow-y-auto pr-2 space-y-4 mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-                            {cart.map((item, index) => (
-                                <div key={index} className="flex items-center gap-4">
+                            {cart.map((item) => (
+                                <div key={item.id} className="flex items-center gap-4">
                                     <img src={getImagemPrincipal(item)} loading="lazy" className="w-16 h-16 object-cover rounded-md shadow-sm" alt={item.nome} />
-                                    <div><p className="font-serif text-sm">{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">R$ {(Number(item.preco) || 0).toFixed(2)}</p></div>
+                                    <div><p className="font-serif text-sm">{qtdItem(item) > 1 && <span className="text-elora-gold font-sans font-bold mr-1">{qtdItem(item)}x</span>}{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">R$ {((Number(item.preco) || 0) * qtdItem(item)).toFixed(2)}</p></div>
                                 </div>
                             ))}
                         </div>
@@ -1014,6 +1056,146 @@
                         <div className="text-right mt-2">
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">R$ {(totalComFrete * 0.95).toFixed(2)} à vista no PIX</span>
                         </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ItensPedido({ itens }) {
+            return (
+                <div className="space-y-2">
+                    {(itens || []).map((it, i) => (
+                        <div key={i} className="flex items-center gap-3 text-xs">
+                            <img src={it.imagem || getImagemPrincipal(it)} className="w-10 h-10 object-cover rounded" alt={it.nome} />
+                            <span className="flex-1"><strong className="text-elora-gold">{qtdItem(it)}x</strong> {it.marca} — {it.nome}</span>
+                            <span className="font-medium">R$ {((Number(it.preco) || 0) * qtdItem(it)).toFixed(2)}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        function CustomerAccount({ user, setUser, logout, voltar, irFavoritos, darkMode }) {
+            const [pedidos, setPedidos] = useState(null);
+            const [editando, setEditando] = useState(false);
+            const [dados, setDados] = useState({ nome: user.nome, telefone: user.telefone, cpf: user.cpf });
+            const [salvando, setSalvando] = useState(false);
+
+            useEffect(() => {
+                (async () => {
+                    try {
+                        const { db, collection, query, where, getDocs } = await getFb();
+                        const snap = await getDocs(query(collection(db, 'pedidos'), where('uid', '==', user.uid)));
+                        const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        lista.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+                        setPedidos(lista);
+                    } catch (e) { console.error(e); setPedidos([]); }
+                })();
+            }, [user.uid]);
+
+            const salvarDados = async (e) => {
+                e.preventDefault();
+                setSalvando(true);
+                try {
+                    const { db, doc, setDoc } = await getFb();
+                    await setDoc(doc(db, 'usuarios', user.uid), { nome: dados.nome.trim(), telefone: dados.telefone.trim(), cpf: dados.cpf.trim(), email: user.email }, { merge: true });
+                    setUser({ ...user, ...dados });
+                    setEditando(false);
+                } catch (err) { console.error(err); alert('Não foi possível salvar. Tente novamente.'); }
+                setSalvando(false);
+            };
+
+            const campo = `w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`;
+            const card = `${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 rounded-xl shadow-xl`;
+            const cpfMascarado = user.cpf ? user.cpf.replace(/\D/g, '').replace(/^(\d{3})\d{6}(\d{2})$/, '$1.***.***-$2') : '—';
+
+            return (
+                <div className="max-w-6xl mx-auto px-4 py-12 sm:py-16 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10 border-b border-slate-200 dark:border-slate-800 pb-6">
+                        <div>
+                            <h2 className="text-3xl md:text-4xl font-serif">Olá, {(user.nome || 'cliente').split(' ')[0]}</h2>
+                            <p className="text-slate-400 mt-1 text-sm">Acompanhe seus pedidos e seus dados.</p>
+                        </div>
+                        <div className="flex gap-4">
+                            <button onClick={irFavoritos} className="flex items-center gap-2 text-slate-400 hover:text-red-500 text-xs font-semibold uppercase tracking-widest"><Icon name="heart" className="w-4 h-4" /> Favoritos</button>
+                            <button onClick={voltar} className="flex items-center gap-2 text-slate-400 hover:text-elora-gold text-xs font-semibold uppercase tracking-widest"><Icon name="arrow-left" className="w-4 h-4" /> Loja</button>
+                            <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest"><Icon name="log-out" className="w-4 h-4" /> Sair</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className={`${card} h-fit`}>
+                            <h3 className="text-lg font-serif mb-6 flex items-center gap-2"><Icon name="user" className="w-5 h-5 text-elora-gold" /> Meus Dados</h3>
+                            {editando ? (
+                                <form onSubmit={salvarDados} className="space-y-3">
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Nome</label><input value={dados.nome} onChange={e => setDados({ ...dados, nome: e.target.value })} required className={campo} /></div>
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">WhatsApp</label><input value={dados.telefone} onChange={e => setDados({ ...dados, telefone: e.target.value })} required className={campo} /></div>
+                                    <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">CPF</label><input value={dados.cpf} onChange={e => setDados({ ...dados, cpf: e.target.value })} required className={campo} /></div>
+                                    <div className="flex gap-2 pt-2">
+                                        <button type="submit" disabled={salvando} className="flex-1 bg-elora-gold text-white py-3 text-[11px] font-bold uppercase tracking-widest rounded-md">{salvando ? 'Salvando...' : 'Salvar'}</button>
+                                        <button type="button" onClick={() => setEditando(false)} className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest rounded-md bg-slate-200 dark:bg-slate-700">Cancelar</button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="space-y-4 text-sm">
+                                    <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Nome</p><p>{user.nome || '—'}</p></div>
+                                    <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">E-mail</p><p className="break-all">{user.email}</p></div>
+                                    <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">WhatsApp</p><p>{user.telefone || '—'}</p></div>
+                                    <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">CPF</p><p>{cpfMascarado}</p></div>
+                                    <button onClick={() => setEditando(true)} className="text-elora-gold font-bold text-xs uppercase tracking-widest hover:underline pt-2">Editar dados</button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={`lg:col-span-2 ${card}`}>
+                            <h3 className="text-lg font-serif mb-6 flex items-center gap-2"><Icon name="package" className="w-5 h-5 text-elora-gold" /> Meus Pedidos</h3>
+                            {pedidos === null ? (
+                                <div className="flex justify-center py-12"><Icon name="loader-2" className="w-6 h-6 animate-spin text-elora-gold" /></div>
+                            ) : pedidos.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <p className="text-slate-500 mb-4">Você ainda não fez nenhum pedido.</p>
+                                    <button onClick={voltar} className="bg-elora-gold text-white px-8 py-3 text-xs font-bold uppercase tracking-widest rounded-md">Ver Catálogo</button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {pedidos.map(p => (
+                                        <div key={p.id} className="border border-slate-200 dark:border-slate-800 rounded-lg p-4 sm:p-5">
+                                            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                                <div>
+                                                    <p className="text-xs font-bold tracking-wider">{p.order_nsu}</p>
+                                                    <p className="text-[10px] text-slate-400">{formatarData(p.dataCriacao)}</p>
+                                                </div>
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${STATUS_CORES[p.status] || STATUS_CORES['Aguardando Pagamento']}`}>{p.status}</span>
+                                            </div>
+                                            <ItensPedido itens={p.itens} />
+                                            <div className="flex flex-wrap justify-between items-end gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                                <div className="text-xs text-slate-500">
+                                                    {p.rastreio ? (
+                                                        <span>Rastreio: <a href={`https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(p.rastreio)}`} target="_blank" rel="noreferrer" className="text-elora-gold font-bold hover:underline">{p.rastreio}</a></span>
+                                                    ) : p.freteTipo ? <span>{p.freteTipo}</span> : null}
+                                                </div>
+                                                <p className="font-serif text-lg">Total <span className="text-elora-gold">R$ {(Number(p.valorTotal) || 0).toFixed(2)}</span></p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function PedidoConfirmado({ nsu, user, irConta, irLoja }) {
+            return (
+                <div className="max-w-xl mx-auto px-4 py-20 text-center animate-fade-in">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6"><Icon name="check" className="w-8 h-8 text-emerald-500" /></div>
+                    <h2 className="text-3xl sm:text-4xl font-serif mb-3">Obrigado pela sua compra!</h2>
+                    <p className="text-slate-500 mb-2">Recebemos o seu pedido <strong>{nsu}</strong>.</p>
+                    <p className="text-slate-500 text-sm mb-10">Assim que o pagamento for confirmado, o status é atualizado em "Minha Conta". Qualquer dúvida, fale com a gente no WhatsApp.</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        {user && <button onClick={irConta} className="bg-elora-gold text-white px-8 py-3 text-xs font-bold uppercase tracking-widest rounded-md shadow-lg shadow-elora-gold/20">Ver Meus Pedidos</button>}
+                        <button onClick={irLoja} className="border border-slate-300 dark:border-slate-700 px-8 py-3 text-xs font-bold uppercase tracking-widest rounded-md">Continuar Comprando</button>
                     </div>
                 </div>
             );
@@ -1147,11 +1329,12 @@
                 } catch (e) { alert("Erro ao excluir."); }
             };
 
-            const atualizarStatusPedido = async (id, novoStatus) => {
+            const [filtroStatus, setFiltroStatus] = useState('Todos');
+            const atualizarPedido = async (id, campos) => {
                 try {
-                    await window.updateDoc(window.doc(window.db, "pedidos", id), { status: novoStatus });
-                    setPedidosAll(pedidosAll.map(p => p.id === id ? { ...p, status: novoStatus } : p));
-                } catch (e) { alert("Erro ao atualizar status."); }
+                    await window.updateDoc(window.doc(window.db, "pedidos", id), campos);
+                    setPedidosAll(prev => prev.map(p => p.id === id ? { ...p, ...campos } : p));
+                } catch (e) { console.error(e); alert("Erro ao atualizar o pedido."); }
             };
 
             return (
@@ -1247,6 +1430,65 @@
                             </div>
                         </div>
                     )}
+
+                    {aba === 'pedidos' && (
+                        <div className="animate-fade-in">
+                            <div className="flex flex-wrap gap-2 mb-6">
+                                {['Todos', ...STATUS_PEDIDO].map(s => {
+                                    const n = s === 'Todos' ? pedidosAll.length : pedidosAll.filter(p => p.status === s).length;
+                                    return <button key={s} onClick={() => setFiltroStatus(s)} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-colors ${filtroStatus === s ? 'bg-elora-gold border-elora-gold text-white' : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}>{s} ({n})</button>;
+                                })}
+                            </div>
+                            {pedidosAll.filter(p => filtroStatus === 'Todos' || p.status === filtroStatus).length === 0 ? (
+                                <p className="text-center text-slate-500 py-16 text-sm">Nenhum pedido aqui.</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {pedidosAll.filter(p => filtroStatus === 'Todos' || p.status === filtroStatus).map(p => {
+                                        const c = p.cliente || {};
+                                        const tel = (c.telefone || '').replace(/\D/g, '');
+                                        return (
+                                            <div key={p.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border rounded-xl shadow-md p-5 sm:p-6`}>
+                                                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                                                    <div>
+                                                        <p className="font-bold text-sm tracking-wider">{p.order_nsu}</p>
+                                                        <p className="text-[10px] text-slate-400">{formatarData(p.dataCriacao)}</p>
+                                                    </div>
+                                                    <select value={p.status || 'Aguardando Pagamento'} onChange={e => atualizarPedido(p.id, { status: e.target.value })} className={`text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-md border-0 cursor-pointer ${STATUS_CORES[p.status] || STATUS_CORES['Aguardando Pagamento']}`}>
+                                                        {STATUS_PEDIDO.map(s => <option key={s} value={s}>{s}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+                                                    <div className="space-y-1 text-slate-600 dark:text-slate-300">
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-1">Cliente</p>
+                                                        <p className="font-semibold">{c.nome}</p>
+                                                        <p className="break-all">{c.email}</p>
+                                                        <p>CPF: {c.cpf}</p>
+                                                        {tel && <a href={`https://wa.me/55${tel.replace(/^55/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-emerald-600 font-bold hover:underline">WhatsApp {c.telefone}</a>}
+                                                    </div>
+                                                    <div className="space-y-1 text-slate-600 dark:text-slate-300">
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-1">Entrega {p.freteTipo ? `· ${p.freteTipo}` : ''}</p>
+                                                        <p>{c.rua}, {c.numero} {c.complemento}</p>
+                                                        <p>{c.bairro} — {c.cidade}/{c.uf}</p>
+                                                        <p>CEP {c.cep}</p>
+                                                        <input defaultValue={p.rastreio || ''} onBlur={e => { const v = e.target.value.trim().toUpperCase(); if (v !== (p.rastreio || '')) atualizarPedido(p.id, { rastreio: v }); }} placeholder="Código de rastreio (salva ao sair do campo)" className={`w-full mt-2 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-2 text-xs outline-none focus:border-elora-gold rounded-md uppercase`} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-2">Itens</p>
+                                                        <ItensPedido itens={p.itens} />
+                                                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-0.5 text-slate-500">
+                                                            <p className="flex justify-between"><span>Frete</span><span>R$ {(Number(p.valorFrete) || 0).toFixed(2)}</span></p>
+                                                            {p.cupom && <p className="flex justify-between text-emerald-600"><span>Cupom {p.cupom}</span><span>- R$ {(Number(p.descontoFrete) || 0).toFixed(2)}</span></p>}
+                                                            <p className="flex justify-between font-bold text-slate-800 dark:text-slate-100 text-sm"><span>Total</span><span>R$ {(Number(p.valorTotal) || 0).toFixed(2)}</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -1262,32 +1504,60 @@
             const [termoBusca, setTermoBusca] = useState('');
             const [filtroAtivo, setFiltroAtivo] = useState('Todos');
 
-            const [cart, setCart] = useState([]);
+            const [cart, setCart] = useState(() => {
+                try { const s = localStorage.getItem('elora_cart'); return s ? JSON.parse(s).map(i => ({ ...i, qtd: qtdItem(i) })) : []; } catch (e) { return []; }
+            });
             const [cartOpen, setCartOpen] = useState(false);
             const [produtoSelecionado, setProdutoSelecionado] = useState(null);
-            const [darkMode, setDarkMode] = useState(false);
-            
-            // INTELIGÊNCIA: ESTADO DOS FAVORITOS COM MEMÓRIA
+            const [darkMode, setDarkMode] = useState(() => { try { return localStorage.getItem('elora_dark') === '1'; } catch (e) { return false; } });
+            const [pedidoConfirmado, setPedidoConfirmado] = useState(null);
+
             const [favorites, setFavorites] = useState(() => {
-                const saved = localStorage.getItem('elora_favorites');
-                return saved ? JSON.parse(saved) : [];
+                try { const saved = localStorage.getItem('elora_favorites'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
             });
 
-            const [user, setUser] = useState(() => {
-                const saved = localStorage.getItem('elora_user');
-                return saved ? JSON.parse(saved) : null;
-            });
+            const [user, setUser] = useState(null);
+            const [authCarregando, setAuthCarregando] = useState(true);
+
+            // Sessão real do Firebase Auth (não dá mais para "virar admin" pelo localStorage)
+            useEffect(() => {
+                localStorage.removeItem('elora_user'); // limpa sessões do sistema antigo
+                let unsub = () => {};
+                getFb().then(({ auth, onAuthStateChanged }) => {
+                    unsub = onAuthStateChanged(auth, async (fbUser) => {
+                        if (!fbUser) { setUser(null); setAuthCarregando(false); return; }
+                        const novo = await montarUsuario(fbUser);
+                        setUser(prev => (prev && prev.uid === novo.uid && prev.nome) ? prev : novo);
+                        setAuthCarregando(false);
+                    });
+                });
+                return () => unsub();
+            }, []);
+
+            useEffect(() => { try { localStorage.setItem('elora_cart', JSON.stringify(cart)); } catch (e) {} }, [cart]);
+            useEffect(() => { try { localStorage.setItem('elora_dark', darkMode ? '1' : '0'); } catch (e) {} }, [darkMode]);
+
+            // Retorno da InfinitePay: o /api/checkout deve usar redirect_url = https://site-elora.vercel.app/?pedido=ELORA-...
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const nsu = params.get('pedido') || params.get('order_nsu');
+                if (nsu) {
+                    setPedidoConfirmado(nsu);
+                    setCart([]);
+                    setView('pedido-confirmado');
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
+            }, []);
 
             useEffect(() => {
                 const carregarPerfumes = async () => {
-                    if (window.db && window.collection && window.getDocs) {
-                        try {
-                            const qs = await window.getDocs(window.collection(window.db, "perfumes"));
-                            const lista = [];
-                            qs.forEach(doc => lista.push({ id: doc.id, ...doc.data() }));
-                            setProdutos(lista);
-                        } catch (e) { setProdutos([]); }
-                    } else setProdutos([]);
+                    const { db, collection, getDocs } = await getFb();
+                    try {
+                        const qs = await getDocs(collection(db, "perfumes"));
+                        const lista = [];
+                        qs.forEach(d => lista.push({ id: d.id, ...d.data() }));
+                        setProdutos(lista);
+                    } catch (e) { console.error(e); setProdutos([]); }
                 };
                 carregarPerfumes();
             }, [view]);
@@ -1301,10 +1571,32 @@
                 return matchBusca && matchFiltro;
             });
 
-            const addToCart = (produto) => { setCart([...cart, produto]); setCartOpen(true); };
-            
+            // Usa sempre o estoque mais recente do catálogo
+            const estoqueAtual = (id) => { const p = produtos.find(x => x.id === id); return p ? p : null; };
+
+            const adicionarItem = (lista, produto, apenasGarantir = false) => {
+                const ref = estoqueAtual(produto.id) || produto;
+                if (estaEsgotado(ref)) { alert('Este perfume está esgotado no momento.'); return null; }
+                const existente = lista.find(i => i.id === produto.id);
+                if (existente && apenasGarantir) return lista;
+                const novaQtd = (existente ? qtdItem(existente) : 0) + 1;
+                if (temControleEstoque(ref) && novaQtd > Number(ref.estoque)) { alert(`Temos apenas ${ref.estoque} unidade(s) deste perfume em estoque.`); return null; }
+                if (existente) return lista.map(i => i.id === produto.id ? { ...i, qtd: novaQtd } : i);
+                return [...lista, { ...produto, qtd: 1 }];
+            };
+
+            const addToCart = (produto) => {
+                const novo = adicionarItem(cart, produto);
+                if (!novo) return;
+                setCart(novo);
+                setCartOpen(true);
+            };
+
             const handleBuyNow = (produto) => {
-                setCart(prevCart => [...prevCart, produto]);
+                const novo = adicionarItem(cart, produto, true);
+                if (!novo) return;
+                setCart(novo);
+                setQuizOpen(false);
                 if (!user) {
                     setAuthNotice('Crie sua conta ou faça login para finalizar a sua compra.');
                     setAuthModalOpen(true);
@@ -1314,28 +1606,42 @@
                 }
             };
 
-            const removeFromCart = (index) => {
-                const newCart = [...cart];
-                newCart.splice(index, 1);
+            const alterarQtd = (id, delta) => {
+                const item = cart.find(i => i.id === id);
+                if (!item) return;
+                const novaQtd = qtdItem(item) + delta;
+                if (novaQtd <= 0) return removeFromCart(id);
+                const ref = estoqueAtual(id) || item;
+                if (delta > 0 && temControleEstoque(ref) && novaQtd > Number(ref.estoque)) { alert(`Temos apenas ${ref.estoque} unidade(s) deste perfume em estoque.`); return; }
+                setCart(cart.map(i => i.id === id ? { ...i, qtd: novaQtd } : i));
+            };
+
+            const removeFromCart = (id) => {
+                const newCart = cart.filter(i => i.id !== id);
                 setCart(newCart);
                 if (newCart.length === 0) setCartOpen(false);
             };
 
-            // INTELIGÊNCIA: FUNÇÃO DE SALVAR FAVORITOS
             const toggleFav = (id) => {
                 setFavorites(prev => {
                     const newFavs = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
-                    localStorage.setItem('elora_favorites', JSON.stringify(newFavs));
+                    try { localStorage.setItem('elora_favorites', JSON.stringify(newFavs)); } catch (e) {}
                     return newFavs;
                 });
             };
 
             const iniciarCheckout = () => {
                 setCartOpen(false);
-                if (!user) { setAuthNotice('Crie sua conta para prosseguir com a compra.'); setAuthModalOpen(true); } 
+                if (!user) { setAuthNotice('Crie sua conta ou faça login para prosseguir com a compra.'); setAuthModalOpen(true); }
                 else { setView('checkout'); window.scrollTo(0,0); }
             };
-            const logout = () => { localStorage.removeItem('elora_user'); setUser(null); setView('store'); };
+
+            const logout = async () => {
+                const { auth, signOut } = await getFb();
+                await signOut(auth);
+                setUser(null);
+                setView('store');
+            };
 
             const handleAuthSuccess = (loggedUser) => {
                 setUser(loggedUser);
@@ -1345,6 +1651,8 @@
                 else if (cart.length > 0) { setView('checkout'); window.scrollTo(0,0); }
                 else setView('account');
             };
+
+            const irPara = (v) => { setView(v); window.scrollTo(0,0); };
 
             return (
                 <div className={`min-h-screen font-sans flex flex-col transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-100 dark' : 'bg-[#FDFBF7] text-slate-900'}`}>
@@ -1370,26 +1678,26 @@
 
                             <div className="flex items-center justify-end space-x-2 sm:space-x-4 w-1/3">
                                 <button onClick={() => {
-                                    if (user && user.role === 'admin') setView('admin');
-                                    else if (user) setView('account');
+                                    if (authCarregando) return;
+                                    if (user && user.role === 'admin') irPara('admin');
+                                    else if (user) irPara('account');
                                     else { setAuthNotice(''); setAuthModalOpen(true); }
                                 }} className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors py-1">
                                     <Icon name={user && user.role === 'admin' ? "layout-dashboard" : "user"} className="w-4 h-4 sm:w-5 sm:h-5" />
                                     <span className="hidden sm:inline">{user && user.role === 'admin' ? 'Gestão' : (user ? 'Conta' : 'Entrar')}</span>
                                 </button>
                                 
-                                {/* BOTÃO MEUS FAVORITOS NO CABEÇALHO */}
-                                {user && user.role !== 'admin' && (
-                                    <button onClick={() => setView('favorites')} className="relative text-slate-500 dark:text-slate-300 hover:text-red-500 transition-colors p-1" title="Meus Favoritos">
+                                {(!user || user.role !== 'admin') && (
+                                    <button onClick={() => irPara('favorites')} className="relative text-slate-500 dark:text-slate-300 hover:text-red-500 transition-colors p-1" title="Meus Favoritos">
                                         <Icon name="heart" className="w-5 h-5" />
                                         {favorites.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">{favorites.length}</span>}
                                     </button>
                                 )}
 
-                                {user && user.role !== 'admin' && (
-                                    <button onClick={() => setCartOpen(true)} className="relative text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors p-1">
+                                {(!user || user.role !== 'admin') && (
+                                    <button onClick={() => setCartOpen(true)} className="relative text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors p-1" title="Sacola">
                                         <Icon name="shopping-bag" className="w-5 h-5" />
-                                        {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">{cart.length}</span>}
+                                        {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">{totalItens(cart)}</span>}
                                     </button>
                                 )}
                             </div>
@@ -1398,11 +1706,17 @@
 
                     <main className="flex-grow">
                         {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} />}
-                        {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} logout={logout} voltar={() => setView('store')} darkMode={darkMode} />}
-                        {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} onCheckoutSuccess={() => { setCart([]); setView('account'); window.scrollTo(0,0); }} />}
+                        {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} setUser={setUser} logout={logout} voltar={() => irPara('store')} irFavoritos={() => irPara('favorites')} darkMode={darkMode} />}
+                        {view === 'account' && !user && !authCarregando && (
+                            <div className="max-w-md mx-auto text-center py-24 px-4">
+                                <h2 className="text-2xl font-serif mb-4">Faça login para ver sua conta</h2>
+                                <button onClick={() => { setAuthNotice(''); setAuthModalOpen(true); }} className="bg-elora-gold text-white px-8 py-3 text-xs font-bold uppercase tracking-widest rounded-md">Entrar</button>
+                            </div>
+                        )}
+                        {view === 'pedido-confirmado' && <PedidoConfirmado nsu={pedidoConfirmado} user={user} darkMode={darkMode} irConta={() => irPara('account')} irLoja={() => irPara('store')} />}
+                        {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} />}
                         
-                        {/* RENDERIZAÇÃO DA PÁGINA DE FAVORITOS */}
-                        {view === 'favorites' && user && user.role !== 'admin' && (
+                        {view === 'favorites' && (!user || user.role !== 'admin') && (
                             <FavoritesPage 
                                 produtos={produtos} 
                                 favorites={favorites} 
@@ -1410,7 +1724,7 @@
                                 onAddToCart={addToCart} 
                                 onBuyNow={handleBuyNow} 
                                 darkMode={darkMode} 
-                                voltarParaLoja={() => setView('store')} 
+                                voltarParaLoja={() => irPara('store')} 
                                 onSwitchProduct={setProdutoSelecionado} 
                             />
                         )}
@@ -1418,7 +1732,7 @@
                         {view === 'store' && (
                             <div className="animate-fade-in">
                                 <section className="relative h-[65vh] sm:h-[80vh] w-full flex items-center justify-center overflow-hidden bg-slate-900">
-                                    <img src="./banner-promo.jpeg" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
+                                    <img src="./banner-promo.jpeg" fetchpriority="high" decoding="async" alt="Perfumes árabes Elora Parfums" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent z-10"></div>
                                     <div className="relative z-20 text-center px-4 mt-8 max-w-4xl">
                                         <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif mb-4 sm:mb-6 text-white tracking-tight drop-shadow-2xl">A Essência do <span className="text-elora-gold">Oriente</span>.</h1>
@@ -1496,7 +1810,7 @@
                         <p className="text-slate-400 text-[10px] tracking-widest mt-6 uppercase">Todos os direitos reservados &copy; 2026.</p>
                     </footer>
 
-                    <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} onCheckout={iniciarCheckout} darkMode={darkMode} />
+                    <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} alterarQtd={alterarQtd} onCheckout={iniciarCheckout} darkMode={darkMode} />
                     {produtoSelecionado && <ProductModal produto={produtoSelecionado} todosProdutos={produtos} onSwitchProduct={setProdutoSelecionado} onClose={() => setProdutoSelecionado(null)} onAddToCart={addToCart} onBuyNow={handleBuyNow} darkMode={darkMode} />}
                     {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={handleBuyNow} darkMode={darkMode} />}
                     {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} onSuccess={handleAuthSuccess} mensagemExtra={authNotice} darkMode={darkMode} />}
