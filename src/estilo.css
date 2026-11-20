@@ -1,0 +1,43 @@
+/* Estilos da Elora Parfums — compilado com Tailwind (não edite app.css direto; edite este arquivo e recompile) */
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-elora-deepblue: #0A1128;
+  --color-elora-gold: #D4AF37;
+  --color-elora-light: #FDFBF7;
+  --color-elora-darkbg: #0B1320;
+  /* Mantém a aparência da versão anterior do Tailwind (v3) */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --radius-sm: 0.125rem;
+  --blur-sm: 4px;
+  --drop-shadow-sm: 0 1px 1px rgb(0 0 0 / 0.05);
+}
+
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button { border-color: var(--color-gray-200, currentColor); }
+  input::placeholder, textarea::placeholder { color: var(--color-gray-400); }
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+}
+
+/* ===== estilos próprios do site ===== */
+body { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
+        h1, h2, h3, h4, .font-serif { font-family: 'Playfair Display', serif; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        
+        @keyframes scrollMarquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { animation: scrollMarquee 40s linear infinite; display: flex; width: max-content; }
+        .animate-marquee:hover { animation-play-state: paused; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+        
+        .logo-parfums-line { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .logo-parfums-line::before, .logo-parfums-line::after { content: ""; display: block; width: 25px; height: 1px; background-color: #D4AF37; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }

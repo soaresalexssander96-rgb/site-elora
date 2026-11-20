@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0A1128">
+    <base href="/">
+    <!--SEO-->
+    <title>Elora Parfums | A Essência do Oriente</title>
+    <meta name="description" content="Fragrâncias árabes exclusivas e refinadas. Parcelamento sem juros no cartão e desconto no PIX. Envio para todo o Brasil.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Elora Parfums">
+    <meta property="og:title" content="Elora Parfums | A Essência do Oriente">
+    <meta property="og:description" content="Fragrâncias árabes exclusivas e refinadas. Parcelamento sem juros e desconto no PIX.">
+    <meta property="og:image" content="https://site-elora.vercel.app/banner-promo.jpeg">
+    <meta property="og:url" content="https://site-elora.vercel.app/">
+    <meta name="twitter:card" content="summary_large_image">
+    <!--/SEO-->
+
+    <!-- Conexões antecipadas (acelera o carregamento no celular) -->
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://i.ibb.co">
+    <link rel="preload" as="image" href="./banner-promo.jpeg" fetchpriority="high">
+
+    <!-- Estilos já compilados (antes o Tailwind era montado dentro do celular a cada visita) -->
+    <link rel="stylesheet" href="/app.css?v={{CSS_V}}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+    <style>
+        body { background: #FDFBF7; margin: 0; }
+        #carregando { min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; font-family: Georgia, serif; color: #0A1128; letter-spacing: .3em; }
+        #carregando span { font-size: 10px; letter-spacing: .5em; color: #D4AF37; }
+    </style>
+
+    <!-- Bibliotecas: carregam em paralelo sem travar a página -->
+    <script defer src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script defer src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script defer src="https://unpkg.com/lucide@latest"></script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, getDoc, setDoc, addDoc, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPImRf4Mp7-AAsTzOXZNgS4NGvENeZsM4",
+    authDomain: "elora-parfums.firebaseapp.com",
+    projectId: "elora-parfums",
+    storageBucket: "elora-parfums.firebasestorage.app",
+    messagingSenderId: "953833053006",
+    appId: "1:953833053006:web:141e5f4fb22e3a017fdc1f",
+    measurementId: "G-YN6WE6QZP7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  window.db = db;
+  window.collection = collection;
+  window.getDocs = getDocs;
+  window.addDoc = addDoc;
+  window.query = query;
+  window.where = where;
+  window.deleteDoc = deleteDoc;
+  window.updateDoc = updateDoc;
+  window.doc = doc;
+
+  const auth = getAuth(app);
+  auth.languageCode = 'pt';
+  window.fb = { db, auth, collection, getDocs, getDoc, setDoc, addDoc, query, where, deleteDoc, doc, updateDoc,
+                onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+</head>
+<body class="antialiased selection:bg-elora-gold selection:text-white">
+    <div id="root"><div id="carregando">ELORA<span>PARFUMS</span></div></div>
+
+    <!-- Código do site já compilado (antes o Babel traduzia tudo dentro do celular a cada visita) -->
+    <script defer src="/app.js?v={{JS_V}}"></script>
+</body>
+</html>
