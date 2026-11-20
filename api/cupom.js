@@ -18,12 +18,15 @@ export default async function handler(req, res) {
 
   const { codigo, itens } = req.body || {};
   try {
-    let valorProdutos = 0;
+    let valorProdutos = 0, qtdItens = 0;
     for (const it of itens || []) {
       const s = await db.collection('perfumes').doc(String(it.id)).get();
-      if (s.exists) valorProdutos += (Number(s.data().preco) || 0) * Math.max(1, parseInt(it.qtd) || 1);
+      const q = Math.max(1, parseInt(it.qtd) || 1);
+      if (s.exists) { valorProdutos += (Number(s.data().preco) || 0) * q; qtdItens += q; }
     }
-    const r = await validarCupom(codigo, uid, Math.round(valorProdutos * 100) / 100);
+    const perfil = await db.collection('usuarios').doc(uid).get();
+    const cpf = perfil.exists ? perfil.data().cpf : '';
+    const r = await validarCupom(codigo, uid, Math.round(valorProdutos * 100) / 100, null, { qtdItens, cpf });
     return res.status(r.ok ? 200 : 400).json(r);
   } catch (e) {
     console.error(e);
