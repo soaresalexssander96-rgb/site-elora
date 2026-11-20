@@ -1,6 +1,7 @@
 // Cria o link de pagamento da InfinitePay.
 // O navegador só manda o ID do pedido; preços, frete e cupom são recalculados aqui a partir do Firestore.
-import { db, adminAuth, SITE_URL, INFINITE_TAG, tabelaFrete, STATUS_PAGOS } from './_firebaseAdmin.js';
+import { db, adminAuth, SITE_URL, INFINITE_TAG, STATUS_PAGOS } from './_firebaseAdmin.js';
+import { cotarFrete } from './_frete.js';
 
 const arred = (v) => Math.round(v * 100) / 100;
 
@@ -47,18 +48,15 @@ export default async function handler(req, res) {
     if (!itens.length) return res.status(400).json({ erro: 'Sacola vazia.' });
     const valorProdutos = arred(itens.reduce((s, i) => s + i.preco * i.qtd, 0));
 
-    // 3. Frete: confirma o estado pelo CEP (ViaCEP); se falhar, usa o informado
+    // 3. Frete: cota de novo no servidor (Melhor Envio ou tabela) e confere a opção escolhida
     const cliente = pedido.cliente || {};
-    let uf = String(cliente.uf || '').toUpperCase();
-    try {
-      const cep = String(cliente.cep || '').replace(/\D/g, '');
-      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const d = await r.json();
-      if (d && d.uf) uf = d.uf;
-    } catch (e) { /* mantém o UF informado */ }
-    const opcoes = tabelaFrete(uf);
-    const valorFrete = opcoes[pedido.freteTipo];
-    if (valorFrete === undefined) return res.status(400).json({ erro: 'Escolha uma opção de frete válida.' });
+    let cotacao;
+    try { cotacao = await cotarFrete(cliente.cep, itens.map(i => ({ id: i.id, qtd: i.qtd }))); }
+    catch (e) { return res.status(400).json({ erro: 'CEP inválido. Confira o endereço.' }); }
+    const uf = cotacao.uf || String(cliente.uf || '').toUpperCase();
+    const opcao = cotacao.opcoes.find(o => o.id === pedido.freteServicoId) || cotacao.opcoes.find(o => o.nome === pedido.freteTipo);
+    if (!opcao) return res.status(409).json({ erro: 'As opções de frete mudaram. Clique em Calcular de novo e escolha o frete.' });
+    const valorFrete = opcao.valor;
 
     // 4. Cupom PRIMEIROGRATIS: só se nunca houve pedido pago nesta conta
     let descontoFrete = 0;
@@ -73,13 +71,14 @@ export default async function handler(req, res) {
     // 5. Grava os valores oficiais no pedido
     await pedidoRef.update({
       itens, valorProdutos, valorFrete, descontoFrete, cupom, valorTotal,
+      freteTipo: opcao.nome, fretePrazo: opcao.prazo, freteServicoId: opcao.id,
       'cliente.uf': uf, validadoServidor: true
     });
 
     // 6. Link de pagamento
     const items = itens.map(i => ({ description: `Elora: ${i.marca} - ${i.nome}`, quantity: i.qtd, price: Math.round(i.preco * 100) }));
     const freteCobrado = arred(valorFrete - descontoFrete);
-    if (freteCobrado > 0) items.push({ description: `Frete ${pedido.freteTipo} (${uf})`, quantity: 1, price: Math.round(freteCobrado * 100) });
+    if (freteCobrado > 0) items.push({ description: `Frete ${opcao.nome} (${uf})`, quantity: 1, price: Math.round(freteCobrado * 100) });
 
     const payload = {
       handle: INFINITE_TAG,

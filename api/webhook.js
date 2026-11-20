@@ -1,6 +1,7 @@
 // Recebe o aviso de pagamento da InfinitePay.
 // O aviso não tem assinatura, então cada notificação é confirmada no payment_check antes de mexer no pedido.
 import { db, INFINITE_TAG } from './_firebaseAdmin.js';
+import { notificarVenda } from './_notificar.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido' });
@@ -32,6 +33,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ignorado: 'pedido não encontrado' });
     }
     const pedidoRef = busca.docs[0].ref;
+    let pagamentoInfo = null, pedidoPago = null;
 
     // 3. Marca como pago e baixa o estoque (uma vez só, mesmo se o aviso chegar repetido)
     const resultado = await db.runTransaction(async (t) => {
@@ -50,14 +52,15 @@ export default async function handler(req, res) {
       perfumes.forEach((p, idx) => {
         if (!p.exists) return;
         const d = p.data();
-        if (d.estoque === undefined || d.estoque === null || d.estoque === '') return;
-        const novo = Math.max(0, (parseInt(d.estoque) || 0) - (parseInt(itens[idx].qtd) || 1));
-        t.update(p.ref, { estoque: novo });
+        const qtd = parseInt(itens[idx].qtd) || 1;
+        const mudancas = { vendidos: (parseInt(d.vendidos) || 0) + qtd }; // contador real de vendas
+        if (d.estoque !== undefined && d.estoque !== null && d.estoque !== '') {
+          mudancas.estoque = Math.max(0, (parseInt(d.estoque) || 0) - qtd);
+        }
+        t.update(p.ref, mudancas);
       });
 
-      t.update(pedidoRef, {
-        status: 'Pago',
-        pagamento: {
+      pagamentoInfo = {
           transaction_nsu, slug,
           metodo: conf.capture_method || body.capture_method || '',
           parcelas: conf.installments || body.installments || 1,
@@ -66,10 +69,14 @@ export default async function handler(req, res) {
           pagoEm: new Date().toISOString(),
           // aviso para o admin se o valor pago ficou abaixo do esperado (tolerância para desconto PIX de 5%)
           valorAbaixoDoEsperado: esperado > 0 && pago < Math.floor(esperado * 0.95) - 1
-        }
-      });
+      };
+      pedidoPago = pedido;
+      t.update(pedidoRef, { status: 'Pago', pagamento: pagamentoInfo });
       return 'pago';
     });
+
+    // Aviso no WhatsApp/e-mail só na primeira confirmação (com tempo limite para não travar a resposta)
+    if (resultado === 'pago') await notificarVenda(pedidoPago, pagamentoInfo).catch(e => console.error(e));
 
     return res.status(200).json({ ok: true, resultado });
   } catch (error) {
