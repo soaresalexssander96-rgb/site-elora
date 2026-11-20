@@ -890,23 +890,10 @@
                 const orderNsu = "ELORA-" + Date.now();
                 const clienteCompleto = { nome: user.nome, email: user.email, cpf: user.cpf, telefone: user.telefone, ...endereco };
 
-                const itemsForAPI = cart.map(item => ({
-                    quantity: qtdItem(item), price: Math.round((Number(item.preco)||0) * 100), description: `Elora: ${item.marca} - ${item.nome}`
-                }));
-
-                const valorFreteReal = (cupomAtivo && cupomAtivo.tipo === 'frete') ? 0 : freteValor;
-
-                if (valorFreteReal > 0) {
-                    itemsForAPI.push({
-                        quantity: 1, 
-                        price: Math.round(valorFreteReal * 100), 
-                        description: `Frete / Entrega (${endereco.uf})`
-                    });
-                }
-
+                let pedidoId;
                 try {
                     const { db, collection, addDoc } = await getFb();
-                    await addDoc(collection(db, "pedidos"), {
+                    const ref = await addDoc(collection(db, "pedidos"), {
                         order_nsu: orderNsu, uid: user.uid, cliente: clienteCompleto,
                         itens: cart.map(i => ({ id: i.id, nome: i.nome, marca: i.marca, preco: Number(i.preco) || 0, qtd: qtdItem(i), imagem: getImagemPrincipal(i) })),
                         valorProdutos: totalProdutos, valorFrete: freteValor, freteTipo: freteTipo,
@@ -914,6 +901,7 @@
                         descontoFrete: descontoFrete, valorTotal: totalComFrete,
                         dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
                     });
+                    pedidoId = ref.id;
                 } catch (err) {
                     console.error("Erro no Firebase", err);
                     alert("Não foi possível registrar seu pedido. Verifique sua conexão e tente novamente.");
@@ -921,33 +909,27 @@
                     return;
                 }
 
-                const pedido = { 
-                    order_nsu: orderNsu, 
-                    customer: clienteCompleto, 
-                    address: { line1: `${endereco.rua}, ${endereco.numero}`, line2: endereco.complemento || '', city: endereco.cidade, state: endereco.uf, zip: endereco.cep, country: 'BR' },
-                    shipping_address: { zip: endereco.cep, street: endereco.rua, number: endereco.numero, complement: endereco.complemento, neighborhood: endereco.bairro, city: endereco.cidade, state: endereco.uf, country: 'BR' },
-                    billing_address: { zip: endereco.cep, street: endereco.rua, number: endereco.numero, complement: endereco.complemento, neighborhood: endereco.bairro, city: endereco.cidade, state: endereco.uf, country: 'BR' },
-                    items: itemsForAPI 
-                };
-                
+                // O servidor recalcula preços, frete e cupom e cria o link de pagamento
                 try {
-                    const resposta = await fetch('/api/checkout', { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify(pedido) 
+                    const { auth } = await getFb();
+                    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+                    const resposta = await fetch('/api/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ pedidoId })
                     });
-                    const dados = await resposta.json();
-                    
-                    if (dados.url || dados.checkout_url) {
-                        window.location.href = dados.url || dados.checkout_url;
+                    const dados = await resposta.json().catch(() => ({}));
+
+                    if (resposta.ok && dados.url) {
+                        window.location.href = dados.url;
                     } else {
-                        alert("Erro: O seu servidor não retornou o link de pagamento.");
+                        alert(dados.erro || "Não foi possível abrir o pagamento. Tente novamente.");
                         setLoading(false);
                     }
-                } catch (erro) { 
+                } catch (erro) {
                     console.error(erro);
-                    alert("Erro ao tentar abrir a plataforma de pagamento."); 
-                    setLoading(false); 
+                    alert("Erro ao tentar abrir a plataforma de pagamento.");
+                    setLoading(false);
                 }
             };
 
@@ -1170,6 +1152,7 @@
                                             <ItensPedido itens={p.itens} />
                                             <div className="flex flex-wrap justify-between items-end gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
                                                 <div className="text-xs text-slate-500">
+                                                    {p.pagamento && p.pagamento.comprovante && <a href={p.pagamento.comprovante} target="_blank" rel="noreferrer" className="text-elora-gold font-bold hover:underline mr-3">Ver comprovante</a>}
                                                     {p.rastreio ? (
                                                         <span>Rastreio: <a href={`https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(p.rastreio)}`} target="_blank" rel="noreferrer" className="text-elora-gold font-bold hover:underline">{p.rastreio}</a></span>
                                                     ) : p.freteTipo ? <span>{p.freteTipo}</span> : null}
@@ -1479,6 +1462,13 @@
                                                             <p className="flex justify-between"><span>Frete</span><span>R$ {(Number(p.valorFrete) || 0).toFixed(2)}</span></p>
                                                             {p.cupom && <p className="flex justify-between text-emerald-600"><span>Cupom {p.cupom}</span><span>- R$ {(Number(p.descontoFrete) || 0).toFixed(2)}</span></p>}
                                                             <p className="flex justify-between font-bold text-slate-800 dark:text-slate-100 text-sm"><span>Total</span><span>R$ {(Number(p.valorTotal) || 0).toFixed(2)}</span></p>
+                                                            {p.pagamento && (
+                                                                <div className={`mt-2 p-2 rounded text-[11px] ${p.pagamento.valorAbaixoDoEsperado ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
+                                                                    <p className="font-bold">{p.pagamento.valorAbaixoDoEsperado ? '⚠ Valor pago abaixo do esperado' : 'Pagamento confirmado'}</p>
+                                                                    <p>R$ {(Number(p.pagamento.valorPago) || 0).toFixed(2)} via {p.pagamento.metodo === 'pix' ? 'PIX' : p.pagamento.metodo === 'credit_card' ? `cartão (${p.pagamento.parcelas}x)` : p.pagamento.metodo}</p>
+                                                                    {p.pagamento.comprovante && <a href={p.pagamento.comprovante} target="_blank" rel="noreferrer" className="underline">Comprovante</a>}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
