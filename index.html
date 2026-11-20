@@ -2135,8 +2135,8 @@
                     if (s.exists()) {
                         const d = s.data();
                         setConfigLoja({
-                            pixDesconto: Number(d.pixDesconto ?? CONFIG_PADRAO.pixDesconto) || 0,
-                            parcelas: parseInt(d.parcelas ?? CONFIG_PADRAO.parcelas) || 1,
+                            pixDesconto: (d.pixDesconto === undefined || d.pixDesconto === null) ? CONFIG_PADRAO.pixDesconto : (Number(d.pixDesconto) || 0),
+                            parcelas: (d.parcelas === undefined || d.parcelas === null) ? CONFIG_PADRAO.parcelas : (parseInt(d.parcelas) || 1),
                             avisosTopo: Array.isArray(d.avisosTopo) ? d.avisosTopo.filter(Boolean) : []
                         });
                     }
