@@ -1,62 +1,79 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+// Recebe o aviso de pagamento da InfinitePay.
+// O aviso não tem assinatura, então cada notificação é confirmada no payment_check antes de mexer no pedido.
+import { db, INFINITE_TAG } from './_firebaseAdmin.js';
 
-// 1. Conexão oficial com o seu Firebase (Chaves da Elora Parfums já preenchidas!)
-const firebaseConfig = {
-    apiKey: "AIzaSyCPImRf4Mp7-AAsTzOXZNgS4NGvENeZsM4",
-    authDomain: "elora-parfums.firebaseapp.com",
-    projectId: "elora-parfums",
-    storageBucket: "elora-parfums.firebasestorage.app",
-    messagingSenderId: "953833053006",
-    appId: "1:953833053006:web:141e5f4fb22e3a017fdc1f",
-    measurementId: "G-YN6WE6QZP7"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// 2. Lógica que vai "ouvir" a InfinitePay
 export default async function handler(req, res) {
-    // Bloqueia tentativas de acesso indevido (só aceita os avisos da InfinitePay)
-    if (req.method !== 'POST') {
-        return res.status(405).send({ message: 'Acesso negado. Apenas POST é aceito.' });
+  if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido' });
+
+  const body = req.body || {};
+  const order_nsu = body.order_nsu;
+  const transaction_nsu = body.transaction_nsu;
+  const slug = body.invoice_slug || body.slug;
+  if (!order_nsu || !transaction_nsu || !slug) return res.status(200).json({ ignorado: 'dados incompletos' });
+
+  try {
+    // 1. Confirma com a InfinitePay que o pagamento é real
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.INFINITE_API_KEY) headers['X-Api-Key'] = process.env.INFINITE_API_KEY;
+    const check = await fetch('https://api.checkout.infinitepay.io/payment_check', {
+      method: 'POST', headers,
+      body: JSON.stringify({ handle: INFINITE_TAG, order_nsu, transaction_nsu, slug })
+    });
+    const conf = await check.json().catch(() => ({}));
+    if (!conf.success || !conf.paid) {
+      console.warn('Webhook não confirmado', order_nsu, conf);
+      return res.status(200).json({ ignorado: 'pagamento não confirmado' });
     }
 
-    try {
-        const evento = req.body;
-        console.log("Aviso recebido da InfinitePay:", evento);
+    // 2. Acha o pedido
+    const busca = await db.collection('pedidos').where('order_nsu', '==', order_nsu).limit(1).get();
+    if (busca.empty) {
+      console.warn('Webhook para pedido inexistente', order_nsu);
+      return res.status(200).json({ ignorado: 'pedido não encontrado' });
+    }
+    const pedidoRef = busca.docs[0].ref;
 
-        // 3. Verifica se a InfinitePay está avisando que o pagamento foi APROVADO
-        // Nota: as variáveis abaixo cobrem os formatos mais comuns de payload da InfinitePay
-        if (evento.type === 'payment_intent.succeeded' || evento.status === 'paid' || evento.status === 'approved') {
-            
-            // Tenta resgatar o código do pedido (Ex: ELORA-123456789)
-            // Procura em vários lugares possíveis dependendo de como a API deles envia
-            const orderNsu = evento.data?.metadata?.order_nsu || evento.data?.reference_id || evento.reference_id || evento.metadata?.order_nsu; 
+    // 3. Marca como pago e baixa o estoque (uma vez só, mesmo se o aviso chegar repetido)
+    const resultado = await db.runTransaction(async (t) => {
+      const snap = await t.get(pedidoRef);
+      const pedido = snap.data();
+      if (pedido.pagamento && pedido.pagamento.transaction_nsu) return 'já processado';
+      if (pedido.status !== 'Aguardando Pagamento' && pedido.status !== 'Cancelado') return 'status já alterado';
 
-            if (orderNsu) {
-                // 4. Procura o pedido correspondente no seu Firebase
-                const q = query(collection(db, "pedidos"), where("order_nsu", "==", orderNsu));
-                const snapshot = await getDocs(q);
+      const itens = pedido.itens || [];
+      const refs = itens.map(i => db.collection('perfumes').doc(String(i.id)));
+      const perfumes = refs.length ? await t.getAll(...refs) : [];
 
-                if (!snapshot.empty) {
-                    // 5. Baixa Automática! Muda o status de "Aguardando" para "Aprovado"
-                    const pedidoDoc = snapshot.docs[0];
-                    await updateDoc(doc(db, "pedidos", pedidoDoc.id), {
-                        status: "Pagamento Aprovado"
-                    });
-                    console.log(`Sucesso: Pedido ${orderNsu} atualizado para Pagamento Aprovado!`);
-                } else {
-                    console.log(`Aviso: Pedido ${orderNsu} pago, mas não encontrado no banco de dados.`);
-                }
-            }
+      const esperado = Math.round((Number(pedido.valorTotal) || 0) * 100);
+      const pago = Number(conf.paid_amount || conf.amount || body.paid_amount || 0);
+
+      perfumes.forEach((p, idx) => {
+        if (!p.exists) return;
+        const d = p.data();
+        if (d.estoque === undefined || d.estoque === null || d.estoque === '') return;
+        const novo = Math.max(0, (parseInt(d.estoque) || 0) - (parseInt(itens[idx].qtd) || 1));
+        t.update(p.ref, { estoque: novo });
+      });
+
+      t.update(pedidoRef, {
+        status: 'Pago',
+        pagamento: {
+          transaction_nsu, slug,
+          metodo: conf.capture_method || body.capture_method || '',
+          parcelas: conf.installments || body.installments || 1,
+          valorPago: pago / 100,
+          comprovante: body.receipt_url || '',
+          pagoEm: new Date().toISOString(),
+          // aviso para o admin se o valor pago ficou abaixo do esperado (tolerância para desconto PIX de 5%)
+          valorAbaixoDoEsperado: esperado > 0 && pago < Math.floor(esperado * 0.95) - 1
         }
+      });
+      return 'pago';
+    });
 
-        // 6. Responde à InfinitePay que a mensagem foi recebida com sucesso
-        res.status(200).send('Webhook recebido e processado pela Elora Parfums');
-
-    } catch (error) {
-        console.error('Erro ao processar o Webhook:', error);
-        res.status(500).send('Erro interno do servidor');
-    }
+    return res.status(200).json({ ok: true, resultado });
+  } catch (error) {
+    console.error('Erro no webhook', error);
+    return res.status(400).json({ erro: 'falha temporária' }); // 400 faz a InfinitePay tentar de novo
+  }
 }
