@@ -1,5 +1,5 @@
 // ===== Abertura da Elora Parfums =====
-// Principal: vídeo com som (/abertura.mp4 e /abertura-celular.mp4); se o navegador bloquear o som, toca mudo com botão "Ativar som". Reserva: horizonte árabe do logo, feito em código.
+// Principal: vídeo com som (/abertura.mp4 e /abertura-celular.mp4); se o navegador bloquear o som, o vídeo espera o toque em "Ativar som" e começa do início com som. Reserva: horizonte árabe do logo, feito em código.
 // O horizonte (cúpulas e minaretes) se desenha em ouro -> as janelas acendem -> poeira dourada sobe
 // das torres e forma "ELORA" -> PARFUMS -> reflexo de luz -> a loja aparece.
 // Tudo em vetor/código (nítido em qualquer tela). Sem som; começa sozinha (~6,5 s).
@@ -312,8 +312,9 @@
       '#elora-intro-v.saindo{opacity:0;pointer-events:none}' +
       '#elora-intro-v video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s ease}' +
       '#elora-intro-v video.on{opacity:1}' +
+      '#elora-intro-v.esperando{background:radial-gradient(ellipse at 50% 50%,#16204a 0%,#0A1128 50%,#03060f 100%)}' +
       '#ei-pular-v{position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;z-index:3;background:rgba(255,255,255,.06);border:1px solid rgba(212,175,55,.35);color:#d9c9a3;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.28em;text-transform:uppercase;padding:10px 15px;border-radius:999px;cursor:pointer;opacity:0;animation:eiApareceV .6s .6s forwards}' +
-      '#ei-som{display:none;position:absolute;left:50%;bottom:max(28px,calc(env(safe-area-inset-bottom) + 20px));transform:translateX(-50%);z-index:3;align-items:center;gap:9px;background:rgba(10,17,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(212,175,55,.55);color:#F7E7B0;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;padding:13px 20px;border-radius:999px;cursor:pointer;animation:eiApareceV .5s .3s both,eiPulsa 2s 1s ease-in-out infinite}' +
+      '#ei-som{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;align-items:center;gap:9px;background:rgba(10,17,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(212,175,55,.55);color:#F7E7B0;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;padding:16px 26px;font-size:12px;border-radius:999px;cursor:pointer;animation:eiApareceV .5s .3s both,eiPulsa 2s 1s ease-in-out infinite}' +
       '@keyframes eiPulsa{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,.35)}50%{box-shadow:0 0 0 8px rgba(212,175,55,0)}}' +
       '@keyframes eiApareceV{to{opacity:1}}';
     var box = document.createElement('div');
@@ -350,21 +351,28 @@
     });
     v.addEventListener('ended', function () { setTimeout(function () { fechar(false); }, 500); }); // segura o logo meio segundo
     v.addEventListener('error', reserva);
-    timers.push(setTimeout(reserva, 4000));
     // Tenta tocar COM som. Se o navegador bloquear (regra dos navegadores para quem ainda não tocou na página),
-    // toca sem som e mostra o botão "Ativar som" — um toque liga o som sem reiniciar o vídeo.
+    // o vídeo NÃO começa: fica parado no início com o botão "Ativar som". Ao tocar, o vídeo roda do começo já com som.
     var btnSom = box.querySelector('#ei-som');
-    function tocarMudo() {
-      v.muted = true;
-      try { var p2 = v.play(); if (p2 && p2.catch) p2.catch(function () { setTimeout(function () { if (!comecou) reserva(); }, 300); }); } catch (e) { reserva(); }
+    var timerReserva = setTimeout(reserva, 4000); timers.push(timerReserva);
+    function esperarToque() {
+      clearTimeout(timerReserva);                    // esperando a pessoa: não troca pela reserva
+      try { v.pause(); v.currentTime = 0; } catch (e) {}
+      box.classList.add('esperando');
       btnSom.style.display = 'flex';
     }
-    btnSom.addEventListener('click', function () { v.muted = false; v.volume = 1; try { v.play(); } catch (e) {} btnSom.style.display = 'none'; });
+    btnSom.addEventListener('click', function () {
+      btnSom.style.display = 'none'; box.classList.remove('esperando');
+      v.muted = false; v.volume = 1;
+      try { v.currentTime = 0; } catch (e) {}
+      timerReserva = setTimeout(reserva, 4000); timers.push(timerReserva);
+      try { var p2 = v.play(); if (p2 && p2.catch) p2.catch(function () { v.muted = true; try { v.play(); } catch (e) {} }); } catch (e) {}
+    });
     v.muted = false;
     try {
       var pr = v.play();
-      if (pr && pr.catch) pr.catch(function (err) { if (acabou) return; if (err && err.name === 'NotAllowedError') tocarMudo(); else setTimeout(function () { if (!comecou) reserva(); }, 300); });
-    } catch (e) { tocarMudo(); }
+      if (pr && pr.catch) pr.catch(function (err) { if (acabou) return; if (err && err.name === 'NotAllowedError') esperarToque(); else setTimeout(function () { if (!comecou) reserva(); }, 300); });
+    } catch (e) { esperarToque(); }
     box.querySelector('#ei-pular-v').addEventListener('click', function () { if (comecou) fechar(true); else { comecou = true; fechar(true); } });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); comecou = true; fechar(true); } });
   }
