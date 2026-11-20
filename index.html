@@ -39,7 +39,18 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <base href="/">
+    <!--SEO-->
     <title>Elora Parfums | A Essência do Oriente</title>
+    <meta name="description" content="Fragrâncias árabes exclusivas e refinadas. Até 10x sem juros no cartão e desconto no PIX. Envio para todo o Brasil.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Elora Parfums">
+    <meta property="og:title" content="Elora Parfums | A Essência do Oriente">
+    <meta property="og:description" content="Fragrâncias árabes exclusivas e refinadas. Até 10x sem juros e desconto no PIX.">
+    <meta property="og:image" content="https://site-elora.vercel.app/banner-promo.jpeg">
+    <meta property="og:url" content="https://site-elora.vercel.app/">
+    <meta name="twitter:card" content="summary_large_image">
+    <!--/SEO-->
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -158,6 +169,8 @@
         const totalItens = (cart) => cart.reduce((s, i) => s + qtdItem(i), 0);
         const totalCarrinho = (cart) => cart.reduce((s, i) => s + (Number(i.preco) || 0) * qtdItem(i), 0);
         const formatarData = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+
+        const linkProduto = (p) => `${window.location.origin}/p/${p.id}`;
 
         const getImagemPrincipal = (produto) => {
             if (produto.imagens && produto.imagens.length > 0) return produto.imagens[0];
@@ -494,7 +507,7 @@
             const parcelado = (precoSeguro / 10).toFixed(2);
             const pix = (precoSeguro * 0.95).toFixed(2);
             
-            const numVendidos = 120 + (produto.nome.length * 14) + (Math.floor(precoSeguro) % 30);
+            const numVendidos = parseInt(produto.vendidos) || 0;
             const esgotado = estaEsgotado(produto);
 
             const nextImg = (e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev + 1) % imagens.length); };
@@ -504,8 +517,7 @@
             const shareWhats = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const linkSite = "https://site-elora.vercel.app";
-                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por R$ ${precoSeguro.toFixed(2)}!\n\nConfira aqui: ${linkSite}`);
+                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por R$ ${precoSeguro.toFixed(2)}!\n\n${linkProduto(produto)}`);
                 window.open(`https://wa.me/?text=${text}`, '_blank');
             };
 
@@ -548,10 +560,12 @@
                         <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-1 block">{produto.marca}</span>
                         <h3 className="text-lg font-serif mb-1 hover:text-elora-gold transition-colors cursor-pointer leading-tight" onClick={() => onClick(produto)}>{produto.nome}</h3>
                         
-                        <div className="flex items-center gap-1 mb-2 mt-1">
-                            <Icon name="flame" className="w-3 h-3 text-orange-500" />
-                            <span className="text-[9px] text-slate-500 font-semibold tracking-wider uppercase">+{numVendidos} Vendidos</span>
-                        </div>
+                        {numVendidos > 0 ? (
+                            <div className="flex items-center gap-1 mb-2 mt-1">
+                                <Icon name="flame" className="w-3 h-3 text-orange-500" />
+                                <span className="text-[9px] text-slate-500 font-semibold tracking-wider uppercase">{numVendidos} {numVendidos === 1 ? 'vendido' : 'vendidos'}</span>
+                            </div>
+                        ) : <div className="mb-2"></div>}
 
                         <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-2">R$ {precoSeguro.toFixed(2)}</p>
                         
@@ -627,7 +641,17 @@
             const precoSeguro = Number(produto.preco) || 0;
             const parcelado = (precoSeguro / 10).toFixed(2);
             const pix = (precoSeguro * 0.95).toFixed(2);
-            const numVendidos = 120 + (produto.nome.length * 14) + (Math.floor(precoSeguro) % 30);
+            const numVendidos = parseInt(produto.vendidos) || 0;
+            const [copiado, setCopiado] = useState(false);
+            const compartilhar = async () => {
+                const url = linkProduto(produto);
+                const titulo = `${produto.marca} ${produto.nome} | Elora Parfums`;
+                try {
+                    if (navigator.share) { await navigator.share({ title: titulo, url }); return; }
+                } catch (e) { if (e && e.name === 'AbortError') return; }
+                try { await navigator.clipboard.writeText(url); setCopiado(true); setTimeout(() => setCopiado(false), 2000); }
+                catch (e) { window.open(`https://wa.me/?text=${encodeURIComponent(titulo + '\n' + url)}`, '_blank'); }
+            };
 
             const similares = todosProdutos.filter(p => p.id !== produto.id && (p.familia === produto.familia || p.categoria === produto.categoria)).slice(0, 4);
 
@@ -660,9 +684,13 @@
                                 <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest mb-1">{produto.marca}</span>
                                 <h2 className="text-3xl sm:text-4xl font-serif mb-2 leading-tight">{produto.nome}</h2>
                                 
-                                <div className="flex items-center gap-1 mb-4 text-slate-500">
-                                    <Icon name="flame" className="w-4 h-4 text-orange-500" />
-                                    <span className="text-xs font-semibold tracking-wider uppercase">+{numVendidos} pessoas compraram este mês</span>
+                                <div className="flex items-center justify-between gap-3 mb-4 text-slate-500">
+                                    {numVendidos > 0 ? (
+                                        <span className="flex items-center gap-1"><Icon name="flame" className="w-4 h-4 text-orange-500" /><span className="text-xs font-semibold tracking-wider uppercase">{numVendidos} {numVendidos === 1 ? 'vendido' : 'vendidos'}</span></span>
+                                    ) : <span></span>}
+                                    <button onClick={compartilhar} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest hover:text-elora-gold transition-colors">
+                                        <Icon name={copiado ? "check" : "share-2"} className="w-4 h-4" /> {copiado ? 'Link copiado!' : 'Compartilhar'}
+                                    </button>
                                 </div>
 
                                 <p className="text-3xl font-medium mb-3">R$ {precoSeguro.toFixed(2)}</p>
@@ -720,85 +748,143 @@
             );
         }
 
-        function QuizModal({ onClose, produtos, irParaCheckout, darkMode }) {
-            const [step, setStep] = useState(1);
-            const [perfil, setPerfil] = useState({ genero: '', familia: '', intensidade: '', ocasiao: '' });
+        // ===== QUIZ: recomenda pelos 4 critérios =====
+        const QUIZ_PERGUNTAS = [
+            { campo: 'genero', pergunta: 'Para quem é a fragrância?', opcoes: [
+                { valor: 'Feminino', texto: 'Para Ela', icone: 'flower-2' },
+                { valor: 'Masculino', texto: 'Para Ele', icone: 'crown' },
+                { valor: 'Todos', texto: 'Tanto faz / Presente', icone: 'gift' } ] },
+            { campo: 'estilo', pergunta: 'Qual estilo de cheiro você mais gosta?', opcoes: [
+                { valor: 'doce', texto: 'Doces & Gourmand', icone: 'candy' },
+                { valor: 'floral', texto: 'Florais & Delicados', icone: 'flower' },
+                { valor: 'amadeirado', texto: 'Madeiras, Oud & Especiarias', icone: 'trees' },
+                { valor: 'fresco', texto: 'Frescos & Cítricos', icone: 'citrus' } ] },
+            { campo: 'intensidade', pergunta: 'Qual a intensidade ideal?', opcoes: [
+                { valor: 'suave', texto: 'Suave e Elegante', icone: 'feather' },
+                { valor: 'forte', texto: 'Forte e Marcante', icone: 'flame' } ] },
+            { campo: 'ocasiao', pergunta: 'Onde pretende usar essa joia?', opcoes: [
+                { valor: 'dia', texto: 'Dia a dia e Trabalho', icone: 'sun' },
+                { valor: 'noite', texto: 'Noite e Eventos Especiais', icone: 'moon' } ] }
+        ];
+
+        // Peso de cada família olfativa para cada resposta
+        const QUIZ_FAMILIAS = {
+            estilo: {
+                doce: { Adocicado: 3, Oriental: 2, Floral: 1 },
+                floral: { Floral: 3, Adocicado: 1, Fresco: 1 },
+                amadeirado: { Amadeirado: 3, Especiado: 3, Oriental: 2 },
+                fresco: { Fresco: 3, Floral: 1 }
+            },
+            intensidade: {
+                suave: { Fresco: 2, Floral: 2, Adocicado: 1 },
+                forte: { Oriental: 2, Amadeirado: 2, Especiado: 2, Adocicado: 1 }
+            },
+            ocasiao: {
+                dia: { Fresco: 2, Floral: 2 },
+                noite: { Oriental: 2, Amadeirado: 1, Especiado: 1, Adocicado: 1 }
+            }
+        };
+        // Palavras nas notas que reforçam cada estilo
+        const QUIZ_NOTAS = {
+            doce: ['baunilha', 'caramelo', 'chocolate', 'mel', 'praliné', 'pralinê', 'açúcar', 'acucar', 'tonka', 'frutas vermelhas', 'café', 'cafe', 'coco'],
+            floral: ['rosa', 'jasmim', 'flor', 'peônia', 'peonia', 'lírio', 'lirio', 'orquídea', 'orquidea', 'tuberosa', 'violeta', 'magnólia', 'magnolia'],
+            amadeirado: ['oud', 'madeira', 'sândalo', 'sandalo', 'cedro', 'vetiver', 'patchouli', 'âmbar', 'ambar', 'couro', 'canela', 'cardamomo', 'açafrão', 'acafrao', 'pimenta', 'incenso', 'tabaco'],
+            fresco: ['bergamota', 'limão', 'limao', 'laranja', 'cítric', 'citric', 'menta', 'hortelã', 'lavanda', 'marinh', 'aquátic', 'aquatic', 'maçã', 'maca', 'gengibre', 'chá', 'cha verde']
+        };
+
+        const recomendarPerfumes = (produtos, r) => {
+            const disponiveis = produtos.filter(p => !estaEsgotado(p));
+            let base = r.genero && r.genero !== 'Todos' ? disponiveis.filter(p => p.categoria === r.genero) : disponiveis;
+            if (!base.length) base = disponiveis;
+            return base.map(p => {
+                const fam = p.familia || '';
+                const notas = [p.notasTopo, p.notasCoracao, p.notasFundo].filter(Boolean).join(' ').toLowerCase();
+                let pontos = 0;
+                ['estilo', 'intensidade', 'ocasiao'].forEach(c => { pontos += ((QUIZ_FAMILIAS[c][r[c]] || {})[fam]) || 0; });
+                const acertos = (QUIZ_NOTAS[r.estilo] || []).filter(k => notas.includes(k)).length;
+                pontos += Math.min(acertos, 3);
+                pontos += Math.min(parseInt(p.vendidos) || 0, 20) / 100; // desempate: mais vendidos
+                return { p, pontos };
+            }).sort((x, y) => y.pontos - x.pontos).map(x => x.p);
+        };
+
+        function QuizModal({ onClose, produtos, onAddToCart, onVerProduto, darkMode }) {
+            const [step, setStep] = useState(0);
+            const [respostas, setRespostas] = useState({});
             const [resultado, setResultado] = useState(null);
 
-            const handleResponder = (campo, valor) => {
-                if (produtos.length === 0) {
-                    alert("O catálogo está vazio no momento.");
-                    onClose();
-                    return;
-                }
-
-                const novoPerfil = { ...perfil, [campo]: valor };
-                setPerfil(novoPerfil);
-
-                if (step < 4) {
-                    setStep(step + 1);
-                } else {
-                    let recomendados = produtos;
-                    if (novoPerfil.genero === 'Feminino') {
-                        recomendados = produtos.filter(p => p.categoria === 'Feminino');
-                    } else if (novoPerfil.genero === 'Masculino') {
-                        recomendados = produtos.filter(p => p.categoria === 'Masculino');
-                    }
-                    if (recomendados.length === 0) recomendados = produtos;
-                    setResultado(recomendados[Math.floor(Math.random() * recomendados.length)] || produtos[0]);
-                }
+            const responder = (campo, valor) => {
+                const novas = { ...respostas, [campo]: valor };
+                setRespostas(novas);
+                if (step < QUIZ_PERGUNTAS.length - 1) setStep(step + 1);
+                else setResultado(recomendarPerfumes(produtos, novas).slice(0, 3));
             };
+            const refazer = () => { setStep(0); setRespostas({}); setResultado(null); };
+            const textoDe = (campo) => { const q = QUIZ_PERGUNTAS.find(x => x.campo === campo); const o = q && q.opcoes.find(x => x.valor === respostas[campo]); return o ? o.texto : ''; };
+
+            const btn = `w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-4 px-4 text-sm transition-all uppercase tracking-widest font-semibold rounded-md flex items-center justify-center gap-3`;
+            const q = QUIZ_PERGUNTAS[step];
+            const vazio = produtos.filter(p => !estaEsgotado(p)).length === 0;
 
             return (
                 <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-                    <div className={`${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'} border p-8 md:p-12 max-w-lg w-full relative animate-fade-in shadow-2xl rounded-xl`}>
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors"><Icon name="x" className="w-6 h-6" /></button>
-                        {!resultado ? (
-                            <div className="text-center">
+                    <div className={`${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'} border p-6 sm:p-10 max-w-lg w-full relative animate-fade-in shadow-2xl rounded-xl max-h-[92vh] overflow-y-auto`}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-elora-gold transition-colors" aria-label="Fechar"><Icon name="x" className="w-6 h-6" /></button>
+                        {vazio ? (
+                            <div className="text-center py-8">
                                 <Icon name="flask-conical" className="w-12 h-12 text-elora-gold mx-auto mb-6" />
+                                <h3 className="text-2xl font-serif mb-2">Catálogo em preparação</h3>
+                                <p className="text-slate-500 text-sm">Volte em breve para descobrir sua fragrância ideal.</p>
+                            </div>
+                        ) : !resultado ? (
+                            <div className="text-center">
+                                <Icon name="flask-conical" className="w-12 h-12 text-elora-gold mx-auto mb-5" />
                                 <h3 className="text-3xl font-serif mb-2">Descubra sua Assinatura</h3>
-                                <p className="text-slate-500 text-sm mb-8 tracking-widest uppercase font-semibold">Etapa {step} de 4</p>
-
-                                {step === 1 && (
-                                    <div className="animate-fade-in space-y-4">
-                                        <p className="text-lg text-slate-500 mb-6 font-medium">Para quem é a fragrância?</p>
-                                        <button onClick={() => handleResponder('genero', 'Feminino')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Para Ela</button>
-                                        <button onClick={() => handleResponder('genero', 'Masculino')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Para Ele</button>
-                                    </div>
-                                )}
-                                {step === 2 && (
-                                    <div className="animate-fade-in space-y-4">
-                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual a sua família olfativa favorita?</p>
-                                        <button onClick={() => handleResponder('familia', 'Doces')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Adocicados & Florais</button>
-                                        <button onClick={() => handleResponder('familia', 'Amadeirados')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Madeiras & Especiarias</button>
-                                    </div>
-                                )}
-                                {step === 3 && (
-                                    <div className="animate-fade-in space-y-4">
-                                        <p className="text-lg text-slate-500 mb-6 font-medium">Qual a intensidade ideal?</p>
-                                        <button onClick={() => handleResponder('intensidade', 'Suave')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Suave e Elegante</button>
-                                        <button onClick={() => handleResponder('intensidade', 'Forte')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Forte e Marcante</button>
-                                    </div>
-                                )}
-                                {step === 4 && (
-                                    <div className="animate-fade-in space-y-4">
-                                        <p className="text-lg text-slate-500 mb-6 font-medium">Onde pretende usar essa joia?</p>
-                                        <button onClick={() => handleResponder('ocasiao', 'Dia')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Dia a dia e Trabalho</button>
-                                        <button onClick={() => handleResponder('ocasiao', 'Noite')} className={`w-full border ${darkMode ? 'border-slate-800 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'} hover:border-elora-gold hover:text-elora-gold py-5 text-sm transition-all uppercase tracking-widest font-semibold rounded-md`}>Noite e Eventos Especiais</button>
-                                    </div>
-                                )}
+                                <p className="text-slate-500 text-xs mb-4 tracking-widest uppercase font-semibold">Etapa {step + 1} de {QUIZ_PERGUNTAS.length}</p>
+                                <div className="flex gap-1.5 justify-center mb-8">{QUIZ_PERGUNTAS.map((_, i) => <span key={i} className={`h-1 w-10 rounded-full ${i <= step ? 'bg-elora-gold' : 'bg-slate-200 dark:bg-slate-700'}`}></span>)}</div>
+                                <div key={step} className="animate-fade-in space-y-3">
+                                    <p className="text-lg text-slate-500 mb-6 font-medium">{q.pergunta}</p>
+                                    {q.opcoes.map(o => (
+                                        <button key={o.valor} onClick={() => responder(q.campo, o.valor)} className={btn}><Icon name={o.icone} className="w-4 h-4" /> {o.texto}</button>
+                                    ))}
+                                </div>
+                                {step > 0 && <button onClick={() => setStep(step - 1)} className="mt-6 text-xs text-slate-400 hover:text-elora-gold uppercase tracking-widest font-semibold">← Voltar</button>}
                             </div>
                         ) : (
                             <div className="text-center animate-fade-in">
                                 <h3 className="text-3xl font-serif text-elora-gold mb-2">Seu Par Perfeito</h3>
-                                <p className="text-slate-500 text-sm mb-6">A fragrância ideal para o seu perfil.</p>
-                                <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} border p-6 flex flex-col items-center mb-6 rounded-xl`}>
-                                    <img src={getImagemPrincipal(resultado)} className="w-40 h-40 object-cover mb-6 rounded-md shadow-md" alt={resultado.nome} />
-                                    <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-2">{resultado.marca}</span>
-                                    <h4 className="text-2xl font-serif">{resultado.nome}</h4>
-                                    <p className="text-elora-gold font-medium text-xl mt-3">R$ {(Number(resultado.preco) || 0).toFixed(2)}</p>
-                                </div>
-                                <button onClick={() => irParaCheckout(resultado)} className="w-full bg-elora-gold text-white py-5 text-sm font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Adicionar à Sacola</button>
+                                <p className="text-slate-500 text-xs mb-6">Para quem gosta de <strong>{textoDe('estilo').toLowerCase()}</strong>, {textoDe('intensidade').toLowerCase()}, para {textoDe('ocasiao').toLowerCase()}.</p>
+                                {resultado.length === 0 ? <p className="text-slate-500 py-8">Nenhum perfume disponível agora.</p> : (
+                                    <React.Fragment>
+                                        <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} border p-5 flex flex-col items-center mb-5 rounded-xl`}>
+                                            <img src={getImagemPrincipal(resultado[0])} className="w-36 h-36 object-cover mb-4 rounded-md shadow-md cursor-pointer" alt={resultado[0].nome} onClick={() => onVerProduto(resultado[0])} />
+                                            <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">{resultado[0].marca}</span>
+                                            <h4 className="text-2xl font-serif">{resultado[0].nome}</h4>
+                                            {resultado[0].familia && <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1">Família {resultado[0].familia}</p>}
+                                            <p className="text-elora-gold font-medium text-xl mt-2">R$ {(Number(resultado[0].preco) || 0).toFixed(2)}</p>
+                                            <div className="grid grid-cols-2 gap-2 w-full mt-4">
+                                                <button onClick={() => onVerProduto(resultado[0])} className="border border-slate-300 dark:border-slate-600 py-3 text-[10px] font-bold uppercase tracking-widest rounded-md hover:border-elora-gold">Ver Detalhes</button>
+                                                <button onClick={() => onAddToCart(resultado[0])} className="bg-elora-gold text-white py-3 text-[10px] font-bold uppercase tracking-widest rounded-md hover:bg-slate-900 transition-colors">Adicionar à Sacola</button>
+                                            </div>
+                                        </div>
+                                        {resultado.length > 1 && (
+                                            <div>
+                                                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-3">Também combinam com você</p>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {resultado.slice(1).map(p => (
+                                                        <button key={p.id} onClick={() => onVerProduto(p)} className="text-left group">
+                                                            <img src={getImagemPrincipal(p)} className="w-full aspect-square object-cover rounded-md mb-2 group-hover:opacity-80" alt={p.nome} />
+                                                            <p className="text-[9px] text-elora-gold font-bold uppercase tracking-widest">{p.marca}</p>
+                                                            <p className="text-sm font-serif truncate">{p.nome}</p>
+                                                            <p className="text-xs font-bold">R$ {(Number(p.preco) || 0).toFixed(2)}</p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                )}
+                                <button onClick={refazer} className="mt-6 text-xs text-slate-400 hover:text-elora-gold uppercase tracking-widest font-semibold">Refazer o quiz</button>
                             </div>
                         )}
                     </div>
@@ -1021,6 +1107,7 @@
             
             const [freteValor, setFreteValor] = useState(0);
             const [freteTipo, setFreteTipo] = useState('');
+            const [freteId, setFreteId] = useState('');
             const [freteOpcoes, setFreteOpcoes] = useState([]);
             const [buscandoFrete, setBuscandoFrete] = useState(false);
 
@@ -1035,7 +1122,7 @@
             
             const handleChange = (e) => {
                 setEndereco({ ...endereco, [e.target.name]: e.target.value });
-                if (e.target.name === 'cep') { setFreteOpcoes([]); setFreteValor(0); setFreteTipo(''); setCupomAtivo(null); }
+                if (e.target.name === 'cep') { setFreteOpcoes([]); setFreteValor(0); setFreteTipo(''); setFreteId(''); setCupomAtivo(null); }
             };
 
             const calcularFreteViaCep = async () => {
@@ -1056,25 +1143,22 @@
                         return;
                     }
 
-                    setEndereco(prev => ({ ...prev, rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, uf: data.uf }));
+                    setEndereco(prev => ({ ...prev, rua: data.logradouro || prev.rua, bairro: data.bairro || prev.bairro, cidade: data.localidade, uf: data.uf }));
 
-                    let basePac = 28.90; let baseSedex = 45.50; let prazoPac = '5 a 8 dias úteis'; let prazoSedex = '2 a 3 dias úteis';
-                    
-                    if (data.uf === 'RS') {
-                        basePac = 14.90; baseSedex = 21.00; prazoPac = '1 a 3 dias úteis'; prazoSedex = '1 dia útil';
-                    } else if (['SC', 'PR'].includes(data.uf)) {
-                        basePac = 22.50; baseSedex = 35.00; prazoPac = '3 a 5 dias úteis'; prazoSedex = '2 a 4 dias úteis';
-                    } else if (['SP', 'RJ', 'MG', 'ES'].includes(data.uf)) {
-                        basePac = 28.90; baseSedex = 45.50; prazoPac = '5 a 8 dias úteis'; prazoSedex = '2 a 3 dias úteis';
-                    } else {
-                        basePac = 45.00; baseSedex = 75.00; prazoPac = '8 a 15 dias úteis'; prazoSedex = '5 a 8 dias úteis';
+                    // Frete real (Melhor Envio) calculado no servidor
+                    const r = await fetch('/api/frete', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cep: cepLimpo, itens: cart.map(i => ({ id: i.id, qtd: qtdItem(i) })) })
+                    });
+                    const cot = await r.json().catch(() => ({}));
+                    if (!r.ok || !Array.isArray(cot.opcoes) || !cot.opcoes.length) {
+                        alert(cot.erro || "Não foi possível calcular o frete agora. Tente novamente em instantes.");
+                        setBuscandoFrete(false);
+                        return;
                     }
+                    setFreteOpcoes(cot.opcoes.map(o => ({ id: o.id, tipo: o.nome, prazo: o.prazo, valor: o.valor })));
+                    setFreteValor(0); setFreteTipo(''); setFreteId('');
 
-                    setFreteOpcoes([
-                        { tipo: 'PAC (Correios)', prazo: prazoPac, valor: basePac },
-                        { tipo: 'SEDEX (Expresso)', prazo: prazoSedex, valor: baseSedex }
-                    ]);
-                    
                 } catch (error) {
                     alert("Erro de conexão ao buscar o CEP.");
                 }
@@ -1129,7 +1213,7 @@
                     const ref = await addDoc(collection(db, "pedidos"), {
                         order_nsu: orderNsu, uid: user.uid, cliente: clienteCompleto,
                         itens: cart.map(i => ({ id: i.id, nome: i.nome, marca: i.marca, preco: Number(i.preco) || 0, qtd: qtdItem(i), imagem: getImagemPrincipal(i) })),
-                        valorProdutos: totalProdutos, valorFrete: freteValor, freteTipo: freteTipo,
+                        valorProdutos: totalProdutos, valorFrete: freteValor, freteTipo: freteTipo, freteServicoId: freteId,
                         cupom: cupomAtivo ? cupomAtivo.codigo : null,
                         descontoFrete: descontoFrete, valorTotal: totalComFrete,
                         dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
@@ -1157,6 +1241,7 @@
                         window.location.href = dados.url;
                     } else {
                         alert(dados.erro || "Não foi possível abrir o pagamento. Tente novamente.");
+                        if (resposta.status === 409) { setFreteOpcoes([]); setFreteValor(0); setFreteId(''); setFreteTipo(''); }
                         setLoading(false);
                     }
                 } catch (erro) {
@@ -1186,9 +1271,9 @@
                                     {freteOpcoes.length > 0 && (
                                         <div className="mt-4 space-y-2">
                                             {freteOpcoes.map((opcao, i) => (
-                                                <label key={i} className={`flex items-center justify-between p-3 border rounded-md cursor-pointer transition-colors ${freteTipo === opcao.tipo ? 'border-elora-gold bg-elora-gold/5' : 'border-slate-200 dark:border-slate-700'}`}>
+                                                <label key={opcao.id || i} className={`flex items-center justify-between p-3 border rounded-md cursor-pointer transition-colors ${freteId === opcao.id ? 'border-elora-gold bg-elora-gold/5' : 'border-slate-200 dark:border-slate-700'}`}>
                                                     <div className="flex items-center gap-3">
-                                                        <input type="radio" name="frete" onChange={() => { setFreteValor(opcao.valor); setFreteTipo(opcao.tipo); }} checked={freteTipo === opcao.tipo} className="text-elora-gold accent-elora-gold" />
+                                                        <input type="radio" name="frete" onChange={() => { setFreteValor(opcao.valor); setFreteTipo(opcao.tipo); setFreteId(opcao.id); }} checked={freteId === opcao.id} className="text-elora-gold accent-elora-gold" />
                                                         <div>
                                                             <p className="text-sm font-semibold dark:text-white">{opcao.tipo}</p>
                                                             <p className="text-[10px] text-slate-500 uppercase">{opcao.prazo}</p>
@@ -1501,7 +1586,7 @@
                     if (window.db && window.collection && window.addDoc && window.updateDoc && window.doc) {
                         if (produtoEditando) {
                             await window.updateDoc(window.doc(window.db, "perfumes", produtoEditando), obj);
-                            setProdutos(produtos.map(p => p.id === produtoEditando ? { ...obj, id: produtoEditando } : p));
+                            setProdutos(produtos.map(p => p.id === produtoEditando ? { ...p, ...obj, id: produtoEditando } : p));
                             alert("Produto atualizado com sucesso!");
                         } else {
                             const docRef = await window.addDoc(window.collection(window.db, "perfumes"), obj);
@@ -1768,7 +1853,7 @@
                     setPedidoConfirmado(nsu);
                     setCart([]);
                     setView('pedido-confirmado');
-                    window.history.replaceState({}, '', window.location.pathname);
+                    window.history.replaceState({}, '', '/');
                 }
             }, []);
 
@@ -1877,9 +1962,39 @@
 
             const irPara = (v) => {
                 setView(v);
-                if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
+                if (window.location.hash || window.location.pathname !== '/') window.history.replaceState({}, '', '/');
                 window.scrollTo(0,0);
             };
+            // Abrir um perfume muda o endereço para /p/ID (link compartilhável); fechar volta para /
+            const produtosRef = useRef([]);
+            const linkInicial = useRef((window.location.pathname.match(/^\/p\/([^/?#]+)/) || [])[1] || null);
+            useEffect(() => { produtosRef.current = produtos; }, [produtos]);
+            useEffect(() => {
+                const path = window.location.pathname;
+                if (produtoSelecionado) {
+                    const alvo = `/p/${produtoSelecionado.id}`;
+                    if (path !== alvo) window.history.pushState({}, '', alvo);
+                } else if (path.startsWith('/p/') && !linkInicial.current) {
+                    window.history.replaceState({}, '', '/');
+                }
+            }, [produtoSelecionado]);
+            useEffect(() => {
+                if (!linkInicial.current || !produtos.length) return;
+                const id = linkInicial.current;
+                linkInicial.current = null;
+                const p = produtos.find(x => x.id === id);
+                if (p) setProdutoSelecionado(p); else window.history.replaceState({}, '', '/');
+            }, [produtos]);
+            useEffect(() => {
+                const onPop = () => {
+                    const m = window.location.pathname.match(/^\/p\/([^/?#]+)/);
+                    const p = m && produtosRef.current.find(x => x.id === m[1]);
+                    setProdutoSelecionado(p || null);
+                };
+                window.addEventListener('popstate', onPop);
+                return () => window.removeEventListener('popstate', onPop);
+            }, []);
+
             const irPagina = (p) => { setProdutoSelecionado(null); setAuthModalOpen(false); setView('legal-' + p); window.location.hash = p; window.scrollTo(0,0); };
 
             useEffect(() => {
@@ -2049,7 +2164,7 @@
 
                     <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} alterarQtd={alterarQtd} onCheckout={iniciarCheckout} darkMode={darkMode} />
                     {produtoSelecionado && <ProductModal produto={produtoSelecionado} todosProdutos={produtos} onSwitchProduct={setProdutoSelecionado} onClose={() => setProdutoSelecionado(null)} onAddToCart={addToCart} onBuyNow={handleBuyNow} darkMode={darkMode} />}
-                    {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} irParaCheckout={handleBuyNow} darkMode={darkMode} />}
+                    {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} onAddToCart={(p) => { setQuizOpen(false); addToCart(p); }} onVerProduto={(p) => { setQuizOpen(false); setProdutoSelecionado(p); }} darkMode={darkMode} />}
                     {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} onSuccess={handleAuthSuccess} mensagemExtra={authNotice} darkMode={darkMode} />}
                 </div>
             );
