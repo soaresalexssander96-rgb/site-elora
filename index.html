@@ -228,11 +228,235 @@
             );
         }
 
-        function WhatsAppButton() {
-            const telefone = "5551994378685"; 
-            const mensagem = encodeURIComponent("Olá, Elora Parfums! Preciso de ajuda no site.");
+        // ===== CONTATOS DA LOJA =====
+        const WHATS_NUMERO = "5551994378685";
+        const WHATS_EXIBICAO = "(51) 99437-8685";
+        const INSTAGRAM = "elora.parfum_";
+        const linkWhats = (msg) => `https://wa.me/${WHATS_NUMERO}?text=${encodeURIComponent(msg || "Olá, Elora Parfums!")}`;
+        const PAGINAS_LEGAIS = { trocas: 'Trocas e Devoluções', privacidade: 'Política de Privacidade', termos: 'Termos de Uso' };
+        const ATUALIZACAO_LEGAL = '19 de novembro de 2026';
+
+        function IconeInstagram({ className }) {
             return (
-                <a href={`https://wa.me/${telefone}?text=${mensagem}`} target="_blank" rel="noreferrer" 
+                <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none" />
+                </svg>
+            );
+        }
+
+        function IconeWhats({ className }) {
+            return (
+                <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51h-.57c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+            );
+        }
+
+        function Rodape({ darkMode, irPara, irPagina }) {
+            const link = "text-slate-500 dark:text-slate-400 hover:text-elora-gold transition-colors text-left";
+            const titulo = "text-[10px] font-bold uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200 mb-4";
+            return (
+                <footer className={`${darkMode ? 'bg-elora-darkbg border-slate-800' : 'bg-white border-slate-200'} border-t pt-14 pb-8 mt-auto transition-colors`}>
+                    <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-10 text-sm">
+                        <div className="md:col-span-1 flex flex-col items-center md:items-start text-center md:text-left">
+                            <LogoPremium onClick={() => irPara('store')} darkMode={darkMode} isSmall={true} />
+                            <p className="text-slate-500 dark:text-slate-400 text-xs mt-4 leading-relaxed max-w-xs">Fragrâncias árabes exclusivas e refinadas, escolhidas a dedo para você.</p>
+                            <div className="flex gap-3 mt-5">
+                                <a href={`https://instagram.com/${INSTAGRAM}`} target="_blank" rel="noreferrer" aria-label="Instagram da Elora Parfums" className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-white hover:bg-gradient-to-tr hover:from-amber-500 hover:via-pink-500 hover:to-purple-600 hover:border-transparent transition-all"><IconeInstagram className="w-5 h-5" /></a>
+                                <a href={linkWhats()} target="_blank" rel="noreferrer" aria-label="WhatsApp da Elora Parfums" className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-white hover:bg-[#25D366] hover:border-transparent transition-all"><IconeWhats className="w-5 h-5" /></a>
+                            </div>
+                        </div>
+
+                        <div className="text-center md:text-left">
+                            <p className={titulo}>Atendimento</p>
+                            <ul className="space-y-3">
+                                <li><a href={linkWhats()} target="_blank" rel="noreferrer" className={`${link} inline-flex items-center gap-2`}><IconeWhats className="w-4 h-4" /> {WHATS_EXIBICAO}</a></li>
+                                <li><a href={`https://instagram.com/${INSTAGRAM}`} target="_blank" rel="noreferrer" className={`${link} inline-flex items-center gap-2`}><IconeInstagram className="w-4 h-4" /> @{INSTAGRAM}</a></li>
+                                <li className="text-slate-400 text-xs">Seg. a sáb., horário comercial</li>
+                            </ul>
+                        </div>
+
+                        <div className="text-center md:text-left">
+                            <p className={titulo}>Institucional</p>
+                            <ul className="space-y-3">
+                                {Object.entries(PAGINAS_LEGAIS).map(([k, nome]) => (
+                                    <li key={k}><button onClick={() => irPagina(k)} className={link}>{nome}</button></li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div className="text-center md:text-left">
+                            <p className={titulo}>Pagamento</p>
+                            <ul className="space-y-3 text-slate-500 dark:text-slate-400">
+                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="credit-card" className="w-4 h-4 text-elora-gold" /> Cartão em até 10x</li>
+                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="qr-code" className="w-4 h-4 text-elora-gold" /> PIX</li>
+                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="shield-check" className="w-4 h-4 text-elora-gold" /> Pagamento seguro via InfinitePay</li>
+                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="truck" className="w-4 h-4 text-elora-gold" /> Envio para todo o Brasil</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="max-w-7xl mx-auto px-4 mt-12 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+                        <p className="text-slate-400 text-[10px] tracking-widest uppercase">Elora Parfums &copy; 2026 · Todos os direitos reservados</p>
+                    </div>
+                </footer>
+            );
+        }
+
+        function Secao({ titulo, children }) {
+            return (
+                <section className="mb-8">
+                    <h3 className="text-xl font-serif mb-3 text-slate-900 dark:text-slate-100">{titulo}</h3>
+                    <div className="space-y-3 text-slate-600 dark:text-slate-300 leading-relaxed text-[15px]">{children}</div>
+                </section>
+            );
+        }
+
+        function PaginaLegal({ pagina, irPagina, voltar, darkMode }) {
+            const contato = (
+                <span>pelo WhatsApp <a href={linkWhats()} target="_blank" rel="noreferrer" className="text-elora-gold font-semibold hover:underline">{WHATS_EXIBICAO}</a> ou pelo Instagram <a href={`https://instagram.com/${INSTAGRAM}`} target="_blank" rel="noreferrer" className="text-elora-gold font-semibold hover:underline">@{INSTAGRAM}</a></span>
+            );
+            const li = "list-disc ml-5 space-y-1.5";
+
+            const conteudo = {
+                trocas: (
+                    <React.Fragment>
+                        <Secao titulo="Direito de arrependimento (7 dias)">
+                            <p>Comprou e se arrependeu? Pelo Código de Defesa do Consumidor (art. 49), você pode desistir da compra em até <strong>7 dias corridos a partir do recebimento</strong>, sem precisar justificar.</p>
+                            <p>Para fragrâncias, pedimos que o produto seja devolvido <strong>com o lacre intacto e na embalagem original</strong>, junto com todos os itens que o acompanharam.</p>
+                            <p>Nesse caso, devolvemos o valor total pago, <strong>incluindo o frete</strong>, e o custo do envio de volta é por nossa conta.</p>
+                        </Secao>
+                        <Secao titulo="Produto chegou quebrado, vazando ou errado">
+                            <p>Se o frasco chegar quebrado ou vazando por causa do transporte, ou se você receber um produto diferente do que comprou, fale com a gente assim que receber.</p>
+                            <p>Envie fotos ou um vídeo do produto e da embalagem. Você escolhe entre receber o produto certo ou o reembolso integral, e o frete de devolução é por nossa conta.</p>
+                            <p>Dica: se a embalagem chegar visivelmente danificada, fotografe antes de abrir.</p>
+                        </Secao>
+                        <Secao titulo="Como solicitar">
+                            <ol className="list-decimal ml-5 space-y-1.5">
+                                <li>Fale com a gente {contato}, informando o número do pedido (está em <em>Minha Conta</em>).</li>
+                                <li>Vamos orientar sobre como enviar o produto de volta, sem custo para você nos casos acima.</li>
+                                <li>Assim que recebermos e conferirmos o produto, fazemos a troca ou o reembolso.</li>
+                            </ol>
+                        </Secao>
+                        <Secao titulo="Reembolso">
+                            <p>O reembolso é feito pelo mesmo meio de pagamento: <strong>PIX</strong> em até 7 dias úteis após recebermos o produto, ou <strong>estorno no cartão</strong>, que pode aparecer em até 2 faturas, conforme a operadora.</p>
+                        </Secao>
+                    </React.Fragment>
+                ),
+                privacidade: (
+                    <React.Fragment>
+                        <p className="text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">A Elora Parfums respeita a sua privacidade e trata seus dados pessoais de acordo com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD). Aqui explicamos, de forma simples, o que coletamos e por quê.</p>
+                        <Secao titulo="Dados que coletamos">
+                            <ul className={li}>
+                                <li><strong>Cadastro:</strong> nome, e-mail, CPF e WhatsApp.</li>
+                                <li><strong>Compra:</strong> endereço de entrega, produtos e valores do pedido.</li>
+                                <li><strong>Pagamento:</strong> é feito no ambiente da InfinitePay. <strong>Nós não recebemos nem guardamos os dados do seu cartão.</strong></li>
+                                <li><strong>Navegação:</strong> informações salvas no seu próprio navegador para o site funcionar (veja "Cookies" abaixo).</li>
+                            </ul>
+                        </Secao>
+                        <Secao titulo="Para que usamos">
+                            <ul className={li}>
+                                <li>Criar e manter sua conta e permitir o login.</li>
+                                <li>Processar pagamentos, emitir e entregar seus pedidos e calcular o frete.</li>
+                                <li>Falar com você sobre seus pedidos, trocas e atendimento.</li>
+                                <li>Prevenir fraudes e cumprir obrigações legais.</li>
+                            </ul>
+                            <p>Não vendemos seus dados e não enviamos mensagens promocionais sem a sua autorização.</p>
+                        </Secao>
+                        <Secao titulo="Com quem compartilhamos">
+                            <p>Apenas com os serviços necessários para a loja funcionar:</p>
+                            <ul className={li}>
+                                <li><strong>InfinitePay</strong>: processamento do pagamento.</li>
+                                <li><strong>Google Firebase</strong>: armazenamento seguro da conta e dos pedidos.</li>
+                                <li><strong>Vercel</strong>: hospedagem do site.</li>
+                                <li><strong>Correios ou transportadora</strong>: entrega do pedido (nome e endereço).</li>
+                                <li><strong>ViaCEP</strong>: consulta do endereço pelo CEP.</li>
+                            </ul>
+                        </Secao>
+                        <Secao titulo="Cookies e armazenamento local">
+                            <p>Usamos apenas o armazenamento <strong>essencial</strong> do navegador, para manter você conectado e lembrar sua sacola, seus favoritos e sua preferência de tema claro/escuro.</p>
+                            <p>Hoje <strong>não usamos cookies de publicidade nem de rastreamento</strong>. Se isso mudar, vamos pedir sua permissão antes.</p>
+                            <p>Você pode apagar esses dados a qualquer momento nas configurações do seu navegador. Nesse caso, sua sacola e seus favoritos serão perdidos e será preciso fazer login de novo.</p>
+                        </Secao>
+                        <Secao titulo="Por quanto tempo guardamos">
+                            <p>Mantemos os dados da conta enquanto ela estiver ativa. Os dados de pedidos são guardados pelo prazo exigido pela legislação fiscal e de defesa do consumidor.</p>
+                        </Secao>
+                        <Secao titulo="Seus direitos">
+                            <p>Pela LGPD, você pode a qualquer momento pedir para <strong>acessar, corrigir, atualizar ou excluir</strong> seus dados, saber com quem foram compartilhados ou revogar consentimentos. Nome, WhatsApp e CPF podem ser editados direto em <em>Minha Conta</em>.</p>
+                            <p>Para os demais pedidos, inclusive a exclusão da conta, fale com a gente {contato}.</p>
+                        </Secao>
+                        <Secao titulo="Segurança">
+                            <p>Senhas são protegidas pelo sistema de autenticação do Google e nunca ficam visíveis para a loja. O acesso aos dados é restrito: cada cliente vê apenas as próprias informações.</p>
+                        </Secao>
+                    </React.Fragment>
+                ),
+                termos: (
+                    <React.Fragment>
+                        <p className="text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">Ao usar o site e comprar na Elora Parfums, você concorda com estes termos. Leia com atenção.</p>
+                        <Secao titulo="Cadastro">
+                            <p>Para comprar é preciso criar uma conta com dados verdadeiros. Você é responsável por manter sua senha em segredo. Se suspeitar de uso indevido, troque a senha e avise a gente.</p>
+                        </Secao>
+                        <Secao titulo="Produtos, preços e estoque">
+                            <p>Fazemos o possível para que fotos e descrições sejam fiéis. As cores podem variar um pouco conforme a tela. A descrição olfativa é uma referência, e a percepção do perfume varia de pessoa para pessoa.</p>
+                            <p>Preços e disponibilidade podem mudar sem aviso. O valor que vale é o confirmado no momento do pagamento. Se um item ficar indisponível depois da compra, avisamos e devolvemos o valor integral.</p>
+                        </Secao>
+                        <Secao titulo="Pagamento">
+                            <p>Os pagamentos são processados pela InfinitePay, por PIX ou cartão de crédito (em até 10x sem juros, conforme indicado no site). O pedido é confirmado quando o pagamento é aprovado.</p>
+                        </Secao>
+                        <Secao titulo="Entrega">
+                            <p>O frete e o prazo estimado são mostrados no checkout, a partir do seu CEP. O prazo começa a contar depois da confirmação do pagamento. Quando o pedido é enviado, o código de rastreio aparece em <em>Minha Conta</em>.</p>
+                            <p>Confira o endereço antes de pagar. Se o pedido voltar por endereço incorreto ou ausência repetida, combinamos o reenvio com você.</p>
+                        </Secao>
+                        <Secao titulo="Cupons e promoções">
+                            <p>Cupons têm regras próprias (por exemplo, válido só na primeira compra) e não são cumulativos, salvo indicação em contrário. Promoções valem enquanto durar o estoque ou pelo período anunciado.</p>
+                        </Secao>
+                        <Secao titulo="Trocas e devoluções">
+                            <p>Seguem a nossa <button onClick={() => irPagina('trocas')} className="text-elora-gold font-semibold hover:underline">política de Trocas e Devoluções</button>, de acordo com o Código de Defesa do Consumidor.</p>
+                        </Secao>
+                        <Secao titulo="Privacidade">
+                            <p>O tratamento dos seus dados está descrito na <button onClick={() => irPagina('privacidade')} className="text-elora-gold font-semibold hover:underline">Política de Privacidade</button>.</p>
+                        </Secao>
+                        <Secao titulo="Contato">
+                            <p>Dúvidas sobre estes termos? Fale com a gente {contato}.</p>
+                        </Secao>
+                    </React.Fragment>
+                )
+            };
+
+            return (
+                <div className="max-w-3xl mx-auto px-4 py-12 sm:py-16 animate-fade-in">
+                    <button onClick={voltar} className="flex items-center gap-2 text-slate-400 hover:text-elora-gold mb-8 text-xs uppercase tracking-widest font-semibold transition-colors"><Icon name="arrow-left" className="w-4 h-4" /> Voltar à Loja</button>
+                    <h2 className="text-3xl sm:text-4xl font-serif mb-2">{PAGINAS_LEGAIS[pagina]}</h2>
+                    <p className="text-xs text-slate-400 mb-10">Última atualização: {ATUALIZACAO_LEGAL}</p>
+                    {conteudo[pagina]}
+                    <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 text-xs">
+                        {Object.entries(PAGINAS_LEGAIS).filter(([k]) => k !== pagina).map(([k, nome]) => (
+                            <button key={k} onClick={() => irPagina(k)} className="text-elora-gold font-bold uppercase tracking-widest hover:underline">{nome} →</button>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function AvisoCookies({ irPagina, darkMode }) {
+            const [visivel, setVisivel] = useState(() => { try { return localStorage.getItem('elora_cookies_ok') !== '1'; } catch (e) { return true; } });
+            if (!visivel) return null;
+            const ok = () => { try { localStorage.setItem('elora_cookies_ok', '1'); } catch (e) {} setVisivel(false); };
+            return (
+                <div className="fixed bottom-0 inset-x-0 z-[60] p-3 sm:p-4 sm:pr-24 animate-fade-in" role="dialog" aria-label="Aviso de cookies">
+                    <div className={`max-w-3xl mx-auto ${darkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'} border shadow-2xl rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4`}>
+                        <Icon name="cookie" className="w-6 h-6 text-elora-gold shrink-0 hidden sm:block" />
+                        <p className="text-xs sm:text-sm leading-relaxed flex-1">
+                            Usamos apenas o armazenamento essencial do navegador para manter seu login, sua sacola e seus favoritos. Não usamos cookies de publicidade. Saiba mais na nossa <button onClick={() => irPagina('privacidade')} className="text-elora-gold font-semibold hover:underline">Política de Privacidade</button>.
+                        </p>
+                        <button onClick={ok} className="w-full sm:w-auto bg-elora-gold text-white px-6 py-2.5 text-[11px] font-bold uppercase tracking-widest rounded-md hover:bg-slate-900 transition-colors shrink-0">Entendi</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function WhatsAppButton() {
+            return (
+                <a href={linkWhats("Olá, Elora Parfums! Preciso de ajuda no site.")} aria-label="Falar no WhatsApp" target="_blank" rel="noreferrer" 
                    className="fixed bottom-6 right-6 bg-[#25D366] p-3.5 rounded-full shadow-2xl hover:bg-[#128C7E] transition-colors z-50 flex items-center justify-center hover:scale-110">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51h-.57c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
@@ -586,6 +810,7 @@
             const [viewMode, setViewMode] = useState('login'); 
             const [loading, setLoading] = useState(false);
             const [formData, setFormData] = useState({ nome: '', email: '', telefone: '', cpf: '', senha: '', confirmarSenha: '' });
+            const [aceiteTermos, setAceiteTermos] = useState(false);
 
             const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -615,6 +840,7 @@
 
                 if (viewMode === 'register') {
                     if (formData.senha !== formData.confirmarSenha) { alert("As senhas não coincidem. Por favor, verifique a digitação."); return; }
+                    if (!aceiteTermos) { alert("Para criar sua conta, é preciso aceitar os Termos de Uso e a Política de Privacidade."); return; }
                     if (strengthScore < 5) { alert("Sua senha precisa ter pelo menos 6 caracteres, com letra maiúscula, minúscula, número e um caractere especial (!@#$)."); return; }
                 }
 
@@ -632,7 +858,7 @@
 
                     if (viewMode === 'register') {
                         const cred = await createUserWithEmailAndPassword(auth, email, formData.senha);
-                        const perfil = { nome: formData.nome.trim(), email, cpf: formData.cpf.trim(), telefone: formData.telefone.trim(), dataCadastro: new Date().toISOString() };
+                        const perfil = { nome: formData.nome.trim(), email, cpf: formData.cpf.trim(), telefone: formData.telefone.trim(), dataCadastro: new Date().toISOString(), aceiteTermosEm: new Date().toISOString(), versaoTermos: ATUALIZACAO_LEGAL };
                         await setDoc(doc(db, 'usuarios', cred.user.uid), perfil);
                         onSuccess({ uid: cred.user.uid, email, nome: perfil.nome, cpf: perfil.cpf, telefone: perfil.telefone, role: ADMIN_UIDS.includes(cred.user.uid) ? 'admin' : 'cliente' });
                         return;
@@ -706,6 +932,13 @@
                                         </div>
                                     )}
                                 </div>
+                            )}
+
+                            {viewMode === 'register' && (
+                                <label className="flex items-start gap-2.5 text-xs text-slate-500 dark:text-slate-400 cursor-pointer leading-relaxed">
+                                    <input type="checkbox" checked={aceiteTermos} onChange={e => setAceiteTermos(e.target.checked)} className="mt-0.5 w-4 h-4 accent-elora-gold shrink-0" />
+                                    <span>Li e aceito os <a href="#termos" target="_blank" rel="noreferrer" className="text-elora-gold font-semibold hover:underline">Termos de Uso</a> e a <a href="#privacidade" target="_blank" rel="noreferrer" className="text-elora-gold font-semibold hover:underline">Política de Privacidade</a>.</span>
+                                </label>
                             )}
 
                             <button type="submit" disabled={loading} className="w-full bg-elora-gold text-white py-4 mt-2 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20 flex items-center justify-center gap-2">
@@ -1642,7 +1875,22 @@
                 else setView('account');
             };
 
-            const irPara = (v) => { setView(v); window.scrollTo(0,0); };
+            const irPara = (v) => {
+                setView(v);
+                if (window.location.hash) window.history.replaceState({}, '', window.location.pathname);
+                window.scrollTo(0,0);
+            };
+            const irPagina = (p) => { setProdutoSelecionado(null); setAuthModalOpen(false); setView('legal-' + p); window.location.hash = p; window.scrollTo(0,0); };
+
+            useEffect(() => {
+                const lerHash = () => {
+                    const h = window.location.hash.replace('#', '');
+                    if (PAGINAS_LEGAIS[h]) { setView('legal-' + h); window.scrollTo(0,0); }
+                };
+                lerHash();
+                window.addEventListener('hashchange', lerHash);
+                return () => window.removeEventListener('hashchange', lerHash);
+            }, []);
 
             return (
                 <div className={`min-h-screen font-sans flex flex-col transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-100 dark' : 'bg-[#FDFBF7] text-slate-900'}`}>
@@ -1703,6 +1951,7 @@
                                 <button onClick={() => { setAuthNotice(''); setAuthModalOpen(true); }} className="bg-elora-gold text-white px-8 py-3 text-xs font-bold uppercase tracking-widest rounded-md">Entrar</button>
                             </div>
                         )}
+                        {view.startsWith('legal-') && <PaginaLegal pagina={view.replace('legal-', '')} irPagina={irPagina} voltar={() => irPara('store')} darkMode={darkMode} />}
                         {view === 'pedido-confirmado' && <PedidoConfirmado nsu={pedidoConfirmado} user={user} darkMode={darkMode} irConta={() => irPara('account')} irLoja={() => irPara('store')} />}
                         {view === 'checkout' && cart.length > 0 && user && <Checkout cart={cart} user={user} voltarParaLoja={() => {setView('store'); setCartOpen(true);}} darkMode={darkMode} />}
                         
@@ -1795,10 +2044,8 @@
                         )}
                     </main>
 
-                    <footer className={`${darkMode ? 'bg-elora-darkbg border-slate-800' : 'bg-white border-slate-200'} border-t py-12 mt-auto text-center transition-colors`}>
-                        <LogoPremium isSmall={true} darkMode={darkMode} />
-                        <p className="text-slate-400 text-[10px] tracking-widest mt-6 uppercase">Todos os direitos reservados &copy; 2026.</p>
-                    </footer>
+                    <Rodape darkMode={darkMode} irPara={irPara} irPagina={irPagina} />
+                    <AvisoCookies irPagina={irPagina} darkMode={darkMode} />
 
                     <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} alterarQtd={alterarQtd} onCheckout={iniciarCheckout} darkMode={darkMode} />
                     {produtoSelecionado && <ProductModal produto={produtoSelecionado} todosProdutos={produtos} onSwitchProduct={setProdutoSelecionado} onClose={() => setProdutoSelecionado(null)} onAddToCart={addToCart} onBuyNow={handleBuyNow} darkMode={darkMode} />}
