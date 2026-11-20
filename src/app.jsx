@@ -27,7 +27,7 @@ const { useState, useEffect, useRef, useContext } = React;
         };
 
         // Configurações da loja (Painel → Configurações). Valores padrão até carregar do banco.
-        const CONFIG_PADRAO = { pixDesconto: 5, parcelas: 10, avisosTopo: [] };
+        const CONFIG_PADRAO = { pixDesconto: 5, parcelas: 10, avisosTopo: [], bannerSegundos: 8 };
         const ConfigLoja = React.createContext(CONFIG_PADRAO);
         const avisosPadrao = (cfg) => [
             '🔥 Esquenta Black Friday: Condições Especiais',
@@ -1668,7 +1668,7 @@ const { useState, useEffect, useRef, useContext } = React;
         // ===== PAINEL: CONFIGURAÇÕES DA LOJA =====
         function AdminConfig({ darkMode, recarregarConfig }) {
             const cfgAtual = useContext(ConfigLoja);
-            const [form, setForm] = useState({ pixDesconto: String(cfgAtual.pixDesconto), parcelas: String(cfgAtual.parcelas), avisos: (cfgAtual.avisosTopo || []).join('\n') });
+            const [form, setForm] = useState({ pixDesconto: String(cfgAtual.pixDesconto), parcelas: String(cfgAtual.parcelas), avisos: (cfgAtual.avisosTopo || []).join('\n'), bannerSegundos: String(cfgAtual.bannerSegundos || 8) });
             const [salvando, setSalvando] = useState(false);
             const [salvo, setSalvo] = useState(false);
 
@@ -1678,11 +1678,13 @@ const { useState, useEffect, useRef, useContext } = React;
                 const parc = parseInt(form.parcelas);
                 if (isNaN(pix) || pix < 0 || pix > 50) return alert('Desconto PIX deve ser entre 0 e 50%.');
                 if (isNaN(parc) || parc < 1 || parc > 12) return alert('Parcelas sem juros devem ser entre 1 e 12.');
+                const seg = Number(String(form.bannerSegundos).replace(',', '.'));
+                if (isNaN(seg) || seg < 3 || seg > 30) return alert('O tempo de cada banner deve ser entre 3 e 30 segundos.');
                 setSalvando(true);
                 try {
                     const { db, doc, setDoc } = await getFb();
                     await setDoc(doc(db, 'config', 'loja'), {
-                        pixDesconto: pix, parcelas: parc,
+                        pixDesconto: pix, parcelas: parc, bannerSegundos: seg,
                         avisosTopo: form.avisos.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 8),
                         atualizadoEm: new Date().toISOString()
                     }, { merge: true });
@@ -1710,6 +1712,11 @@ const { useState, useEffect, useRef, useContext } = React;
                     </div>
                     <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-md p-3">
                         Prévia num perfume de {brl(exemplo)}: {parcN > 1 && <span><strong>{parcN}x de {brl(exemplo / parcN)}</strong> sem juros</span>}{parcN > 1 && pixN > 0 && ' · '}{pixN > 0 && <span className="text-emerald-600"><strong>{brl(exemplo * (1 - pixN / 100))}</strong> no PIX</span>}
+                    </div>
+                    <div>
+                        <label className={rotulo}>Tempo de cada banner no topo (segundos)</label>
+                        <input type="number" min="3" max="30" step="1" value={form.bannerSegundos} onChange={e => setForm({ ...form, bannerSegundos: e.target.value })} className={campo} />
+                        <p className="text-[10px] text-slate-400 mt-1">Quanto tempo cada banner (incluindo a foto principal) fica na tela antes de passar para o próximo. Entre 3 e 30.</p>
                     </div>
                     <div>
                         <label className={rotulo}>Frases da faixa preta do topo (uma por linha)</label>
@@ -1745,14 +1752,16 @@ const { useState, useEffect, useRef, useContext } = React;
             const [atual, setAtual] = useState(0);
             const [pausado, setPausado] = useState(false);
             const toque = useRef(null);
+            const cfg = useContext(ConfigLoja);
+            const tempo = (cfg.bannerSegundos || 8) * 1000;
             const total = slides.length;
             const ir = (i) => setAtual(((i % total) + total) % total);
             useEffect(() => { if (atual >= total) setAtual(0); }, [total]);
             useEffect(() => {
                 if (total < 2 || pausado) return;
-                const t = setTimeout(() => ir(atual + 1), atual === 0 ? 4500 : 6000);
+                const t = setTimeout(() => ir(atual + 1), tempo);
                 return () => clearTimeout(t);
-            }, [atual, total, pausado]);
+            }, [atual, total, pausado, tempo]);
             const inicioToque = (e) => { toque.current = e.touches[0].clientX; setPausado(true); };
             const fimToque = (e) => {
                 const x0 = toque.current; toque.current = null; setPausado(false);
@@ -1761,7 +1770,7 @@ const { useState, useEffect, useRef, useContext } = React;
                 if (Math.abs(dx) > 40) ir(atual + (dx < 0 ? 1 : -1));
             };
             return (
-                <section className="relative h-[65vh] sm:h-[80vh] w-full overflow-hidden bg-slate-950" onMouseEnter={() => setPausado(true)} onMouseLeave={() => setPausado(false)} onTouchStart={inicioToque} onTouchEnd={fimToque} aria-roledescription="carrossel">
+                <section className="relative h-[65vh] sm:h-[80vh] w-full overflow-hidden bg-slate-950" onTouchStart={inicioToque} onTouchEnd={fimToque} onTouchCancel={() => setPausado(false)} aria-roledescription="carrossel">
                     <div className="flex h-full transition-transform duration-700 ease-out" style={{ transform: `translateX(-${atual * 100}%)` }}>
                         {slides.map((b, i) => b.id === 'principal' ? (
                             <div key="principal" className="relative w-full h-full flex-shrink-0 flex items-center justify-center" aria-hidden={atual !== i}>
@@ -2314,7 +2323,8 @@ const { useState, useEffect, useRef, useContext } = React;
                         setConfigLoja({
                             pixDesconto: (d.pixDesconto === undefined || d.pixDesconto === null) ? CONFIG_PADRAO.pixDesconto : (Number(d.pixDesconto) || 0),
                             parcelas: (d.parcelas === undefined || d.parcelas === null) ? CONFIG_PADRAO.parcelas : (parseInt(d.parcelas) || 1),
-                            avisosTopo: Array.isArray(d.avisosTopo) ? d.avisosTopo.filter(Boolean) : []
+                            avisosTopo: Array.isArray(d.avisosTopo) ? d.avisosTopo.filter(Boolean) : [],
+                            bannerSegundos: Math.min(30, Math.max(3, Number(d.bannerSegundos) || CONFIG_PADRAO.bannerSegundos))
                         });
                     }
                 } catch (e) { console.error(e); }
