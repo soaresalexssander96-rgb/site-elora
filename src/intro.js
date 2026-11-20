@@ -1,8 +1,9 @@
 // ===== Abertura da Elora Parfums =====
 // Estrela árabe de 8 pontas desenhada em ouro -> explode em poeira dourada com fumaça de oud
 // -> a poeira forma "ELORA" -> reflexo de luz -> a loja aparece.
-// Tudo desenhado em código (nítido em qualquer tela), ~5 segundos, sem toque.
-// Aparece 1x por dia por visitante. Para forçar (testes): site-elora.vercel.app/?intro=1
+// Tudo desenhado em código (nítido em qualquer tela). Trilha sonora gerada em código (escala árabe Hijaz).
+// Começa com "Toque para entrar" (o celular só libera som após um toque); sem toque em 7s, roda sem som.
+// Aparece 10x por dia por visitante. Para forçar (testes): site-elora.vercel.app/?intro=1
 (function () {
   var params = new URLSearchParams(location.search);
   var forcar = params.get('intro') === '1';
@@ -26,13 +27,21 @@
     '#elora-intro.saindo{opacity:0;transform:scale(1.12);pointer-events:none}' +
     '#elora-intro canvas{position:absolute;inset:0;width:100%;height:100%}' +
     '#ei-pular{position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;z-index:2;background:rgba(255,255,255,.06);border:1px solid rgba(212,175,55,.35);color:#d9c9a3;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.28em;text-transform:uppercase;padding:10px 15px;border-radius:999px;cursor:pointer;opacity:0;animation:eiAparece .6s .4s forwards}' +
+    '#ei-entrar{position:absolute;left:0;right:0;bottom:12vh;text-align:center;color:#e9dcbc;font-family:Inter,system-ui,sans-serif;transition:opacity .6s ease;pointer-events:none}' +
+    '#ei-entrar b{display:block;font-weight:600;font-size:12px;letter-spacing:.42em;padding-left:.42em;text-transform:uppercase;animation:eiPulsa 2.4s ease-in-out infinite}' +
+    '#ei-entrar small{display:block;margin-top:12px;font-size:11px;letter-spacing:.12em;color:rgba(212,175,55,.75)}' +
+    '#elora-intro.tocando #ei-entrar{opacity:0}' +
+    '#elora-intro.esperando{cursor:pointer}' +
+    '@keyframes eiPulsa{0%,100%{opacity:.45}50%{opacity:1}}' +
     '@keyframes eiAparece{to{opacity:1}}';
 
   var el = document.createElement('div');
   el.id = 'elora-intro';
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Abertura Elora Parfums');
-  el.innerHTML = '<style>' + css + '</style><canvas></canvas><button id="ei-pular" type="button">Pular</button>';
+  el.innerHTML = '<style>' + css + '</style><canvas></canvas><button id="ei-pular" type="button">Pular</button>' +
+    '<div id="ei-entrar"><b>Toque para entrar</b><small>&#9835;&nbsp; experiência com som</small></div>';
+  el.className = 'esperando';
 
   function montar() {
     document.body.appendChild(el);
@@ -125,10 +134,12 @@
 
     // ---------- linha do tempo ----------
     var t0 = null, encerrado = false, rodando = true;
-    var T = { desenho: [0, 1300], brilho: [1000, 1700], explosao: 1650, forma: [1950, 3200], texto: [2950, 3500], sub: [3350, 3900], tag: [3650, 4300], reflexo: [3800, 4500], fim: 5100 };
+    var T = { desenho: [0, 1800], brilho: [1450, 2350], explosao: 2300, forma: [2650, 4300], texto: [4000, 4750], sub: [4550, 5250], tag: [4950, 5800], reflexo: [5150, 6100], fim: 7000 };
 
+    var iniciado = false;
     function quadro(agora) {
       if (!rodando) return;
+      if (!iniciado) { espera(agora); requestAnimationFrame(quadro); return; }
       if (t0 === null) t0 = agora;
       var t = agora - t0;
       ctx.clearRect(0, 0, W, H);
@@ -141,11 +152,11 @@
       }
 
       // fumaça de oud (sobe a partir da estrela)
-      if (t > 800 && t < T.fim - 300 && fumaca.length < (mobile ? 26 : 40) && Math.random() < .35) fumaca.push(novaFumaca());
+      if (t > 600 && t < T.explosao + 250 && fumaca.length < (mobile ? 26 : 40) && Math.random() < .35) fumaca.push(novaFumaca());
       ctx.globalCompositeOperation = 'lighter';
       for (var f = fumaca.length - 1; f >= 0; f--) {
         var s = fumaca[f]; s.vida++; s.f += .015; s.x += s.vx + Math.sin(s.f) * .35; s.y += s.vy; s.r *= 1.006;
-        var k = s.vida / s.dur; s.a = s.amax * Math.sin(Math.PI * Math.min(1, k));
+        var k = s.vida / s.dur; s.a = s.amax * Math.sin(Math.PI * Math.min(1, k)) * (1 - faixa(t, T.explosao + 300, T.texto[0]));
         if (k >= 1) { fumaca.splice(f, 1); continue; }
         var g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
         g.addColorStop(0, 'rgba(214,175,90,' + s.a + ')'); g.addColorStop(1, 'rgba(214,175,90,0)');
@@ -154,9 +165,9 @@
       ctx.globalCompositeOperation = 'source-over';
 
       // estrela em fio de ouro
-      if (t < T.explosao + 450) {
+      if (t < T.explosao + 550) {
         var prog = ease(faixa(t, T.desenho[0], T.desenho[1]));
-        var some = 1 - faixa(t, T.explosao, T.explosao + 450);
+        var some = 1 - faixa(t, T.explosao, T.explosao + 550);
         var gira = t * 0.00012;
         ctx.save(); ctx.translate(CX, CY); ctx.rotate(gira);
         var grad = ctx.createLinearGradient(-R, -R, R, R);
@@ -265,15 +276,112 @@
       requestAnimationFrame(quadro);
     }
 
+    function desenharPoeira() {
+      for (var i = 0; i < poeira.length; i++) {
+        var q = poeira[i]; q.y -= q.v * 16; q.f += .02; if (q.y < -0.02) { q.y = 1.02; q.x = Math.random(); }
+        ctx.fillStyle = 'rgba(232,200,120,' + (.12 + .25 * (.5 + .5 * Math.sin(q.f))) + ')';
+        ctx.beginPath(); ctx.arc(q.x * W + Math.sin(q.f) * 6, q.y * H, q.r, 0, 6.29); ctx.fill();
+      }
+    }
+    function espera(agora) {
+      ctx.clearRect(0, 0, W, H); desenharPoeira();
+      var pul = .5 + .5 * Math.sin(agora * .0022);
+      ctx.save(); ctx.translate(CX, CY); ctx.rotate(agora * .00006);
+      ctx.strokeStyle = OURO; ctx.globalAlpha = .1 + .14 * pul; ctx.lineWidth = 1;
+      ctx.shadowColor = 'rgba(255,215,120,.8)'; ctx.shadowBlur = 8 * pul;
+      var cam = caminhos(); for (var c = 0; c < 4; c++) desenharParcial(cam[c].p, 1);
+      ctx.restore(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    }
+
     function encerrar(rapido) {
       if (encerrado) return; encerrado = true; marcarVisto();
       el.classList.add('saindo');
+      if (ac && mestre) { try { mestre.gain.cancelScheduledValues(ac.currentTime); mestre.gain.setValueAtTime(mestre.gain.value, ac.currentTime); mestre.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + (rapido ? .4 : 1.6)); setTimeout(function () { try { ac.close(); } catch (e) {} }, rapido ? 600 : 2200); } catch (e) {} }
       setTimeout(function () {
         rodando = false;
         if (el.parentNode) el.parentNode.removeChild(el);
         document.documentElement.style.overflow = overflowAntes;
       }, rapido ? 600 : 1000);
     }
+    // ================= TRILHA SONORA (gerada em código) =================
+    var ac = null, mestre = null, eco = null, fundoSom = null;
+    function criarAudio() {
+      try {
+        if (navigator.audioSession) navigator.audioSession.type = 'playback'; // iPhone: toca mesmo com a chave de silencioso
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'suspended') ac.resume();
+        var comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6; comp.connect(ac.destination);
+        mestre = ac.createGain(); mestre.gain.value = .85; mestre.connect(comp);
+        // eco de salão: resposta de impulso gerada (ruído decaindo em 2,8 s)
+        var dur = 2.8, n = Math.floor(ac.sampleRate * dur), ir = ac.createBuffer(2, n, ac.sampleRate);
+        for (var ch = 0; ch < 2; ch++) { var d = ir.getChannelData(ch); for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
+        var conv = ac.createConvolver(); conv.buffer = ir;
+        eco = ac.createGain(); eco.gain.value = .55; eco.connect(conv); conv.connect(mestre);
+      } catch (e) { ac = null; }
+    }
+    function saida(g, ecoNivel) { g.connect(mestre); if (ecoNivel) { var s = ac.createGain(); s.gain.value = ecoNivel; g.connect(s); s.connect(eco); } }
+    function ruido(seg) { var b = ac.createBuffer(1, Math.floor(ac.sampleRate * seg), ac.sampleRate), d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; var s = ac.createBufferSource(); s.buffer = b; return s; }
+    function env(g, t, ataque, pico, queda) { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(pico, t + ataque); g.gain.exponentialRampToValueAtTime(0.0001, t + ataque + queda); }
+    // nota dedilhada (estilo cordas/oud)
+    function dedilhado(f, t, vol) {
+      var g = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(4200, t); lp.frequency.exponentialRampToValueAtTime(900, t + .6);
+      [[1, 'triangle', 1], [2, 'sine', .35], [3, 'sine', .12]].forEach(function (h) { var o = ac.createOscillator(); o.type = h[1]; o.frequency.value = f * h[0]; var gh = ac.createGain(); gh.gain.value = h[2]; o.connect(gh); gh.connect(lp); o.start(t); o.stop(t + 1.6); });
+      lp.connect(g); env(g, t, .006, vol, 1.4); saida(g, .6);
+    }
+    function sino(f, t, vol, dur) {
+      [[1, 1], [2.76, .35], [5.4, .12], [8.93, .05]].forEach(function (h) {
+        var o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f * h[0];
+        o.connect(g); env(g, t, .008, vol * h[1], dur / (1 + h[0] * .25)); saida(g, .9); o.start(t); o.stop(t + dur + .1);
+      });
+    }
+    function trilha() {
+      if (!ac) return;
+      var t = ac.currentTime + .05, ms = function (x) { return t + x / 1000; };
+      // 1) fundo grave e quente (cresce durante a estrela, some no final)
+      fundoSom = ac.createGain(); var lpF = ac.createBiquadFilter(); lpF.type = 'lowpass'; lpF.frequency.value = 520; lpF.Q.value = .7;
+      [[73.42, 'sawtooth', .5], [110, 'sine', .9], [146.83, 'sawtooth', .25], [55, 'sine', .7], [73.9, 'sawtooth', .35]].forEach(function (v) { var o = ac.createOscillator(), g = ac.createGain(); o.type = v[1]; o.frequency.value = v[0]; g.gain.value = v[2]; o.connect(g); g.connect(lpF); o.start(t); o.stop(ms(T.fim + 1600)); });
+      lpF.connect(fundoSom); fundoSom.gain.setValueAtTime(0.0001, t); fundoSom.gain.exponentialRampToValueAtTime(.16, ms(1800)); fundoSom.gain.setValueAtTime(.16, ms(T.explosao - 100)); fundoSom.gain.exponentialRampToValueAtTime(.09, ms(T.explosao + 600)); fundoSom.gain.setValueAtTime(.09, ms(T.fim - 400)); fundoSom.gain.exponentialRampToValueAtTime(.0001, ms(T.fim + 1400));
+      saida(fundoSom, .4);
+      // 2) arpejo na escala árabe Hijaz (Ré) acompanhando o desenho da estrela
+      var hijaz = [293.66, 311.13, 369.99, 392, 440, 466.16, 523.25, 587.33];
+      hijaz.forEach(function (f, i) { dedilhado(f, ms(80 + i * 200), .22); });
+      dedilhado(587.33 * 1.5, ms(1750), .12); dedilhado(440, ms(1750), .16);
+      // 3) som que sobe antes da explosão
+      var sr = ruido(2.2), bp = ac.createBiquadFilter(), gr = ac.createGain(); bp.type = 'bandpass'; bp.Q.value = 1.4;
+      bp.frequency.setValueAtTime(300, ms(T.explosao - 1500)); bp.frequency.exponentialRampToValueAtTime(7000, ms(T.explosao));
+      gr.gain.setValueAtTime(0.0001, ms(T.explosao - 1500)); gr.gain.exponentialRampToValueAtTime(.28, ms(T.explosao - 30)); gr.gain.exponentialRampToValueAtTime(.0001, ms(T.explosao + 120));
+      sr.connect(bp); bp.connect(gr); saida(gr, .3); sr.start(ms(T.explosao - 1500)); sr.stop(ms(T.explosao + 200));
+      // 4) impacto da explosão: grave profundo + estalo + brilho longo
+      var ob = ac.createOscillator(), gb = ac.createGain(); ob.type = 'sine'; ob.frequency.setValueAtTime(110, ms(T.explosao)); ob.frequency.exponentialRampToValueAtTime(32, ms(T.explosao + 900));
+      env(gb, ms(T.explosao), .01, 1, 2.2); ob.connect(gb); saida(gb, .25); ob.start(ms(T.explosao)); ob.stop(ms(T.explosao + 2400));
+      var si = ruido(.8), lpi = ac.createBiquadFilter(), gi = ac.createGain(); lpi.type = 'lowpass'; lpi.frequency.value = 1800;
+      env(gi, ms(T.explosao), .004, .55, .7); si.connect(lpi); lpi.connect(gi); saida(gi, .5); si.start(ms(T.explosao));
+      var sb = ruido(3), hp = ac.createBiquadFilter(), gs = ac.createGain(); hp.type = 'highpass'; hp.frequency.value = 6500;
+      env(gs, ms(T.explosao), .02, .12, 2.8); sb.connect(hp); hp.connect(gs); saida(gs, .9); sb.start(ms(T.explosao));
+      // 5) sopro quando a poeira gira
+      var sw = ruido(2), bw = ac.createBiquadFilter(), gw = ac.createGain(); bw.type = 'bandpass'; bw.Q.value = .9;
+      bw.frequency.setValueAtTime(2400, ms(T.forma[0])); bw.frequency.exponentialRampToValueAtTime(500, ms(T.forma[1]));
+      gw.gain.setValueAtTime(.0001, ms(T.forma[0])); gw.gain.exponentialRampToValueAtTime(.13, ms(T.forma[0] + 600)); gw.gain.exponentialRampToValueAtTime(.0001, ms(T.forma[1] + 100));
+      sw.connect(bw); bw.connect(gw); saida(gw, .5); sw.start(ms(T.forma[0])); sw.stop(ms(T.forma[1] + 200));
+      // 6) acorde de sinos quando o ELORA se forma (Ré maior com a 2ª menor da Hijaz no topo)
+      [587.33, 739.99, 880, 1174.66].forEach(function (f, i) { sino(f, ms(T.texto[0] + i * 70), .09, 3.6); });
+      sino(146.83, ms(T.texto[0]), .18, 3.2);
+      // 7) "ting" cristalino do reflexo de luz
+      sino(2349.32, ms(T.reflexo[0] + 300), .05, 1.6); sino(3135.96, ms(T.reflexo[0] + 380), .03, 1.4);
+    }
+
+    function iniciar(comSom) {
+      if (iniciado) return;
+      if (comSom) { criarAudio(); }
+      iniciado = true; t0 = null;
+      comecar(); // se a fonte ainda não carregou, começa assim mesmo (som e imagem juntos)
+      el.classList.remove('esperando'); el.classList.add('tocando');
+      if (comSom) trilha();
+    }
+    el.addEventListener('click', function (e) { if (e.target && e.target.id === 'ei-pular') return; iniciar(true); });
+    el.addEventListener('touchend', function (e) { if (e.target && e.target.id === 'ei-pular') return; iniciar(true); }, { passive: true });
+    setTimeout(function () { iniciar(false); }, 7000);
+
     el.querySelector('#ei-pular').addEventListener('click', function () { encerrar(true); });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); encerrar(true); } });
     window.addEventListener('resize', function () { if (!particulas) medir(); });
