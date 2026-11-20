@@ -1,11 +1,12 @@
-// ===== Abertura da Elora Parfums — horizonte árabe do logo =====
+// ===== Abertura da Elora Parfums =====
+// Principal: vídeo com som (/abertura.mp4 e /abertura-celular.mp4); se o navegador bloquear o som, toca mudo com botão "Ativar som". Reserva: horizonte árabe do logo, feito em código.
 // O horizonte (cúpulas e minaretes) se desenha em ouro -> as janelas acendem -> poeira dourada sobe
 // das torres e forma "ELORA" -> PARFUMS -> reflexo de luz -> a loja aparece.
 // Tudo em vetor/código (nítido em qualquer tela). Sem som; começa sozinha (~6,5 s).
-// Aparece sempre que a pessoa entra no site ou atualiza a página. Para forçar (testes): eloraparfums.vercel.app/?intro=1
+// Aparece sempre que a pessoa entra no site ou atualiza a página. Para forçar (testes): eloraparfums.vercel.app/?intro=1  (só a versão em código: ?intro=codigo)
 (function () {
   var params = new URLSearchParams(location.search);
-  var forcar = params.get('intro') === '1';
+  var forcar = params.get('intro') === '1' || params.get('intro') === 'codigo';
   if (!forcar) {
     if (navigator.webdriver) return;
     if (location.pathname.indexOf('/p/') === 0) return;
@@ -120,7 +121,7 @@
   }
   el.innerHTML = '<style>' + css + '</style><canvas id="ei-fundo-cv"></canvas>' + svgCidade() + '<canvas id="ei-cv"></canvas><button id="ei-pular" type="button">Pular</button>';
 
-  function montar() {
+  function montar() { // abertura em código (horizonte) — usada como reserva se o vídeo não puder tocar
     document.body.appendChild(el);
     var overflowAntes = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
@@ -298,5 +299,76 @@
     setTimeout(comecar, 700);
   }
 
-  if (document.body) montar(); else document.addEventListener('DOMContentLoaded', montar);
+
+  // ---------- abertura em VÍDEO (principal) ----------
+  // Arquivos na raiz do site: /abertura.mp4 (computador, 16:9) e /abertura-celular.mp4 (celular, em pé).
+  // Se o vídeo não começar em até 4 s (internet lenta, modo economia do iPhone, erro), cai na abertura em código.
+  function montarVideo() {
+    var conexao = navigator.connection || {};
+    if (conexao.saveData) return montar();
+    var celular = window.matchMedia && matchMedia('(max-aspect-ratio: 1/1)').matches;
+    var cssV = '' +
+      '#elora-intro-v{position:fixed;inset:0;z-index:99999;background:#05070f;transition:opacity .9s ease;overflow:hidden}' +
+      '#elora-intro-v.saindo{opacity:0;pointer-events:none}' +
+      '#elora-intro-v video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s ease}' +
+      '#elora-intro-v video.on{opacity:1}' +
+      '#ei-pular-v{position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;z-index:3;background:rgba(255,255,255,.06);border:1px solid rgba(212,175,55,.35);color:#d9c9a3;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.28em;text-transform:uppercase;padding:10px 15px;border-radius:999px;cursor:pointer;opacity:0;animation:eiApareceV .6s .6s forwards}' +
+      '#ei-som{display:none;position:absolute;left:50%;bottom:max(28px,calc(env(safe-area-inset-bottom) + 20px));transform:translateX(-50%);z-index:3;align-items:center;gap:9px;background:rgba(10,17,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(212,175,55,.55);color:#F7E7B0;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;padding:13px 20px;border-radius:999px;cursor:pointer;animation:eiApareceV .5s .3s both,eiPulsa 2s 1s ease-in-out infinite}' +
+      '@keyframes eiPulsa{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,.35)}50%{box-shadow:0 0 0 8px rgba(212,175,55,0)}}' +
+      '@keyframes eiApareceV{to{opacity:1}}';
+    var box = document.createElement('div');
+    box.id = 'elora-intro-v';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Abertura Elora Parfums');
+    box.innerHTML = '<style>' + cssV + '</style><video playsinline preload="auto" disablepictureinpicture></video><button id="ei-pular-v" type="button">Pular</button><button id="ei-som" type="button" aria-label="Ativar som"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>Ativar som</button>';
+    var v = box.querySelector('video');
+    v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+    v.src = celular ? '/abertura-celular.mp4' : '/abertura.mp4';
+    document.body.appendChild(box);
+    var overflowAntes = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+
+    var comecou = false, acabou = false, timers = [];
+    function fechar(rapido) {
+      if (acabou) return; acabou = true;
+      timers.forEach(clearTimeout);
+      box.classList.add('saindo');
+      try { var vol = v.volume, iv = setInterval(function () { vol = Math.max(0, vol - .1); try { v.volume = vol; } catch (e) {} if (vol <= 0) clearInterval(iv); }, 70); } catch (e) {}
+      setTimeout(function () { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {} if (box.parentNode) box.parentNode.removeChild(box); document.documentElement.style.overflow = overflowAntes; }, rapido ? 500 : 950);
+    }
+    function reserva() { // vídeo não rodou: troca pela abertura em código, sem tela preta
+      if (comecou || acabou) return; acabou = true;
+      timers.forEach(clearTimeout);
+      try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {}
+      if (box.parentNode) box.parentNode.removeChild(box);
+      document.documentElement.style.overflow = overflowAntes;
+      montar();
+    }
+    v.addEventListener('playing', function () {
+      if (comecou) return; comecou = true; v.className = 'on';
+      timers.push(setTimeout(function () { fechar(false); }, 16000)); // segurança se travar no meio
+    });
+    v.addEventListener('ended', function () { setTimeout(function () { fechar(false); }, 500); }); // segura o logo meio segundo
+    v.addEventListener('error', reserva);
+    timers.push(setTimeout(reserva, 4000));
+    // Tenta tocar COM som. Se o navegador bloquear (regra dos navegadores para quem ainda não tocou na página),
+    // toca sem som e mostra o botão "Ativar som" — um toque liga o som sem reiniciar o vídeo.
+    var btnSom = box.querySelector('#ei-som');
+    function tocarMudo() {
+      v.muted = true;
+      try { var p2 = v.play(); if (p2 && p2.catch) p2.catch(function () { setTimeout(function () { if (!comecou) reserva(); }, 300); }); } catch (e) { reserva(); }
+      btnSom.style.display = 'flex';
+    }
+    btnSom.addEventListener('click', function () { v.muted = false; v.volume = 1; try { v.play(); } catch (e) {} btnSom.style.display = 'none'; });
+    v.muted = false;
+    try {
+      var pr = v.play();
+      if (pr && pr.catch) pr.catch(function (err) { if (acabou) return; if (err && err.name === 'NotAllowedError') tocarMudo(); else setTimeout(function () { if (!comecou) reserva(); }, 300); });
+    } catch (e) { tocarMudo(); }
+    box.querySelector('#ei-pular-v').addEventListener('click', function () { if (comecou) fechar(true); else { comecou = true; fechar(true); } });
+    document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); comecou = true; fechar(true); } });
+  }
+
+  var iniciar = params.get('intro') === 'codigo' ? montar : montarVideo;
+  if (document.body) iniciar(); else document.addEventListener('DOMContentLoaded', iniciar);
 })();
