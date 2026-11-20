@@ -62,7 +62,10 @@ export default async function handler(req, res) {
     // 4. Cupom (validado de novo aqui — regras, validade, limite e primeira compra)
     let descontoFrete = 0, descontoCupom = 0, cupom = null;
     if (pedido.cupom) {
-      const c = await validarCupom(pedido.cupom, uid, valorProdutos, pedidoSnap.id);
+      const perfil = await db.collection('usuarios').doc(uid).get();
+      const cpf = (perfil.exists && perfil.data().cpf) || (pedido.cliente && pedido.cliente.cpf) || '';
+      const qtdItens = itens.reduce((t, i) => t + i.qtd, 0);
+      const c = await validarCupom(pedido.cupom, uid, valorProdutos, pedidoSnap.id, { qtdItens, cpf });
       if (!c.ok) return res.status(400).json({ erro: `Cupom ${String(pedido.cupom).toUpperCase()}: ${c.erro} Remova o cupom e tente de novo.`, cupomInvalido: true });
       cupom = c.codigo;
       descontoCupom = c.descontoProdutos;
