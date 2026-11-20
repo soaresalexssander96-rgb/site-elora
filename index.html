@@ -42,11 +42,11 @@
     <base href="/">
     <!--SEO-->
     <title>Elora Parfums | A Essência do Oriente</title>
-    <meta name="description" content="Fragrâncias árabes exclusivas e refinadas. Até 10x sem juros no cartão e desconto no PIX. Envio para todo o Brasil.">
+    <meta name="description" content="Fragrâncias árabes exclusivas e refinadas. Parcelamento sem juros no cartão e desconto no PIX. Envio para todo o Brasil.">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Elora Parfums">
     <meta property="og:title" content="Elora Parfums | A Essência do Oriente">
-    <meta property="og:description" content="Fragrâncias árabes exclusivas e refinadas. Até 10x sem juros e desconto no PIX.">
+    <meta property="og:description" content="Fragrâncias árabes exclusivas e refinadas. Parcelamento sem juros e desconto no PIX.">
     <meta property="og:image" content="https://site-elora.vercel.app/banner-promo.jpeg">
     <meta property="og:url" content="https://site-elora.vercel.app/">
     <meta name="twitter:card" content="summary_large_image">
@@ -99,7 +99,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useContext } = React;
 
         const Icon = ({ name, className }) => {
             const ref = useRef(null);
@@ -126,6 +126,17 @@
             'Entregue': 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
             'Cancelado': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
         };
+
+        // Configurações da loja (Painel → Configurações). Valores padrão até carregar do banco.
+        const CONFIG_PADRAO = { pixDesconto: 5, parcelas: 10, avisosTopo: [] };
+        const ConfigLoja = React.createContext(CONFIG_PADRAO);
+        const avisosPadrao = (cfg) => [
+            '🔥 Esquenta Black Friday: Condições Especiais',
+            '🎁 Frete Grátis na Primeira Compra: Use o cupom PRIMEIROGRATIS',
+            cfg.parcelas > 1 ? `💳 Até ${cfg.parcelas}x Sem Juros no Cartão` : null,
+            cfg.pixDesconto > 0 ? `💚 ${cfg.pixDesconto}% de Desconto no PIX` : null
+        ].filter(Boolean);
+        const precoPix = (v, cfg) => (Number(v) || 0) * (1 - (Number(cfg.pixDesconto) || 0) / 100);
 
         const getFb = () => new Promise((resolve) => {
             if (window.fb) return resolve(window.fb);
@@ -219,23 +230,13 @@
         };
 
         function PromoTicker() {
+            const cfg = useContext(ConfigLoja);
+            const avisos = (cfg.avisosTopo && cfg.avisosTopo.length) ? cfg.avisosTopo : avisosPadrao(cfg);
+            if (!avisos.length) return null;
             return (
                 <div className="bg-black text-slate-300 py-2.5 overflow-hidden w-full relative z-50">
                     <div className="animate-marquee flex gap-12 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap cursor-default">
-                        <span>🔥 Esquenta Black Friday: Condições Especiais</span>
-                        <span className="text-elora-gold">🎁 Frete Grátis na Primeira Compra: Use o cupom PRIMEIROGRATIS</span>
-                        <span>💳 Até 10x Sem Juros no Cartão</span>
-                        <span>💚 5% de Desconto Adicional no PIX</span>
-                        
-                        <span>🔥 Esquenta Black Friday: Condições Especiais</span>
-                        <span className="text-elora-gold">🎁 Frete Grátis na Primeira Compra: Use o cupom PRIMEIROGRATIS</span>
-                        <span>💳 Até 10x Sem Juros no Cartão</span>
-                        <span>💚 5% de Desconto Adicional no PIX</span>
-                        
-                        <span>🔥 Esquenta Black Friday: Condições Especiais</span>
-                        <span className="text-elora-gold">🎁 Frete Grátis na Primeira Compra: Use o cupom PRIMEIROGRATIS</span>
-                        <span>💳 Até 10x Sem Juros no Cartão</span>
-                        <span>💚 5% de Desconto Adicional no PIX</span>
+                        {[0, 1, 2].map(r => avisos.map((t, i) => <span key={`${r}-${i}`} className={i % 2 === 1 ? 'text-elora-gold' : ''}>{t}</span>))}
                     </div>
                 </div>
             );
@@ -266,6 +267,7 @@
         }
 
         function Rodape({ darkMode, irPara, irPagina }) {
+            const cfg = useContext(ConfigLoja);
             const link = "text-slate-500 dark:text-slate-400 hover:text-elora-gold transition-colors text-left";
             const titulo = "text-[10px] font-bold uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200 mb-4";
             return (
@@ -301,8 +303,8 @@
                         <div className="text-center md:text-left">
                             <p className={titulo}>Pagamento</p>
                             <ul className="space-y-3 text-slate-500 dark:text-slate-400">
-                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="credit-card" className="w-4 h-4 text-elora-gold" /> Cartão em até 10x</li>
-                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="qr-code" className="w-4 h-4 text-elora-gold" /> PIX</li>
+                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="credit-card" className="w-4 h-4 text-elora-gold" /> {cfg.parcelas > 1 ? `Cartão em até ${cfg.parcelas}x sem juros` : 'Cartão de crédito'}</li>
+                                <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="qr-code" className="w-4 h-4 text-elora-gold" /> PIX{cfg.pixDesconto > 0 ? ` com ${cfg.pixDesconto}% de desconto` : ''}</li>
                                 <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="shield-check" className="w-4 h-4 text-elora-gold" /> Pagamento seguro via InfinitePay</li>
                                 <li className="flex items-center gap-2 justify-center md:justify-start"><Icon name="truck" className="w-4 h-4 text-elora-gold" /> Envio para todo o Brasil</li>
                             </ul>
@@ -325,6 +327,7 @@
         }
 
         function PaginaLegal({ pagina, irPagina, voltar, darkMode }) {
+            const cfg = useContext(ConfigLoja);
             const contato = (
                 <span>pelo WhatsApp <a href={linkWhats()} target="_blank" rel="noreferrer" className="text-elora-gold font-semibold hover:underline">{WHATS_EXIBICAO}</a> ou pelo Instagram <a href={`https://instagram.com/${INSTAGRAM}`} target="_blank" rel="noreferrer" className="text-elora-gold font-semibold hover:underline">@{INSTAGRAM}</a></span>
             );
@@ -413,14 +416,14 @@
                             <p>Preços e disponibilidade podem mudar sem aviso. O valor que vale é o confirmado no momento do pagamento. Se um item ficar indisponível depois da compra, avisamos e devolvemos o valor integral.</p>
                         </Secao>
                         <Secao titulo="Pagamento">
-                            <p>Os pagamentos são processados pela InfinitePay, por PIX ou cartão de crédito (em até 10x sem juros, conforme indicado no site). O pedido é confirmado quando o pagamento é aprovado.</p>
+                            <p>Os pagamentos são processados pela InfinitePay, por PIX ou cartão de crédito{cfg.parcelas > 1 ? ` (em até ${cfg.parcelas}x sem juros)` : ''}. Descontos para pagamento via PIX, quando houver, são os indicados no site no momento da compra. O pedido é confirmado quando o pagamento é aprovado.</p>
                         </Secao>
                         <Secao titulo="Entrega">
                             <p>O frete e o prazo estimado são mostrados no checkout, a partir do seu CEP. O prazo começa a contar depois da confirmação do pagamento. Quando o pedido é enviado, o código de rastreio aparece em <em>Minha Conta</em>.</p>
                             <p>Confira o endereço antes de pagar. Se o pedido voltar por endereço incorreto ou ausência repetida, combinamos o reenvio com você.</p>
                         </Secao>
                         <Secao titulo="Cupons e promoções">
-                            <p>Cupons têm regras próprias (por exemplo, válido só na primeira compra) e não são cumulativos, salvo indicação em contrário. Promoções valem enquanto durar o estoque ou pelo período anunciado.</p>
+                            <p>Cupons têm regras próprias (por exemplo, validade, valor mínimo ou válido só na primeira compra) e não são cumulativos: é possível usar um cupom por pedido. Promoções valem enquanto durar o estoque ou pelo período anunciado.</p>
                         </Secao>
                         <Secao titulo="Trocas e devoluções">
                             <p>Seguem a nossa <button onClick={() => irPagina('trocas')} className="text-elora-gold font-semibold hover:underline">política de Trocas e Devoluções</button>, de acordo com o Código de Defesa do Consumidor.</p>
@@ -504,8 +507,9 @@
 
             const currentImg = imagens[imgIndex] || imagens[0];
             const precoSeguro = Number(produto.preco) || 0;
-            const parcelado = (precoSeguro / 10).toFixed(2);
-            const pix = (precoSeguro * 0.95).toFixed(2);
+            const cfg = useContext(ConfigLoja);
+            const parcelado = (precoSeguro / Math.max(1, cfg.parcelas)).toFixed(2);
+            const pix = precoPix(precoSeguro, cfg).toFixed(2);
             
             const numVendidos = parseInt(produto.vendidos) || 0;
             const esgotado = estaEsgotado(produto);
@@ -570,10 +574,10 @@
                         <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-2">R$ {precoSeguro.toFixed(2)}</p>
                         
                         <div className="flex flex-col items-center gap-1.5 mb-5 w-full">
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">10x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros</span>
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded font-semibold w-fit border border-emerald-100 dark:border-emerald-800">
+                            {cfg.parcelas > 1 && <span className="text-[10px] text-slate-500 dark:text-slate-400">{cfg.parcelas}x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros</span>}
+                            {cfg.pixDesconto > 0 && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded font-semibold w-fit border border-emerald-100 dark:border-emerald-800">
                                 <Icon name="percent" className="w-3 h-3 inline mr-0.5"/> R$ {pix} no PIX
-                            </span>
+                            </span>}
                         </div>
 
                         {esgotado ? (
@@ -639,8 +643,9 @@
             
             const imagensArray = (produto.imagens && produto.imagens.filter(Boolean).length > 0) ? produto.imagens.filter(Boolean) : [produto.imagem || './royal-amber.jpeg'];
             const precoSeguro = Number(produto.preco) || 0;
-            const parcelado = (precoSeguro / 10).toFixed(2);
-            const pix = (precoSeguro * 0.95).toFixed(2);
+            const cfg = useContext(ConfigLoja);
+            const parcelado = (precoSeguro / Math.max(1, cfg.parcelas)).toFixed(2);
+            const pix = precoPix(precoSeguro, cfg).toFixed(2);
             const numVendidos = parseInt(produto.vendidos) || 0;
             const [copiado, setCopiado] = useState(false);
             const compartilhar = async () => {
@@ -696,8 +701,8 @@
                                 <p className="text-3xl font-medium mb-3">R$ {precoSeguro.toFixed(2)}</p>
                                 
                                 <div className="flex flex-col gap-1.5 mb-6 border-b border-slate-200 dark:border-slate-800 pb-6">
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">10x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros no cartão</span>
-                                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 w-fit rounded border border-emerald-100 dark:border-emerald-800"><Icon name="percent" className="w-3 h-3 inline mr-1"/> R$ {pix} à vista no PIX</span>
+                                    {cfg.parcelas > 1 && <span className="text-xs text-slate-500 dark:text-slate-400">{cfg.parcelas}x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros no cartão</span>}
+                                    {cfg.pixDesconto > 0 && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 w-fit rounded border border-emerald-100 dark:border-emerald-800"><Icon name="percent" className="w-3 h-3 inline mr-1"/> R$ {pix} à vista no PIX</span>}
                                 </div>
                                 
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-lg border border-slate-200 dark:border-slate-700 mb-8">
@@ -1102,6 +1107,7 @@
         }
 
         function Checkout({ cart, user, voltarParaLoja, darkMode }) {
+            const cfg = useContext(ConfigLoja);
             const [loading, setLoading] = useState(false);
             const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' });
             
@@ -1117,12 +1123,13 @@
 
             const totalProdutos = totalCarrinho(cart);
             
-            const descontoFrete = (cupomAtivo && cupomAtivo.tipo === 'frete') ? freteValor : 0;
-            const totalComFrete = totalProdutos + freteValor - descontoFrete;
+            const descontoCupom = cupomAtivo ? (Number(cupomAtivo.descontoProdutos) || 0) : 0;
+            const descontoFrete = (cupomAtivo && cupomAtivo.freteGratis) ? freteValor : 0;
+            const totalComFrete = Math.round((totalProdutos - descontoCupom + freteValor - descontoFrete) * 100) / 100;
             
             const handleChange = (e) => {
                 setEndereco({ ...endereco, [e.target.name]: e.target.value });
-                if (e.target.name === 'cep') { setFreteOpcoes([]); setFreteValor(0); setFreteTipo(''); setFreteId(''); setCupomAtivo(null); }
+                if (e.target.name === 'cep') { setFreteOpcoes([]); setFreteValor(0); setFreteTipo(''); setFreteId(''); }
             };
 
             const calcularFreteViaCep = async () => {
@@ -1166,34 +1173,30 @@
             };
 
             const aplicarCupom = async () => {
-                if (!cupomInput) return;
                 const codigo = cupomInput.toUpperCase().trim();
-                
-                if (codigo === 'PRIMEIROGRATIS') {
-                    if (freteValor === 0) {
-                        alert("Por favor, calcule o frete antes de aplicar o cupom.");
-                        return;
+                if (!codigo) return;
+                setVerificandoCupom(true);
+                try {
+                    const { auth } = await getFb();
+                    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+                    const r = await fetch('/api/cupom', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ codigo, itens: cart.map(i => ({ id: i.id, qtd: qtdItem(i) })) })
+                    });
+                    const d = await r.json().catch(() => ({}));
+                    if (r.ok && d.ok) {
+                        setCupomAtivo(d);
+                        setCupomInput(d.codigo);
+                        if (d.freteGratis && freteValor === 0) alert(`Cupom aplicado: ${d.descricao}! Calcule o frete pelo CEP para ver o desconto.`);
+                    } else {
+                        alert(d.erro || "Cupom inválido ou expirado.");
                     }
-                    
-                    setVerificandoCupom(true);
-                    try {
-                        const { db, collection, query, where, getDocs } = await getFb();
-                        const snapshot = await getDocs(query(collection(db, "pedidos"), where("uid", "==", user.uid)));
-                        const jaComprou = snapshot.docs.some(d => ['Pago', 'Em separação', 'Enviado', 'Entregue'].includes(d.data().status));
-                        if (jaComprou) {
-                            alert("Este cupom é válido apenas para a sua primeira compra na Elora Parfums.");
-                        } else {
-                            setCupomAtivo({ codigo: 'PRIMEIROGRATIS', tipo: 'frete' });
-                            alert("Cupom aplicado com sucesso! Você ganhou Frete Grátis.");
-                        }
-                    } catch (e) {
-                        console.error(e);
-                        alert("Erro ao validar o cupom. Tente novamente.");
-                    }
-                    setVerificandoCupom(false);
-                } else {
-                    alert("Cupom inválido ou expirado.");
+                } catch (e) {
+                    console.error(e);
+                    alert("Erro ao validar o cupom. Tente novamente.");
                 }
+                setVerificandoCupom(false);
             };
 
             const processarPedido = async (e) => {
@@ -1215,7 +1218,7 @@
                         itens: cart.map(i => ({ id: i.id, nome: i.nome, marca: i.marca, preco: Number(i.preco) || 0, qtd: qtdItem(i), imagem: getImagemPrincipal(i) })),
                         valorProdutos: totalProdutos, valorFrete: freteValor, freteTipo: freteTipo, freteServicoId: freteId,
                         cupom: cupomAtivo ? cupomAtivo.codigo : null,
-                        descontoFrete: descontoFrete, valorTotal: totalComFrete,
+                        descontoCupom: descontoCupom, descontoFrete: descontoFrete, valorTotal: totalComFrete,
                         dataCriacao: new Date().toISOString(), status: "Aguardando Pagamento"
                     });
                     pedidoId = ref.id;
@@ -1242,6 +1245,7 @@
                     } else {
                         alert(dados.erro || "Não foi possível abrir o pagamento. Tente novamente.");
                         if (resposta.status === 409) { setFreteOpcoes([]); setFreteValor(0); setFreteId(''); setFreteTipo(''); }
+                        if (dados.cupomInvalido) { setCupomAtivo(null); setCupomInput(''); }
                         setLoading(false);
                     }
                 } catch (erro) {
@@ -1309,10 +1313,12 @@
                     
                     <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-10 h-fit shadow-2xl rounded-xl relative overflow-hidden lg:sticky lg:top-28`}>
                         <h3 className="text-xl sm:text-2xl font-serif mb-6">Resumo do Pedido ({totalItens(cart)} {totalItens(cart) === 1 ? 'item' : 'itens'})</h3>
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-lg flex items-center gap-3 mb-6">
-                            <Icon name="sparkles" className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium"><strong>Ganhe 5% OFF no PIX!</strong> Aplicado no pagamento.</p>
-                        </div>
+                        {cfg.pixDesconto > 0 && (
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-lg flex items-center gap-3 mb-6">
+                                <Icon name="sparkles" className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium"><strong>Ganhe {cfg.pixDesconto}% OFF no PIX!</strong> Aplicado no pagamento.</p>
+                            </div>
+                        )}
                         <div className="max-h-60 overflow-y-auto pr-2 space-y-4 mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
                             {cart.map((item) => (
                                 <div key={item.id} className="flex items-center gap-4">
@@ -1325,7 +1331,7 @@
                         <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
                             <label className="block text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">Tem um cupom de desconto?</label>
                             <div className="flex gap-2">
-                                <input value={cupomInput} onChange={(e) => setCupomInput(e.target.value)} disabled={cupomAtivo !== null} className={`flex-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md uppercase`} placeholder="Ex: PRIMEIROGRATIS" />
+                                <input value={cupomInput} onChange={(e) => setCupomInput(e.target.value)} disabled={cupomAtivo !== null} className={`flex-1 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md uppercase`} placeholder="Digite seu cupom" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); aplicarCupom(); } }} />
                                 {!cupomAtivo ? (
                                     <button type="button" onClick={aplicarCupom} disabled={verificandoCupom} className="bg-slate-800 dark:bg-slate-700 text-white px-4 py-3 rounded-md text-xs font-bold uppercase tracking-widest hover:bg-elora-gold transition-colors whitespace-nowrap">
                                         {verificandoCupom ? 'Aguarde...' : 'Aplicar'}
@@ -1346,16 +1352,21 @@
                                     {freteValor > 0 ? `R$ ${freteValor.toFixed(2)}` : 'A calcular'}
                                 </span>
                             </div>
-                            {cupomAtivo && cupomAtivo.tipo === 'frete' && (
-                                <div className="flex justify-between text-emerald-500 font-medium"><span>Cupom (Frete Grátis)</span><span>- R$ {descontoFrete.toFixed(2)}</span></div>
+                            {cupomAtivo && descontoCupom > 0 && (
+                                <div className="flex justify-between text-emerald-500 font-medium"><span>Cupom {cupomAtivo.codigo} ({cupomAtivo.descricao})</span><span>- R$ {descontoCupom.toFixed(2)}</span></div>
+                            )}
+                            {cupomAtivo && cupomAtivo.freteGratis && (
+                                <div className="flex justify-between text-emerald-500 font-medium"><span>Cupom {cupomAtivo.codigo} (Frete Grátis)</span><span>{freteValor > 0 ? `- R$ ${descontoFrete.toFixed(2)}` : 'ao calcular'}</span></div>
                             )}
                         </div>
                         <div className="flex justify-between font-serif text-2xl sm:text-3xl mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                             <span>Total</span><span className="text-elora-gold">R$ {totalComFrete.toFixed(2)}</span>
                         </div>
-                        <div className="text-right mt-2">
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">R$ {(totalComFrete * 0.95).toFixed(2)} à vista no PIX</span>
-                        </div>
+                        {cfg.pixDesconto > 0 && (
+                            <div className="text-right mt-2">
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">R$ {precoPix(totalComFrete, cfg).toFixed(2)} à vista no PIX</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -1502,9 +1513,276 @@
             );
         }
 
-        function AdminDashboard({ produtos, setProdutos, darkMode, logout }) {
-            const [aba, setAba] = useState('produtos');
+        // ===== PAINEL: RESUMO DE VENDAS =====
+        const STATUS_VENDIDO = ['Pago', 'Em separação', 'Enviado', 'Entregue'];
+        const valorRecebido = (p) => (p.pagamento && Number(p.pagamento.valorPago) > 0) ? Number(p.pagamento.valorPago) : (Number(p.valorTotal) || 0);
+        const brl = (v) => (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const pedidosAbandonados = (lista) => lista.filter(p => p.status === 'Aguardando Pagamento' && new Date(p.dataCriacao).getTime() < Date.now() - 24 * 3600 * 1000);
+
+        function AdminResumo({ pedidos, produtos, darkMode, irPedidos, carregando }) {
+            const [periodo, setPeriodo] = useState('mes');
+            const agora = new Date();
+            const intervalo = (() => {
+                const ini = new Date(agora.getFullYear(), agora.getMonth(), 1);
+                if (periodo === 'mes') return [ini, null];
+                if (periodo === 'mesPassado') return [new Date(agora.getFullYear(), agora.getMonth() - 1, 1), ini];
+                if (periodo === '7d') return [new Date(Date.now() - 7 * 864e5), null];
+                if (periodo === '30d') return [new Date(Date.now() - 30 * 864e5), null];
+                return [new Date(0), null];
+            })();
+            const noPeriodo = (p) => { const d = new Date((p.pagamento && p.pagamento.pagoEm) || p.dataCriacao); return d >= intervalo[0] && (!intervalo[1] || d < intervalo[1]); };
+            const vendas = pedidos.filter(p => STATUS_VENDIDO.includes(p.status) && noPeriodo(p));
+            const faturamento = vendas.reduce((s, p) => s + valorRecebido(p), 0);
+            const ticket = vendas.length ? faturamento / vendas.length : 0;
+            const unidades = vendas.reduce((s, p) => s + (p.itens || []).reduce((a, i) => a + qtdItem(i), 0), 0);
+            const aEnviar = pedidos.filter(p => p.status === 'Pago' || p.status === 'Em separação');
+            const aguardando = pedidos.filter(p => p.status === 'Aguardando Pagamento');
+            const ranking = {};
+            vendas.forEach(p => (p.itens || []).forEach(i => {
+                const k = i.id || i.nome;
+                if (!ranking[k]) ranking[k] = { nome: i.nome, marca: i.marca, imagem: i.imagem, qtd: 0, valor: 0 };
+                ranking[k].qtd += qtdItem(i);
+                ranking[k].valor += (Number(i.preco) || 0) * qtdItem(i);
+            }));
+            const top = Object.values(ranking).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
+            const estoqueBaixo = produtos.filter(p => temControleEstoque(p) && Number(p.estoque) <= 2).sort((a, b) => Number(a.estoque) - Number(b.estoque));
+            const cupons = {};
+            vendas.forEach(p => { if (p.cupom) cupons[p.cupom] = (cupons[p.cupom] || 0) + 1; });
+
+            const card = `${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border rounded-xl shadow-md p-5`;
+            const rotulo = "text-[10px] uppercase tracking-widest text-slate-400 font-bold";
+            const periodos = [['mes', 'Este mês'], ['mesPassado', 'Mês passado'], ['7d', '7 dias'], ['30d', '30 dias'], ['tudo', 'Tudo']];
+
+            return (
+                <div className="animate-fade-in space-y-6">
+                    <div className="flex flex-wrap gap-2">
+                        {periodos.map(([k, t]) => <button key={k} onClick={() => setPeriodo(k)} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-colors ${periodo === k ? 'bg-elora-gold border-elora-gold text-white' : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}>{t}</button>)}
+                        {carregando && <span className="text-xs text-slate-400 flex items-center gap-2"><Icon name="loader-2" className="w-4 h-4 animate-spin" /> carregando...</span>}
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className={card}><p className={rotulo}>Faturamento</p><p className="text-2xl sm:text-3xl font-serif text-elora-gold mt-2">{brl(faturamento)}</p></div>
+                        <div className={card}><p className={rotulo}>Vendas</p><p className="text-2xl sm:text-3xl font-serif mt-2">{vendas.length}</p><p className="text-[11px] text-slate-400">{unidades} {unidades === 1 ? 'perfume' : 'perfumes'}</p></div>
+                        <div className={card}><p className={rotulo}>Ticket médio</p><p className="text-2xl sm:text-3xl font-serif mt-2">{brl(ticket)}</p></div>
+                        <button onClick={irPedidos} className={`${card} text-left hover:border-elora-gold transition-colors`}><p className={rotulo}>A enviar agora</p><p className={`text-2xl sm:text-3xl font-serif mt-2 ${aEnviar.length ? 'text-blue-500' : ''}`}>{aEnviar.length}</p><p className="text-[11px] text-slate-400">{aguardando.length} aguardando pagamento</p></button>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className={card}>
+                            <p className={`${rotulo} mb-4`}>Mais vendidos no período</p>
+                            {top.length === 0 ? <p className="text-sm text-slate-400 py-6 text-center">Nenhuma venda neste período.</p> : (
+                                <div className="space-y-3">
+                                    {top.map((t, i) => (
+                                        <div key={i} className="flex items-center gap-3 text-sm">
+                                            <span className="w-5 text-center font-bold text-elora-gold">{i + 1}</span>
+                                            {t.imagem && <img src={t.imagem} className="w-10 h-10 rounded object-cover" alt="" />}
+                                            <span className="flex-1 min-w-0 truncate">{t.marca} — {t.nome}</span>
+                                            <span className="text-xs text-slate-400 whitespace-nowrap">{t.qtd} un · {brl(t.valor)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {Object.keys(cupons).length > 0 && <p className="text-[11px] text-slate-400 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">Cupons usados: {Object.entries(cupons).map(([c, n]) => `${c} (${n})`).join(', ')}</p>}
+                        </div>
+                        <div className={card}>
+                            <p className={`${rotulo} mb-4`}>Estoque baixo (2 ou menos)</p>
+                            {estoqueBaixo.length === 0 ? <p className="text-sm text-slate-400 py-6 text-center">Tudo certo com o estoque. 👍</p> : (
+                                <div className="space-y-2">
+                                    {estoqueBaixo.map(p => (
+                                        <div key={p.id} className="flex items-center gap-3 text-sm">
+                                            <img src={getImagemPrincipal(p)} className="w-10 h-10 rounded object-cover" alt="" />
+                                            <span className="flex-1 min-w-0 truncate">{p.marca} — {p.nome}</span>
+                                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${Number(p.estoque) <= 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>{Number(p.estoque) <= 0 ? 'Esgotado' : `${p.estoque} un`}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ===== PAINEL: CUPONS =====
+        function AdminCupons({ darkMode }) {
+            const vazio = { codigo: '', tipo: 'percentual', valor: '', minimo: '', validade: '', limiteUsos: '', primeiraCompra: false, ativo: true };
+            const [cupons, setCupons] = useState(null);
+            const [form, setForm] = useState(vazio);
+            const [editando, setEditando] = useState(false);
+            const [salvando, setSalvando] = useState(false);
+
+            const carregar = async () => {
+                try {
+                    const { db, collection, getDocs } = await getFb();
+                    const s = await getDocs(collection(db, 'cupons'));
+                    setCupons(s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || '')));
+                } catch (e) { console.error(e); setCupons([]); }
+            };
+            useEffect(() => { carregar(); }, []);
+
+            const salvar = async (e) => {
+                e.preventDefault();
+                const codigo = form.codigo.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+                if (!codigo) return alert('Digite o código do cupom (só letras e números).');
+                const valor = Number(String(form.valor).replace(',', '.')) || 0;
+                if (form.tipo !== 'frete' && valor <= 0) return alert('Informe o valor do desconto.');
+                if (form.tipo === 'percentual' && valor > 90) return alert('O desconto percentual máximo é 90%.');
+                if (!editando && cupons && cupons.some(c => c.id === codigo)) return alert('Já existe um cupom com esse código.');
+                setSalvando(true);
+                try {
+                    const { db, doc, setDoc } = await getFb();
+                    const dados = {
+                        codigo, tipo: form.tipo, valor: form.tipo === 'frete' ? 0 : valor,
+                        minimo: Number(String(form.minimo).replace(',', '.')) || 0,
+                        validade: form.validade || '', limiteUsos: parseInt(form.limiteUsos) || 0,
+                        primeiraCompra: !!form.primeiraCompra, ativo: !!form.ativo
+                    };
+                    if (!editando) { dados.usos = 0; dados.criadoEm = new Date().toISOString(); }
+                    await setDoc(doc(db, 'cupons', codigo), dados, { merge: true });
+                    setForm(vazio); setEditando(false);
+                    await carregar();
+                } catch (err) { console.error(err); alert('Não foi possível salvar o cupom.'); }
+                setSalvando(false);
+            };
+
+            const alternar = async (c) => {
+                const { db, doc, updateDoc } = await getFb();
+                await updateDoc(doc(db, 'cupons', c.id), { ativo: !c.ativo });
+                setCupons(cupons.map(x => x.id === c.id ? { ...x, ativo: !c.ativo } : x));
+            };
+            const apagar = async (c) => {
+                if (!confirm(`Excluir o cupom ${c.id}? Pedidos antigos continuam com o registro do cupom.`)) return;
+                const { db, doc, deleteDoc } = await getFb();
+                await deleteDoc(doc(db, 'cupons', c.id));
+                setCupons(cupons.filter(x => x.id !== c.id));
+            };
+            const editar = (c) => { setEditando(true); setForm({ codigo: c.id, tipo: c.tipo, valor: c.valor || '', minimo: c.minimo || '', validade: c.validade || '', limiteUsos: c.limiteUsos || '', primeiraCompra: !!c.primeiraCompra, ativo: c.ativo !== false }); window.scrollTo(0, 0); };
+
+            const campo = `w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`;
+            const rotulo = "block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold";
+            const hoje = new Date().toISOString().slice(0, 10);
+            const situacao = (c) => {
+                if (c.ativo === false) return ['Pausado', 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'];
+                if (c.validade && c.validade < hoje) return ['Expirado', 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'];
+                if (c.limiteUsos > 0 && (c.usos || 0) >= c.limiteUsos) return ['Esgotado', 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'];
+                return ['Ativo', 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'];
+            };
+            const descricao = (c) => c.tipo === 'percentual' ? `${c.valor}% OFF` : c.tipo === 'valor' ? `${brl(c.valor)} OFF` : 'Frete Grátis';
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
+                    <form onSubmit={salvar} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 rounded-xl shadow-xl h-fit space-y-4`}>
+                        <h3 className="text-lg font-serif flex items-center gap-2"><Icon name="ticket" className="w-5 h-5 text-elora-gold" /> {editando ? `Editar ${form.codigo}` : 'Novo Cupom'}</h3>
+                        <div><label className={rotulo}>Código *</label><input value={form.codigo} disabled={editando} onChange={e => setForm({ ...form, codigo: e.target.value.toUpperCase() })} className={`${campo} uppercase`} placeholder="BLACK10" /></div>
+                        <div><label className={rotulo}>Tipo de desconto</label>
+                            <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })} className={campo}>
+                                <option value="percentual">Porcentagem (%) nos produtos</option>
+                                <option value="valor">Valor fixo (R$) nos produtos</option>
+                                <option value="frete">Frete grátis</option>
+                            </select>
+                        </div>
+                        {form.tipo !== 'frete' && <div><label className={rotulo}>{form.tipo === 'percentual' ? 'Desconto (%) *' : 'Desconto (R$) *'}</label><input type="number" step="0.01" min="0" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className={campo} placeholder={form.tipo === 'percentual' ? '10' : '20,00'} /></div>}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div><label className={rotulo}>Compra mínima (R$)</label><input type="number" step="0.01" min="0" value={form.minimo} onChange={e => setForm({ ...form, minimo: e.target.value })} className={campo} placeholder="0 = sem mínimo" /></div>
+                            <div><label className={rotulo}>Limite de usos</label><input type="number" min="0" value={form.limiteUsos} onChange={e => setForm({ ...form, limiteUsos: e.target.value })} className={campo} placeholder="0 = sem limite" /></div>
+                        </div>
+                        <div><label className={rotulo}>Válido até (inclusive)</label><input type="date" value={form.validade} onChange={e => setForm({ ...form, validade: e.target.value })} className={campo} /><p className="text-[10px] text-slate-400 mt-1">Deixe em branco para não expirar.</p></div>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.primeiraCompra} onChange={e => setForm({ ...form, primeiraCompra: e.target.checked })} className="w-4 h-4 accent-elora-gold" /> Só para a primeira compra do cliente</label>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.ativo} onChange={e => setForm({ ...form, ativo: e.target.checked })} className="w-4 h-4 accent-elora-gold" /> Cupom ativo</label>
+                        <div className="flex gap-2 pt-2">
+                            <button type="submit" disabled={salvando} className="flex-1 bg-elora-gold text-white py-3 text-[11px] font-bold uppercase tracking-widest rounded-md hover:bg-slate-900 transition-colors">{salvando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar cupom'}</button>
+                            {editando && <button type="button" onClick={() => { setEditando(false); setForm(vazio); }} className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest rounded-md bg-slate-200 dark:bg-slate-700">Cancelar</button>}
+                        </div>
+                    </form>
+
+                    <div className="lg:col-span-2 space-y-3">
+                        {cupons === null ? <div className="flex justify-center py-12"><Icon name="loader-2" className="w-6 h-6 animate-spin text-elora-gold" /></div>
+                        : cupons.length === 0 ? (
+                            <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border rounded-xl p-10 text-center text-sm text-slate-500`}>
+                                Nenhum cupom criado ainda.<br />O cupom <strong>PRIMEIROGRATIS</strong> (frete grátis na 1ª compra) continua funcionando. Para pausar ou mudar as regras dele, crie aqui um cupom com esse mesmo código.
+                            </div>
+                        ) : cupons.map(c => {
+                            const [txt, cor] = situacao(c);
+                            return (
+                                <div key={c.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border rounded-xl shadow-md p-4 sm:p-5 flex flex-wrap items-center gap-4`}>
+                                    <div className="flex-1 min-w-[180px]">
+                                        <div className="flex items-center gap-2 flex-wrap"><span className="font-bold tracking-wider">{c.id}</span><span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cor}`}>{txt}</span></div>
+                                        <p className="text-elora-gold font-semibold text-sm mt-1">{descricao(c)}</p>
+                                        <p className="text-[11px] text-slate-400 mt-1">
+                                            {[c.minimo > 0 ? `mín. ${brl(c.minimo)}` : null, c.validade ? `até ${c.validade.split('-').reverse().join('/')}` : 'sem validade', c.primeiraCompra ? '1ª compra' : null, `${c.usos || 0}${c.limiteUsos > 0 ? '/' + c.limiteUsos : ''} usos`].filter(Boolean).join(' · ')}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => alternar(c)} className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md border border-slate-200 dark:border-slate-700 hover:border-elora-gold">{c.ativo === false ? 'Ativar' : 'Pausar'}</button>
+                                        <button onClick={() => editar(c)} className="p-2 rounded-md border border-slate-200 dark:border-slate-700 hover:text-elora-gold" aria-label="Editar"><Icon name="edit-3" className="w-4 h-4" /></button>
+                                        <button onClick={() => apagar(c)} className="p-2 rounded-md border border-slate-200 dark:border-slate-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" aria-label="Excluir"><Icon name="trash-2" className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        // ===== PAINEL: CONFIGURAÇÕES DA LOJA =====
+        function AdminConfig({ darkMode, recarregarConfig }) {
+            const cfgAtual = useContext(ConfigLoja);
+            const [form, setForm] = useState({ pixDesconto: String(cfgAtual.pixDesconto), parcelas: String(cfgAtual.parcelas), avisos: (cfgAtual.avisosTopo || []).join('\n') });
+            const [salvando, setSalvando] = useState(false);
+            const [salvo, setSalvo] = useState(false);
+
+            const salvar = async (e) => {
+                e.preventDefault();
+                const pix = Number(String(form.pixDesconto).replace(',', '.'));
+                const parc = parseInt(form.parcelas);
+                if (isNaN(pix) || pix < 0 || pix > 50) return alert('Desconto PIX deve ser entre 0 e 50%.');
+                if (isNaN(parc) || parc < 1 || parc > 12) return alert('Parcelas sem juros devem ser entre 1 e 12.');
+                setSalvando(true);
+                try {
+                    const { db, doc, setDoc } = await getFb();
+                    await setDoc(doc(db, 'config', 'loja'), {
+                        pixDesconto: pix, parcelas: parc,
+                        avisosTopo: form.avisos.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 8),
+                        atualizadoEm: new Date().toISOString()
+                    }, { merge: true });
+                    await recarregarConfig();
+                    setSalvo(true); setTimeout(() => setSalvo(false), 4000);
+                } catch (err) { console.error(err); alert('Não foi possível salvar.'); }
+                setSalvando(false);
+            };
+
+            const campo = `w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`;
+            const rotulo = "block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold";
+            const exemplo = 199.9;
+            const pixN = Number(String(form.pixDesconto).replace(',', '.')) || 0;
+            const parcN = parseInt(form.parcelas) || 1;
+
+            return (
+                <form onSubmit={salvar} className={`max-w-2xl ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 sm:p-8 rounded-xl shadow-xl space-y-6 animate-fade-in`}>
+                    <h3 className="text-lg font-serif flex items-center gap-2"><Icon name="settings" className="w-5 h-5 text-elora-gold" /> Pagamento e Avisos</h3>
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs p-3 rounded-md">
+                        ⚠️ Estes valores só mudam o que <strong>aparece no site</strong>. Ajuste também o desconto PIX e as parcelas sem juros no <strong>app da InfinitePay</strong>, para o cliente pagar exatamente o que viu.
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label className={rotulo}>Desconto no PIX (%)</label><input type="number" step="0.5" min="0" max="50" value={form.pixDesconto} onChange={e => setForm({ ...form, pixDesconto: e.target.value })} className={campo} /><p className="text-[10px] text-slate-400 mt-1">0 = sem desconto (some do site)</p></div>
+                        <div><label className={rotulo}>Parcelas sem juros</label><input type="number" min="1" max="12" value={form.parcelas} onChange={e => setForm({ ...form, parcelas: e.target.value })} className={campo} /><p className="text-[10px] text-slate-400 mt-1">1 = não mostra parcelamento</p></div>
+                    </div>
+                    <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-md p-3">
+                        Prévia num perfume de {brl(exemplo)}: {parcN > 1 && <span><strong>{parcN}x de {brl(exemplo / parcN)}</strong> sem juros</span>}{parcN > 1 && pixN > 0 && ' · '}{pixN > 0 && <span className="text-emerald-600"><strong>{brl(exemplo * (1 - pixN / 100))}</strong> no PIX</span>}
+                    </div>
+                    <div>
+                        <label className={rotulo}>Frases da faixa preta do topo (uma por linha)</label>
+                        <textarea rows="5" value={form.avisos} onChange={e => setForm({ ...form, avisos: e.target.value })} className={campo} placeholder={avisosPadrao({ pixDesconto: pixN, parcelas: parcN }).join('\n')} />
+                        <p className="text-[10px] text-slate-400 mt-1">Deixe em branco para usar as frases padrão (mostradas acima em cinza). Use para Black Friday, Natal, cupons do momento etc. Máximo 8 frases.</p>
+                    </div>
+                    <button type="submit" disabled={salvando} className="w-full bg-elora-gold text-white py-3.5 text-xs font-bold uppercase tracking-widest rounded-md hover:bg-slate-900 transition-colors">{salvando ? 'Salvando...' : salvo ? '✓ Salvo! Já está no site' : 'Salvar configurações'}</button>
+                </form>
+            );
+        }
+
+        function AdminDashboard({ produtos, setProdutos, darkMode, logout, recarregarConfig }) {
+            const [aba, setAba] = useState('resumo');
             const [pedidosAll, setPedidosAll] = useState([]);
+            const [carregandoPedidos, setCarregandoPedidos] = useState(false);
             
             const IMGBB_API_KEY = "ba8a5660412f8f7e42b2fddb2fe006c3"; 
 
@@ -1521,17 +1799,29 @@
             const [carregandoText, setCarregandoText] = useState('');
 
             useEffect(() => {
-                if (aba === 'pedidos') {
-                    if (window.db && window.collection && window.getDocs) {
-                        window.getDocs(window.collection(window.db, "pedidos")).then(qs => {
+                if (aba === 'pedidos' || aba === 'resumo') {
+                    (async () => {
+                        setCarregandoPedidos(true);
+                        try {
+                            const { db, collection, getDocs } = await getFb();
+                            const qs = await getDocs(collection(db, "pedidos"));
                             const lista = [];
-                            qs.forEach(doc => lista.push({ id: doc.id, ...doc.data() }));
+                            qs.forEach(d => lista.push({ id: d.id, ...d.data() }));
                             lista.sort((a,b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
                             setPedidosAll(lista);
-                        }).catch(e => console.error(e));
-                    }
+                        } catch (e) { console.error(e); }
+                        setCarregandoPedidos(false);
+                    })();
                 }
             }, [aba]);
+
+            const cancelarAbandonados = async () => {
+                const lista = pedidosAbandonados(pedidosAll);
+                if (!lista.length) return alert('Nenhum pedido aguardando pagamento há mais de 24h.');
+                if (!confirm(`Cancelar ${lista.length} pedido(s) aguardando pagamento há mais de 24h? Se algum cliente pagar depois, o pedido volta para "Pago" automaticamente.`)) return;
+                const agora = new Date().toISOString();
+                for (const p of lista) await atualizarPedido(p.id, { status: 'Cancelado', canceladoEm: agora, motivoCancelamento: 'Pagamento não concluído em 24h' });
+            };
 
             const handleImageChange = (e) => {
                 const files = Array.from(e.target.files);
@@ -1647,10 +1937,15 @@
                         </div>
                         <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair do Painel</button>
                     </div>
-                    <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8">
-                        <button onClick={() => setAba('produtos')} className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${aba === 'produtos' ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Catálogo de Produtos</button>
-                        <button onClick={() => setAba('pedidos')} className={`px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${aba === 'pedidos' ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Gestão de Pedidos</button>
+                    <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto">
+                        {[['resumo', 'Resumo', 'bar-chart-3'], ['pedidos', 'Pedidos', 'package'], ['produtos', 'Catálogo', 'flask-conical'], ['cupons', 'Cupons', 'ticket'], ['config', 'Configurações', 'settings']].map(([k, t, ic]) => (
+                            <button key={k} onClick={() => setAba(k)} className={`px-4 sm:px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors whitespace-nowrap flex items-center gap-2 ${aba === k ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}><Icon name={ic} className="w-4 h-4" /> {t}</button>
+                        ))}
                     </div>
+
+                    {aba === 'resumo' && <AdminResumo pedidos={pedidosAll} produtos={produtos} darkMode={darkMode} carregando={carregandoPedidos} irPedidos={() => { setAba('pedidos'); setFiltroStatus('Pago'); }} />}
+                    {aba === 'cupons' && <AdminCupons darkMode={darkMode} />}
+                    {aba === 'config' && <AdminConfig darkMode={darkMode} recarregarConfig={recarregarConfig} />}
 
                     {aba === 'produtos' && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
@@ -1734,6 +2029,12 @@
 
                     {aba === 'pedidos' && (
                         <div className="animate-fade-in">
+                            {pedidosAbandonados(pedidosAll).length > 0 && (
+                                <div className="flex flex-wrap items-center justify-between gap-3 mb-5 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
+                                    <span>{pedidosAbandonados(pedidosAll).length} pedido(s) aguardando pagamento há mais de 24h. O site cancela esses pedidos sozinho todo dia de manhã.</span>
+                                    <button onClick={cancelarAbandonados} className="px-3 py-2 bg-amber-600 text-white rounded-md font-bold uppercase tracking-widest text-[10px]">Cancelar agora</button>
+                                </div>
+                            )}
                             <div className="flex flex-wrap gap-2 mb-6">
                                 {['Todos', ...STATUS_PEDIDO].map(s => {
                                     const n = s === 'Todos' ? pedidosAll.length : pedidosAll.filter(p => p.status === s).length;
@@ -1778,7 +2079,7 @@
                                                         <ItensPedido itens={p.itens} />
                                                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-0.5 text-slate-500">
                                                             <p className="flex justify-between"><span>Frete</span><span>R$ {(Number(p.valorFrete) || 0).toFixed(2)}</span></p>
-                                                            {p.cupom && <p className="flex justify-between text-emerald-600"><span>Cupom {p.cupom}</span><span>- R$ {(Number(p.descontoFrete) || 0).toFixed(2)}</span></p>}
+                                                            {p.cupom && <p className="flex justify-between text-emerald-600"><span>Cupom {p.cupom}</span><span>- R$ {((Number(p.descontoFrete) || 0) + (Number(p.descontoCupom) || 0)).toFixed(2)}</span></p>}
                                                             <p className="flex justify-between font-bold text-slate-800 dark:text-slate-100 text-sm"><span>Total</span><span>R$ {(Number(p.valorTotal) || 0).toFixed(2)}</span></p>
                                                             {p.pagamento && (
                                                                 <div className={`mt-2 p-2 rounded text-[11px] ${p.pagamento.valorAbaixoDoEsperado ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
@@ -1826,6 +2127,22 @@
 
             const [user, setUser] = useState(null);
             const [authCarregando, setAuthCarregando] = useState(true);
+            const [configLoja, setConfigLoja] = useState(CONFIG_PADRAO);
+            const carregarConfig = async () => {
+                try {
+                    const { db, doc, getDoc } = await getFb();
+                    const s = await getDoc(doc(db, 'config', 'loja'));
+                    if (s.exists()) {
+                        const d = s.data();
+                        setConfigLoja({
+                            pixDesconto: Number(d.pixDesconto ?? CONFIG_PADRAO.pixDesconto) || 0,
+                            parcelas: parseInt(d.parcelas ?? CONFIG_PADRAO.parcelas) || 1,
+                            avisosTopo: Array.isArray(d.avisosTopo) ? d.avisosTopo.filter(Boolean) : []
+                        });
+                    }
+                } catch (e) { console.error(e); }
+            };
+            useEffect(() => { carregarConfig(); }, []);
 
             // Sessão real do Firebase Auth (não dá mais para "virar admin" pelo localStorage)
             useEffect(() => {
@@ -2008,6 +2325,7 @@
             }, []);
 
             return (
+                <ConfigLoja.Provider value={configLoja}>
                 <div className={`min-h-screen font-sans flex flex-col transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-100 dark' : 'bg-[#FDFBF7] text-slate-900'}`}>
                     
                     <PromoTicker />
@@ -2058,7 +2376,7 @@
                     </header>
 
                     <main className="flex-grow">
-                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} />}
+                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} recarregarConfig={carregarConfig} />}
                         {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} setUser={setUser} logout={logout} voltar={() => irPara('store')} irFavoritos={() => irPara('favorites')} darkMode={darkMode} />}
                         {view === 'account' && !user && !authCarregando && (
                             <div className="max-w-md mx-auto text-center py-24 px-4">
@@ -2167,6 +2485,7 @@
                     {quizOpen && <QuizModal onClose={() => setQuizOpen(false)} produtos={produtos} onAddToCart={(p) => { setQuizOpen(false); addToCart(p); }} onVerProduto={(p) => { setQuizOpen(false); setProdutoSelecionado(p); }} darkMode={darkMode} />}
                     {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} onSuccess={handleAuthSuccess} mensagemExtra={authNotice} darkMode={darkMode} />}
                 </div>
+                </ConfigLoja.Provider>
             );
         }
 
