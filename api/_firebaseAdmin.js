@@ -13,7 +13,7 @@ export const db = getFirestore(app);
 export const adminAuth = getAuth(app);
 export { FieldValue };
 
-export const SITE_URL = (process.env.SITE_URL || 'https://site-elora.vercel.app').replace(/\/$/, '');
+export const SITE_URL = (process.env.SITE_URL || 'https://eloraparfums.vercel.app').replace(/\/$/, '');
 export const INFINITE_TAG = process.env.INFINITE_TAG || 'soaresalexssander96';
 
 export const STATUS_PAGOS = ['Pago', 'Em separação', 'Enviado', 'Entregue'];
