@@ -1,4 +1,4 @@
-        const { useState, useEffect, useRef, useContext } = React;
+const { useState, useEffect, useRef, useContext } = React;
 
         const Icon = ({ name, className }) => {
             const ref = useRef(null);
@@ -87,7 +87,46 @@
             return produto.imagem || './royal-amber.jpeg';
         };
 
-        const compressImage = (file) => {
+        // ===== PREÇOS =====
+        const brl = (v) => (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const precoAntigoDe = (p) => { const a = Number(p.precoAntigo) || 0, v = Number(p.preco) || 0; return a > v && v > 0 ? a : 0; };
+        const descontoPct = (p) => { const a = precoAntigoDe(p); return a ? Math.round((1 - (Number(p.preco) || 0) / a) * 100) : 0; };
+
+        // Símbolo do Pix (desenho simplificado do losango, na cor do Pix)
+        function IconePix({ className }) {
+            return (
+                <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#32BCAD" d="M12 1.6c.7 0 1.4.3 1.9.8l3.3 3.3h-.6c-1 0-2 .4-2.7 1.1L12 8.7 10.1 6.8C9.4 6.1 8.4 5.7 7.4 5.7h-.6l3.3-3.3c.5-.5 1.2-.8 1.9-.8ZM5.1 7.3h2.3c.6 0 1.1.2 1.5.6l2.3 2.3c.5.5 1.2.5 1.6 0l2.3-2.3c.4-.4 1-.6 1.5-.6h2.3l2.3 2.3c1 1 1 2.7 0 3.8l-2.3 2.3h-2.3c-.6 0-1.1-.2-1.5-.6l-2.3-2.3c-.5-.5-1.2-.5-1.6 0l-2.3 2.3c-.4.4-1 .6-1.5.6H5.1l-2.3-2.3c-1-1-1-2.7 0-3.8l2.3-2.3Zm1.7 11h.6c1 0 2-.4 2.7-1.1l1.9-1.9 1.9 1.9c.7.7 1.7 1.1 2.7 1.1h.6l-3.3 3.3c-1 1-2.7 1-3.8 0l-3.3-3.3Z"/>
+                </svg>
+            );
+        }
+
+        // Bloco de preço: "de" riscado, preço, linha do Pix e linha do cartão
+        function BlocoPreco({ produto, grande }) {
+            const cfg = useContext(ConfigLoja);
+            const v = Number(produto.preco) || 0, antigo = precoAntigoDe(produto);
+            const parc = Math.max(1, cfg.parcelas);
+            return (
+                <div className={`flex flex-col ${grande ? 'items-start gap-1.5' : 'items-center gap-1'} w-full`}>
+                    {antigo > 0 && <span className={`${grande ? 'text-sm' : 'text-xs'} text-slate-400 line-through`}>{brl(antigo)}</span>}
+                    <span className={`${grande ? 'text-3xl font-semibold' : 'text-xl font-bold'} text-slate-900 dark:text-white leading-none`}>{brl(v)}</span>
+                    {cfg.pixDesconto > 0 && (
+                        <span className={`flex items-center gap-1.5 ${grande ? 'text-sm mt-2' : 'text-xs mt-1'} text-slate-600 dark:text-slate-300`}>
+                            <IconePix className={grande ? 'w-5 h-5' : 'w-4 h-4'} />
+                            <strong className="text-[#1f9a8c] dark:text-[#4fd1c1]">{brl(precoPix(v, cfg))}</strong> com Pix
+                        </span>
+                    )}
+                    {parc > 1 && (
+                        <span className={`flex items-center gap-1.5 ${grande ? 'text-sm' : 'text-xs'} text-slate-500 dark:text-slate-400`}>
+                            <Icon name="credit-card" className={`${grande ? 'w-5 h-5' : 'w-4 h-4'} text-slate-400`} />
+                            {parc}x de <strong className="text-slate-700 dark:text-slate-200">{brl(v / parc)}</strong> sem juros
+                        </span>
+                    )}
+                </div>
+            );
+        }
+
+        const compressImage = (file, MAX = 800) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -96,8 +135,8 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800; 
-                        const MAX_HEIGHT = 800; 
+                        const MAX_WIDTH = MAX; 
+                        const MAX_HEIGHT = MAX; 
                         let width = img.width;
                         let height = img.height;
 
@@ -406,10 +445,6 @@
 
             const currentImg = imagens[imgIndex] || imagens[0];
             const precoSeguro = Number(produto.preco) || 0;
-            const cfg = useContext(ConfigLoja);
-            const parcelado = (precoSeguro / Math.max(1, cfg.parcelas)).toFixed(2);
-            const pix = precoPix(precoSeguro, cfg).toFixed(2);
-            
             const numVendidos = parseInt(produto.vendidos) || 0;
             const esgotado = estaEsgotado(produto);
 
@@ -420,7 +455,7 @@
             const shareWhats = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por R$ ${precoSeguro.toFixed(2)}!\n\n${linkProduto(produto)}`);
+                const text = encodeURIComponent(`Olha este perfume incrível na Elora Parfums: ${produto.marca} ${produto.nome} por ${brl(precoSeguro)}!\n\n${linkProduto(produto)}`);
                 window.open(`https://wa.me/?text=${text}`, '_blank');
             };
 
@@ -441,6 +476,7 @@
                             {produto.familia && <span className="bg-slate-900/80 backdrop-blur-sm text-slate-100 text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.familia}</span>}
                             {esgotado && <span className="bg-red-600 text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">Esgotado</span>}
                         </div>
+                        {descontoPct(produto) > 0 && !esgotado && <span className="absolute bottom-3 left-3 z-20 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full shadow-md">{descontoPct(produto)}% OFF</span>}
                         
                         <img src={currentImg} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-700 rounded-md shadow-sm" alt={produto.nome} />
                         
@@ -470,14 +506,7 @@
                             </div>
                         ) : <div className="mb-2"></div>}
 
-                        <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-2">R$ {precoSeguro.toFixed(2)}</p>
-                        
-                        <div className="flex flex-col items-center gap-1.5 mb-5 w-full">
-                            {cfg.parcelas > 1 && <span className="text-[10px] text-slate-500 dark:text-slate-400">{cfg.parcelas}x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros</span>}
-                            {cfg.pixDesconto > 0 && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded font-semibold w-fit border border-emerald-100 dark:border-emerald-800">
-                                <Icon name="percent" className="w-3 h-3 inline mr-0.5"/> R$ {pix} no PIX
-                            </span>}
-                        </div>
+                        <div className="mb-5 w-full"><BlocoPreco produto={produto} /></div>
 
                         {esgotado ? (
                             <div className="w-full py-3 text-[10px] font-bold uppercase tracking-widest rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 text-center">Esgotado</div>
@@ -542,9 +571,6 @@
             
             const imagensArray = (produto.imagens && produto.imagens.filter(Boolean).length > 0) ? produto.imagens.filter(Boolean) : [produto.imagem || './royal-amber.jpeg'];
             const precoSeguro = Number(produto.preco) || 0;
-            const cfg = useContext(ConfigLoja);
-            const parcelado = (precoSeguro / Math.max(1, cfg.parcelas)).toFixed(2);
-            const pix = precoPix(precoSeguro, cfg).toFixed(2);
             const numVendidos = parseInt(produto.vendidos) || 0;
             const [copiado, setCopiado] = useState(false);
             const compartilhar = async () => {
@@ -570,6 +596,7 @@
                                     <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
                                         {produto.categoria && <span className="bg-elora-gold text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.categoria}</span>}
                                         {produto.familia && <span className="bg-slate-900/80 backdrop-blur-sm text-slate-100 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm shadow-sm">{produto.familia}</span>}
+                                        {descontoPct(produto) > 0 && <span className="bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full shadow-md">{descontoPct(produto)}% OFF</span>}
                                     </div>
                                     <img src={imagensArray[imgAtiva] || imagensArray[0]} loading="lazy" decoding="async" alt={produto.nome} className="w-full h-full object-contain rounded-md transition-opacity duration-300" />
                                 </div>
@@ -597,12 +624,7 @@
                                     </button>
                                 </div>
 
-                                <p className="text-3xl font-medium mb-3">R$ {precoSeguro.toFixed(2)}</p>
-                                
-                                <div className="flex flex-col gap-1.5 mb-6 border-b border-slate-200 dark:border-slate-800 pb-6">
-                                    {cfg.parcelas > 1 && <span className="text-xs text-slate-500 dark:text-slate-400">{cfg.parcelas}x de <strong className="text-slate-700 dark:text-slate-200">R$ {parcelado}</strong> sem juros no cartão</span>}
-                                    {cfg.pixDesconto > 0 && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 w-fit rounded border border-emerald-100 dark:border-emerald-800"><Icon name="percent" className="w-3 h-3 inline mr-1"/> R$ {pix} à vista no PIX</span>}
-                                </div>
+                                <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-6"><BlocoPreco produto={produto} grande /></div>
                                 
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-lg border border-slate-200 dark:border-slate-700 mb-8">
                                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
@@ -641,7 +663,7 @@
                                             </div>
                                             <p className="text-[9px] text-elora-gold font-bold uppercase tracking-widest mb-1">{sim.marca}</p>
                                             <p className="text-sm font-serif truncate hover:text-elora-gold transition-colors">{sim.nome}</p>
-                                            <p className="text-xs font-bold mt-1 text-slate-700 dark:text-slate-200">R$ {Number(sim.preco).toFixed(2)}</p>
+                                            <p className="text-xs font-bold mt-1 text-slate-700 dark:text-slate-200">{brl(Number(sim.preco))}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -765,7 +787,7 @@
                                             <span className="text-elora-gold text-[10px] font-bold uppercase tracking-widest block mb-1">{resultado[0].marca}</span>
                                             <h4 className="text-2xl font-serif">{resultado[0].nome}</h4>
                                             {resultado[0].familia && <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1">Família {resultado[0].familia}</p>}
-                                            <p className="text-elora-gold font-medium text-xl mt-2">R$ {(Number(resultado[0].preco) || 0).toFixed(2)}</p>
+                                            <p className="text-elora-gold font-medium text-xl mt-2">{brl((Number(resultado[0].preco) || 0))}</p>
                                             <div className="grid grid-cols-2 gap-2 w-full mt-4">
                                                 <button onClick={() => onVerProduto(resultado[0])} className="border border-slate-300 dark:border-slate-600 py-3 text-[10px] font-bold uppercase tracking-widest rounded-md hover:border-elora-gold">Ver Detalhes</button>
                                                 <button onClick={() => onAddToCart(resultado[0])} className="bg-elora-gold text-white py-3 text-[10px] font-bold uppercase tracking-widest rounded-md hover:bg-slate-900 transition-colors">Adicionar à Sacola</button>
@@ -780,7 +802,7 @@
                                                             <img src={getImagemPrincipal(p)} className="w-full aspect-square object-cover rounded-md mb-2 group-hover:opacity-80" alt={p.nome} />
                                                             <p className="text-[9px] text-elora-gold font-bold uppercase tracking-widest">{p.marca}</p>
                                                             <p className="text-sm font-serif truncate">{p.nome}</p>
-                                                            <p className="text-xs font-bold">R$ {(Number(p.preco) || 0).toFixed(2)}</p>
+                                                            <p className="text-xs font-bold">{brl((Number(p.preco) || 0))}</p>
                                                         </button>
                                                     ))}
                                                 </div>
@@ -985,7 +1007,7 @@
                                                     <span className="text-xs font-bold w-6 text-center">{qtdItem(item)}</span>
                                                     <button onClick={() => alterarQtd(item.id, 1)} className="px-2 py-1 text-slate-500 hover:text-elora-gold" aria-label="Aumentar"><Icon name="plus" className="w-3 h-3" /></button>
                                                 </div>
-                                                <p className="font-medium text-sm">R$ {((Number(item.preco) || 0) * qtdItem(item)).toFixed(2)}</p>
+                                                <p className="font-medium text-sm">{brl(((Number(item.preco) || 0) * qtdItem(item)))}</p>
                                             </div>
                                         </div>
                                         <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 p-2" aria-label="Remover"><Icon name="trash-2" className="w-4 h-4" /></button>
@@ -995,7 +1017,7 @@
                         </div>
                         {cart.length > 0 && (
                             <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                                <div className="flex justify-between font-serif text-xl mb-1"><span>Subtotal</span><span className="text-elora-gold">R$ {total.toFixed(2)}</span></div>
+                                <div className="flex justify-between font-serif text-xl mb-1"><span>Subtotal</span><span className="text-elora-gold">{brl(total)}</span></div>
                                 <p className="text-[10px] text-slate-500 mb-5 text-right">Frete calculado no próximo passo</p>
                                 <button onClick={onCheckout} className="w-full bg-elora-gold text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-colors rounded-md shadow-lg shadow-elora-gold/20">Finalizar Compra</button>
                             </div>
@@ -1182,7 +1204,7 @@
                                                             <p className="text-[10px] text-slate-500 uppercase">{opcao.prazo}</p>
                                                         </div>
                                                     </div>
-                                                    <span className="font-bold dark:text-white">R$ {opcao.valor.toFixed(2)}</span>
+                                                    <span className="font-bold dark:text-white">{brl(opcao.valor)}</span>
                                                 </label>
                                             ))}
                                         </div>
@@ -1222,7 +1244,7 @@
                             {cart.map((item) => (
                                 <div key={item.id} className="flex items-center gap-4">
                                     <img src={getImagemPrincipal(item)} loading="lazy" className="w-16 h-16 object-cover rounded-md shadow-sm" alt={item.nome} />
-                                    <div><p className="font-serif text-sm">{qtdItem(item) > 1 && <span className="text-elora-gold font-sans font-bold mr-1">{qtdItem(item)}x</span>}{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">R$ {((Number(item.preco) || 0) * qtdItem(item)).toFixed(2)}</p></div>
+                                    <div><p className="font-serif text-sm">{qtdItem(item) > 1 && <span className="text-elora-gold font-sans font-bold mr-1">{qtdItem(item)}x</span>}{item.nome}</p><p className="text-slate-400 font-medium text-xs mt-1">{brl(((Number(item.preco) || 0) * qtdItem(item)))}</p></div>
                                 </div>
                             ))}
                         </div>
@@ -1244,26 +1266,26 @@
                         </div>
 
                         <div className="space-y-2 mt-2 text-sm">
-                            <div className="flex justify-between text-slate-500"><span>Produtos</span><span>R$ {totalProdutos.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-slate-500"><span>Produtos</span><span>{brl(totalProdutos)}</span></div>
                             <div className="flex justify-between text-slate-500">
                                 <span>Frete</span>
                                 <span className={descontoFrete > 0 ? "line-through text-slate-400" : ""}>
-                                    {freteValor > 0 ? `R$ ${freteValor.toFixed(2)}` : 'A calcular'}
+                                    {freteValor > 0 ? `${brl(freteValor)}` : 'A calcular'}
                                 </span>
                             </div>
                             {cupomAtivo && descontoCupom > 0 && (
-                                <div className="flex justify-between text-emerald-500 font-medium"><span>Cupom {cupomAtivo.codigo} ({cupomAtivo.descricao})</span><span>- R$ {descontoCupom.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-emerald-500 font-medium"><span>Cupom {cupomAtivo.codigo} ({cupomAtivo.descricao})</span><span>- {brl(descontoCupom)}</span></div>
                             )}
                             {cupomAtivo && cupomAtivo.freteGratis && (
-                                <div className="flex justify-between text-emerald-500 font-medium"><span>Cupom {cupomAtivo.codigo} (Frete Grátis)</span><span>{freteValor > 0 ? `- R$ ${descontoFrete.toFixed(2)}` : 'ao calcular'}</span></div>
+                                <div className="flex justify-between text-emerald-500 font-medium"><span>Cupom {cupomAtivo.codigo} (Frete Grátis)</span><span>{freteValor > 0 ? `- ${brl(descontoFrete)}` : 'ao calcular'}</span></div>
                             )}
                         </div>
                         <div className="flex justify-between font-serif text-2xl sm:text-3xl mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                            <span>Total</span><span className="text-elora-gold">R$ {totalComFrete.toFixed(2)}</span>
+                            <span>Total</span><span className="text-elora-gold">{brl(totalComFrete)}</span>
                         </div>
                         {cfg.pixDesconto > 0 && (
                             <div className="text-right mt-2">
-                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">R$ {precoPix(totalComFrete, cfg).toFixed(2)} à vista no PIX</span>
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{brl(precoPix(totalComFrete, cfg))} à vista no PIX</span>
                             </div>
                         )}
                     </div>
@@ -1278,7 +1300,7 @@
                         <div key={i} className="flex items-center gap-3 text-xs">
                             <img src={it.imagem || getImagemPrincipal(it)} className="w-10 h-10 object-cover rounded" alt={it.nome} />
                             <span className="flex-1"><strong className="text-elora-gold">{qtdItem(it)}x</strong> {it.marca} — {it.nome}</span>
-                            <span className="font-medium">R$ {((Number(it.preco) || 0) * qtdItem(it)).toFixed(2)}</span>
+                            <span className="font-medium">{brl(((Number(it.preco) || 0) * qtdItem(it)))}</span>
                         </div>
                     ))}
                 </div>
@@ -1385,7 +1407,7 @@
                                                         <span>Rastreio: <a href={`https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(p.rastreio)}`} target="_blank" rel="noreferrer" className="text-elora-gold font-bold hover:underline">{p.rastreio}</a></span>
                                                     ) : p.freteTipo ? <span>{p.freteTipo}</span> : null}
                                                 </div>
-                                                <p className="font-serif text-lg">Total <span className="text-elora-gold">R$ {(Number(p.valorTotal) || 0).toFixed(2)}</span></p>
+                                                <p className="font-serif text-lg">Total <span className="text-elora-gold">{brl((Number(p.valorTotal) || 0))}</span></p>
                                             </div>
                                         </div>
                                     ))}
@@ -1415,7 +1437,6 @@
         // ===== PAINEL: RESUMO DE VENDAS =====
         const STATUS_VENDIDO = ['Pago', 'Em separação', 'Enviado', 'Entregue'];
         const valorRecebido = (p) => (p.pagamento && Number(p.pagamento.valorPago) > 0) ? Number(p.pagamento.valorPago) : (Number(p.valorTotal) || 0);
-        const brl = (v) => (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const pedidosAbandonados = (lista) => lista.filter(p => p.status === 'Aguardando Pagamento' && new Date(p.dataCriacao).getTime() < Date.now() - 24 * 3600 * 1000);
 
         function AdminResumo({ pedidos, produtos, darkMode, irPedidos, carregando }) {
@@ -1678,16 +1699,244 @@
             );
         }
 
-        function AdminDashboard({ produtos, setProdutos, darkMode, logout, recarregarConfig }) {
+        // ===== BANNERS DE CAMPANHA (Painel → Banners) =====
+        const IMGBB_KEY = "ba8a5660412f8f7e42b2fddb2fe006c3";
+        const enviarImagem = async (file, max) => {
+            const leve = await compressImage(file, max);
+            const fd = new FormData(); fd.append('image', leve);
+            const r = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
+            const d = await r.json();
+            if (!d || !d.success) throw new Error('falha no envio da imagem');
+            return d.data.url;
+        };
+        const hojeISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+        const situacaoBanner = (b) => {
+            const hoje = hojeISO();
+            if (b.ativo === false) return 'Pausado';
+            if (b.inicio && b.inicio > hoje) return 'Agendado';
+            if (b.fim && b.fim < hoje) return 'Encerrado';
+            return 'No ar';
+        };
+
+        function HeroCarrossel({ banners, onQuiz, onClicarBanner }) {
+            const slides = [{ id: 'principal' }].concat(banners);
+            const [atual, setAtual] = useState(0);
+            const [pausado, setPausado] = useState(false);
+            const toque = useRef(null);
+            const total = slides.length;
+            const ir = (i) => setAtual(((i % total) + total) % total);
+            useEffect(() => { if (atual >= total) setAtual(0); }, [total]);
+            useEffect(() => {
+                if (total < 2 || pausado) return;
+                const t = setTimeout(() => ir(atual + 1), atual === 0 ? 4500 : 6000);
+                return () => clearTimeout(t);
+            }, [atual, total, pausado]);
+            const inicioToque = (e) => { toque.current = e.touches[0].clientX; setPausado(true); };
+            const fimToque = (e) => {
+                const x0 = toque.current; toque.current = null; setPausado(false);
+                if (x0 === null) return;
+                const dx = e.changedTouches[0].clientX - x0;
+                if (Math.abs(dx) > 40) ir(atual + (dx < 0 ? 1 : -1));
+            };
+            return (
+                <section className="relative h-[65vh] sm:h-[80vh] w-full overflow-hidden bg-slate-950" onMouseEnter={() => setPausado(true)} onMouseLeave={() => setPausado(false)} onTouchStart={inicioToque} onTouchEnd={fimToque} aria-roledescription="carrossel">
+                    <div className="flex h-full transition-transform duration-700 ease-out" style={{ transform: `translateX(-${atual * 100}%)` }}>
+                        {slides.map((b, i) => b.id === 'principal' ? (
+                            <div key="principal" className="relative w-full h-full flex-shrink-0 flex items-center justify-center" aria-hidden={atual !== i}>
+                                <img src="./banner-promo.jpeg" fetchpriority="high" decoding="async" alt="Perfumes árabes Elora Parfums" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent z-10"></div>
+                                <div className="relative z-20 text-center px-4 mt-8 max-w-4xl">
+                                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif mb-4 sm:mb-6 text-white tracking-tight drop-shadow-2xl">A Essência do <span className="text-elora-gold">Oriente</span>.</h1>
+                                    <p className="text-sm sm:text-lg text-slate-200 mb-8 max-w-2xl mx-auto font-medium drop-shadow">Fragrâncias árabes exclusivas e refinadas.</p>
+                                    <button onClick={onQuiz} tabIndex={atual === i ? 0 : -1} className="bg-elora-gold text-white px-6 sm:px-10 py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-all shadow-2xl flex items-center mx-auto gap-2.5 rounded-md hover:scale-105">
+                                        <Icon name="flask-conical" className="w-4 h-4" /> Encontrar Minha Fragrância
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button key={b.id} type="button" onClick={() => onClicarBanner(b)} tabIndex={atual === i ? 0 : -1} aria-hidden={atual !== i} aria-label={b.titulo || 'Campanha'} className={`relative w-full h-full flex-shrink-0 overflow-hidden ${b.linkTipo && b.linkTipo !== 'nenhum' ? 'cursor-pointer' : 'cursor-default'}`}>
+                                {/* fundo desfocado preenche as sobras; a arte aparece inteira, sem cortar textos */}
+                                <picture>
+                                    {b.imagemMobile && <source media="(max-width: 640px)" srcSet={b.imagemMobile} />}
+                                    <img src={b.imagem} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60" />
+                                </picture>
+                                <picture>
+                                    {b.imagemMobile && <source media="(max-width: 640px)" srcSet={b.imagemMobile} />}
+                                    <img src={b.imagem} alt={b.titulo || 'Campanha Elora Parfums'} loading="lazy" decoding="async" className="relative w-full h-full object-contain" />
+                                </picture>
+                            </button>
+                        ))}
+                    </div>
+                    {total > 1 && (
+                        <React.Fragment>
+                            <button onClick={() => ir(atual - 1)} aria-label="Banner anterior" className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/30 backdrop-blur text-white transition-colors"><Icon name="chevron-left" className="w-5 h-5" /></button>
+                            <button onClick={() => ir(atual + 1)} aria-label="Próximo banner" className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/30 backdrop-blur text-white transition-colors"><Icon name="chevron-right" className="w-5 h-5" /></button>
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+                                {slides.map((b, i) => <button key={i} onClick={() => ir(i)} aria-label={`Ir para o banner ${i + 1}`} className={`h-2 rounded-full transition-all ${atual === i ? 'w-7 bg-elora-gold' : 'w-2 bg-white/50 hover:bg-white/80'}`}></button>)}
+                            </div>
+                        </React.Fragment>
+                    )}
+                </section>
+            );
+        }
+
+        function AdminBanners({ produtos, darkMode, recarregarBanners }) {
+            const vazio = { titulo: '', linkTipo: 'nenhum', linkValor: '', inicio: '', fim: '', ativo: true, ordem: '' };
+            const [lista, setLista] = useState(null);
+            const [form, setForm] = useState(vazio);
+            const [editando, setEditando] = useState(null);
+            const [arqPc, setArqPc] = useState(null);
+            const [arqCel, setArqCel] = useState(null);
+            const [prevPc, setPrevPc] = useState('');
+            const [prevCel, setPrevCel] = useState('');
+            const [salvando, setSalvando] = useState('');
+
+            const carregar = async () => {
+                try {
+                    const { db, collection, getDocs } = await getFb();
+                    const sn = await getDocs(collection(db, 'banners'));
+                    setLista(sn.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0)));
+                } catch (e) { console.error(e); setLista([]); }
+            };
+            useEffect(() => { carregar(); }, []);
+
+            const limpar = () => { setForm(vazio); setEditando(null); setArqPc(null); setArqCel(null); setPrevPc(''); setPrevCel(''); };
+            const editar = (b) => {
+                setEditando(b); setForm({ titulo: b.titulo || '', linkTipo: b.linkTipo || 'nenhum', linkValor: b.linkValor || '', inicio: b.inicio || '', fim: b.fim || '', ativo: b.ativo !== false, ordem: b.ordem ?? '' });
+                setPrevPc(b.imagem || ''); setPrevCel(b.imagemMobile || ''); setArqPc(null); setArqCel(null); window.scrollTo(0, 0);
+            };
+            const escolher = (e, setArq, setPrev) => { const f = e.target.files && e.target.files[0]; if (f) { setArq(f); setPrev(URL.createObjectURL(f)); } };
+
+            const salvar = async (e) => {
+                e.preventDefault();
+                if (!arqPc && !(editando && editando.imagem)) return alert('Escolha a imagem do banner (computador).');
+                if (form.inicio && form.fim && form.fim < form.inicio) return alert('A data de fim é antes da data de início.');
+                if (form.linkTipo === 'url' && form.linkValor && !/^https?:\/\//.test(form.linkValor)) return alert('O link precisa começar com https://');
+                try {
+                    let imagem = editando ? editando.imagem : '', imagemMobile = editando ? (editando.imagemMobile || '') : '';
+                    if (arqPc) { setSalvando('Enviando imagem do computador...'); imagem = await enviarImagem(arqPc, 1920); }
+                    if (arqCel) { setSalvando('Enviando imagem do celular...'); imagemMobile = await enviarImagem(arqCel, 1350); }
+                    setSalvando('Salvando...');
+                    const { db, collection, addDoc, doc, updateDoc } = await getFb();
+                    const dados = {
+                        titulo: form.titulo.trim(), imagem, imagemMobile,
+                        linkTipo: form.linkTipo, linkValor: form.linkTipo === 'nenhum' ? '' : form.linkValor,
+                        inicio: form.inicio || '', fim: form.fim || '', ativo: !!form.ativo,
+                        ordem: form.ordem === '' ? (lista ? lista.length + 1 : 1) : Number(form.ordem)
+                    };
+                    if (editando) await updateDoc(doc(db, 'banners', editando.id), dados);
+                    else await addDoc(collection(db, 'banners'), { ...dados, criadoEm: new Date().toISOString() });
+                    limpar(); await carregar(); recarregarBanners();
+                } catch (err) { console.error(err); alert('Não foi possível salvar o banner. Tente uma imagem menor.'); }
+                setSalvando('');
+            };
+            const alternar = async (b) => {
+                const { db, doc, updateDoc } = await getFb();
+                await updateDoc(doc(db, 'banners', b.id), { ativo: b.ativo === false });
+                await carregar(); recarregarBanners();
+            };
+            const mover = async (b, dir) => {
+                const i = lista.findIndex(x => x.id === b.id), j = i + dir;
+                if (j < 0 || j >= lista.length) return;
+                const nova = lista.slice(); nova[i] = lista[j]; nova[j] = lista[i];
+                const { db, doc, updateDoc } = await getFb();
+                await Promise.all(nova.map((x, k) => updateDoc(doc(db, 'banners', x.id), { ordem: k + 1 })));
+                await carregar(); recarregarBanners();
+            };
+            const apagar = async (b) => {
+                if (!confirm(`Excluir o banner "${b.titulo || 'sem título'}"?`)) return;
+                const { db, doc, deleteDoc } = await getFb();
+                await deleteDoc(doc(db, 'banners', b.id));
+                await carregar(); recarregarBanners();
+            };
+
+            const campo = `w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`;
+            const rotulo = "block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold";
+            const corSit = { 'No ar': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', 'Agendado': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', 'Encerrado': 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300', 'Pausado': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' };
+            const dataBR = (d) => d ? d.split('-').reverse().join('/') : '';
+            const descLink = (b) => b.linkTipo === 'perfume' ? `abre: ${((produtos.find(p => p.id === b.linkValor) || {}).nome) || 'perfume'}` : b.linkTipo === 'categoria' ? `mostra: ${b.linkValor}` : b.linkTipo === 'url' ? 'abre link externo' : 'sem link';
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
+                    <form onSubmit={salvar} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border p-6 rounded-xl shadow-xl h-fit space-y-4`}>
+                        <h3 className="text-lg font-serif flex items-center gap-2"><Icon name="image" className="w-5 h-5 text-elora-gold" /> {editando ? 'Editar Banner' : 'Novo Banner'}</h3>
+                        <div><label className={rotulo}>Nome da campanha (só para você)</label><input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} className={campo} placeholder="Ex: Black Friday 40% OFF" /></div>
+                        <div>
+                            <label className={rotulo}>Imagem para computador *</label>
+                            <input type="file" accept="image/*" onChange={e => escolher(e, setArqPc, setPrevPc)} className="w-full text-xs" />
+                            <p className="text-[10px] text-slate-400 mt-1">Ideal: 1920 × 800 px (horizontal).</p>
+                            {prevPc && <img src={prevPc} className="mt-2 w-full rounded-md border border-slate-200 dark:border-slate-700" alt="" />}
+                        </div>
+                        <div>
+                            <label className={rotulo}>Imagem para celular <span className="normal-case tracking-normal font-normal">(opcional, recomendado)</span></label>
+                            <input type="file" accept="image/*" onChange={e => escolher(e, setArqCel, setPrevCel)} className="w-full text-xs" />
+                            <p className="text-[10px] text-slate-400 mt-1">Ideal: 1080 × 1350 px (em pé). Sem ela, o celular mostra a de computador inteira, menor.</p>
+                            {prevCel && <img src={prevCel} className="mt-2 w-1/2 rounded-md border border-slate-200 dark:border-slate-700" alt="" />}
+                        </div>
+                        <div>
+                            <label className={rotulo}>Ao tocar no banner</label>
+                            <select value={form.linkTipo} onChange={e => setForm({ ...form, linkTipo: e.target.value, linkValor: '' })} className={campo}>
+                                <option value="nenhum">Não faz nada</option>
+                                <option value="perfume">Abre um perfume</option>
+                                <option value="categoria">Mostra uma categoria</option>
+                                <option value="url">Abre um link (ex: Instagram)</option>
+                            </select>
+                        </div>
+                        {form.linkTipo === 'perfume' && <select value={form.linkValor} onChange={e => setForm({ ...form, linkValor: e.target.value })} className={campo} required><option value="">Escolha o perfume...</option>{produtos.map(p => <option key={p.id} value={p.id}>{p.marca} — {p.nome}</option>)}</select>}
+                        {form.linkTipo === 'categoria' && <select value={form.linkValor} onChange={e => setForm({ ...form, linkValor: e.target.value })} className={campo} required><option value="">Escolha...</option><option value="Feminino">Feminino</option><option value="Masculino">Masculino</option><option value="Todos">Todos os perfumes</option></select>}
+                        {form.linkTipo === 'url' && <input value={form.linkValor} onChange={e => setForm({ ...form, linkValor: e.target.value })} className={campo} placeholder="https://..." required />}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div><label className={rotulo}>Começa em</label><input type="date" value={form.inicio} onChange={e => setForm({ ...form, inicio: e.target.value })} className={campo} /></div>
+                            <div><label className={rotulo}>Termina em</label><input type="date" value={form.fim} onChange={e => setForm({ ...form, fim: e.target.value })} className={campo} /></div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 -mt-2">Datas vazias = começa agora e não termina. O banner sai do ar sozinho depois do último dia.</p>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.ativo} onChange={e => setForm({ ...form, ativo: e.target.checked })} className="w-4 h-4 accent-elora-gold" /> Banner ativo</label>
+                        <div className="flex gap-2 pt-2">
+                            <button type="submit" disabled={!!salvando} className="flex-1 bg-elora-gold text-white py-3 text-[11px] font-bold uppercase tracking-widest rounded-md hover:bg-slate-900 transition-colors">{salvando || (editando ? 'Salvar alterações' : 'Publicar banner')}</button>
+                            {editando && <button type="button" onClick={limpar} className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest rounded-md bg-slate-200 dark:bg-slate-700">Cancelar</button>}
+                        </div>
+                    </form>
+
+                    <div className="lg:col-span-2 space-y-3">
+                        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border rounded-xl p-4 text-xs text-slate-500 flex gap-3 items-start`}>
+                            <Icon name="info" className="w-4 h-4 text-elora-gold flex-shrink-0 mt-0.5" />
+                            <span>O site sempre abre com a foto principal ("A Essência do Oriente"). Depois de alguns segundos, passam os banners <strong>No ar</strong>, nesta ordem, e o ciclo recomeça.</span>
+                        </div>
+                        {lista === null ? <div className="flex justify-center py-12"><Icon name="loader-2" className="w-6 h-6 animate-spin text-elora-gold" /></div>
+                        : lista.length === 0 ? <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border rounded-xl p-10 text-center text-sm text-slate-500`}>Nenhum banner ainda. Crie o primeiro ao lado.</div>
+                        : lista.map((b, i) => {
+                            const sit = situacaoBanner(b);
+                            return (
+                                <div key={b.id} className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border rounded-xl shadow-md p-3 sm:p-4 flex flex-wrap items-center gap-4`}>
+                                    <img src={b.imagem} className="w-40 h-20 object-cover rounded-md bg-slate-100" alt="" />
+                                    <div className="flex-1 min-w-[160px]">
+                                        <div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-sm">{b.titulo || 'Sem título'}</span><span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${corSit[sit]}`}>{sit}</span>{b.imagemMobile && <span className="text-[10px] text-slate-400">+ versão celular</span>}</div>
+                                        <p className="text-[11px] text-slate-400 mt-1">{[b.inicio ? `de ${dataBR(b.inicio)}` : null, b.fim ? `até ${dataBR(b.fim)}` : 'sem data de fim', descLink(b)].filter(Boolean).join(' · ')}</p>
+                                    </div>
+                                    <div className="flex gap-1.5">
+                                        <button onClick={() => mover(b, -1)} disabled={i === 0} className="p-2 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30" aria-label="Subir"><Icon name="arrow-up" className="w-4 h-4" /></button>
+                                        <button onClick={() => mover(b, 1)} disabled={i === lista.length - 1} className="p-2 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30" aria-label="Descer"><Icon name="arrow-down" className="w-4 h-4" /></button>
+                                        <button onClick={() => alternar(b)} className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest rounded-md border border-slate-200 dark:border-slate-700 hover:border-elora-gold">{b.ativo === false ? 'Ativar' : 'Pausar'}</button>
+                                        <button onClick={() => editar(b)} className="p-2 rounded-md border border-slate-200 dark:border-slate-700 hover:text-elora-gold" aria-label="Editar"><Icon name="edit-3" className="w-4 h-4" /></button>
+                                        <button onClick={() => apagar(b)} className="p-2 rounded-md border border-slate-200 dark:border-slate-700 text-red-500" aria-label="Excluir"><Icon name="trash-2" className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminDashboard({ produtos, setProdutos, darkMode, logout, recarregarConfig, recarregarBanners }) {
             const [aba, setAba] = useState('resumo');
             const [pedidosAll, setPedidosAll] = useState([]);
             const [carregandoPedidos, setCarregandoPedidos] = useState(false);
             
-            const IMGBB_API_KEY = "ba8a5660412f8f7e42b2fddb2fe006c3"; 
 
             const [produtoEditando, setProdutoEditando] = useState(null);
             const [novoProduto, setNovoProduto] = useState({ 
-                nome: '', marca: '', preco: '', estoque: '', 
+                nome: '', marca: '', preco: '', precoAntigo: '', estoque: '', 
                 categoria: 'Feminino', familia: 'Floral', 
                 notasTopo: '', notasCoracao: '', notasFundo: '', 
                 imagensExistentes: [] 
@@ -1747,7 +1996,7 @@
                             const formData = new FormData();
                             formData.append('image', imagemLeve);
                             
-                            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+                            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
                             const data = await response.json();
                             if (data && data.success) urlsFinais.push(data.data.url);
                         }
@@ -1762,6 +2011,7 @@
                         nome: novoProduto.nome, 
                         marca: novoProduto.marca,
                         preco: Number(novoProduto.preco) || 0, 
+                        precoAntigo: (Number(novoProduto.precoAntigo) || 0) > (Number(novoProduto.preco) || 0) ? Number(novoProduto.precoAntigo) : 0,
                         estoque: parseInt(novoProduto.estoque) || 0,
                         categoria: novoProduto.categoria || 'Feminino',
                         familia: novoProduto.familia || 'Floral',
@@ -1795,7 +2045,7 @@
             const editarProduto = (p) => {
                 setProdutoEditando(p.id);
                 setNovoProduto({ 
-                    nome: p.nome || '', marca: p.marca || '', preco: p.preco || '', estoque: p.estoque || '', 
+                    nome: p.nome || '', marca: p.marca || '', preco: p.preco || '', precoAntigo: p.precoAntigo || '', estoque: p.estoque || '', 
                     categoria: p.categoria || 'Feminino', familia: p.familia || 'Floral',
                     notasTopo: p.notasTopo || '', notasCoracao: p.notasCoracao || '', notasFundo: p.notasFundo || '',
                     imagensExistentes: p.imagens ? p.imagens.filter(Boolean) : (p.imagem ? [p.imagem] : []) 
@@ -1806,7 +2056,7 @@
 
             const cancelarEdicao = () => {
                 setProdutoEditando(null);
-                setNovoProduto({ nome: '', marca: '', preco: '', estoque: '', categoria: 'Feminino', familia: 'Floral', notasTopo: '', notasCoracao: '', notasFundo: '', imagensExistentes: [] });
+                setNovoProduto({ nome: '', marca: '', preco: '', precoAntigo: '', estoque: '', categoria: 'Feminino', familia: 'Floral', notasTopo: '', notasCoracao: '', notasFundo: '', imagensExistentes: [] });
                 setPreviewImgs([]);
                 setImagensArquivos([]);
             };
@@ -1837,13 +2087,14 @@
                         <button onClick={logout} className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-semibold uppercase tracking-widest transition-colors"><Icon name="log-out" className="w-4 h-4" /> Sair do Painel</button>
                     </div>
                     <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto">
-                        {[['resumo', 'Resumo', 'bar-chart-3'], ['pedidos', 'Pedidos', 'package'], ['produtos', 'Catálogo', 'flask-conical'], ['cupons', 'Cupons', 'ticket'], ['config', 'Configurações', 'settings']].map(([k, t, ic]) => (
+                        {[['resumo', 'Resumo', 'bar-chart-3'], ['pedidos', 'Pedidos', 'package'], ['produtos', 'Catálogo', 'flask-conical'], ['banners', 'Banners', 'image'], ['cupons', 'Cupons', 'ticket'], ['config', 'Configurações', 'settings']].map(([k, t, ic]) => (
                             <button key={k} onClick={() => setAba(k)} className={`px-4 sm:px-6 py-3 text-xs font-bold uppercase tracking-widest transition-colors whitespace-nowrap flex items-center gap-2 ${aba === k ? 'border-b-2 border-elora-gold text-elora-gold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}><Icon name={ic} className="w-4 h-4" /> {t}</button>
                         ))}
                     </div>
 
                     {aba === 'resumo' && <AdminResumo pedidos={pedidosAll} produtos={produtos} darkMode={darkMode} carregando={carregandoPedidos} irPedidos={() => { setAba('pedidos'); setFiltroStatus('Pago'); }} />}
                     {aba === 'cupons' && <AdminCupons darkMode={darkMode} />}
+                    {aba === 'banners' && <AdminBanners produtos={produtos} darkMode={darkMode} recarregarBanners={recarregarBanners} />}
                     {aba === 'config' && <AdminConfig darkMode={darkMode} recarregarConfig={recarregarConfig} />}
 
                     {aba === 'produtos' && (
@@ -1864,6 +2115,11 @@
                                     <div className="grid grid-cols-2 gap-3">
                                         <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Preço (R$)</label><input type="number" step="0.01" value={novoProduto.preco} onChange={(e) => setNovoProduto({...novoProduto, preco: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required /></div>
                                         <div><label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Estoque</label><input type="number" value={novoProduto.estoque} onChange={(e) => setNovoProduto({...novoProduto, estoque: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} required /></div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold">Preço antigo "de" (R$) <span className="normal-case tracking-normal font-normal">opcional</span></label>
+                                        <input type="number" step="0.01" min="0" value={novoProduto.precoAntigo} onChange={(e) => setNovoProduto({...novoProduto, precoAntigo: e.target.value})} className={`w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-xs outline-none focus:border-elora-gold rounded-md`} placeholder="Deixe vazio se não estiver em promoção" />
+                                        {(Number(novoProduto.precoAntigo) || 0) > (Number(novoProduto.preco) || 0) && (Number(novoProduto.preco) || 0) > 0 && <p className="text-[11px] text-red-600 mt-1 font-semibold">Vai aparecer: <span className="line-through text-slate-400 font-normal">{brl(novoProduto.precoAntigo)}</span> {brl(novoProduto.preco)} · etiqueta {Math.round((1 - novoProduto.preco / novoProduto.precoAntigo) * 100)}% OFF</p>}
                                     </div>
                                     
                                     <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
@@ -1911,7 +2167,7 @@
                                                     return (
                                                     <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                                         <td className="py-3 flex items-center gap-3"><img src={imgValida} className="w-10 h-10 object-cover rounded" /><div><span className="text-elora-gold text-[9px] uppercase font-bold block tracking-widest">{p.marca} - {p.familia}</span><span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span></div></td>
-                                                        <td className="py-3"><div className="font-medium">R$ {(Number(p.preco)||0).toFixed(2)}</div><div className="text-[10px] mt-0.5">{p.estoque} un. disponíveis</div></td>
+                                                        <td className="py-3"><div className="font-medium">{precoAntigoDe(p) > 0 && <span className="line-through text-slate-400 text-[10px] mr-1">{brl(p.precoAntigo)}</span>}{brl((Number(p.preco)||0))}{descontoPct(p) > 0 && <span className="ml-1 text-[9px] font-bold text-white bg-red-600 rounded-full px-1.5 py-0.5">{descontoPct(p)}% OFF</span>}</div><div className="text-[10px] mt-0.5">{p.estoque} un. disponíveis</div></td>
                                                         <td className="py-3 text-right space-x-2">
                                                             <button onClick={() => editarProduto(p)} className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"><Icon name="pencil" className="w-4 h-4" /></button>
                                                             <button onClick={() => apagarProduto(p.id)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"><Icon name="trash-2" className="w-4 h-4" /></button>
@@ -1977,13 +2233,13 @@
                                                         <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-2">Itens</p>
                                                         <ItensPedido itens={p.itens} />
                                                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-0.5 text-slate-500">
-                                                            <p className="flex justify-between"><span>Frete</span><span>R$ {(Number(p.valorFrete) || 0).toFixed(2)}</span></p>
-                                                            {p.cupom && <p className="flex justify-between text-emerald-600"><span>Cupom {p.cupom}</span><span>- R$ {((Number(p.descontoFrete) || 0) + (Number(p.descontoCupom) || 0)).toFixed(2)}</span></p>}
-                                                            <p className="flex justify-between font-bold text-slate-800 dark:text-slate-100 text-sm"><span>Total</span><span>R$ {(Number(p.valorTotal) || 0).toFixed(2)}</span></p>
+                                                            <p className="flex justify-between"><span>Frete</span><span>{brl((Number(p.valorFrete) || 0))}</span></p>
+                                                            {p.cupom && <p className="flex justify-between text-emerald-600"><span>Cupom {p.cupom}</span><span>- {brl(((Number(p.descontoFrete) || 0) + (Number(p.descontoCupom) || 0)))}</span></p>}
+                                                            <p className="flex justify-between font-bold text-slate-800 dark:text-slate-100 text-sm"><span>Total</span><span>{brl((Number(p.valorTotal) || 0))}</span></p>
                                                             {p.pagamento && (
                                                                 <div className={`mt-2 p-2 rounded text-[11px] ${p.pagamento.valorAbaixoDoEsperado ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
                                                                     <p className="font-bold">{p.pagamento.valorAbaixoDoEsperado ? '⚠ Valor pago abaixo do esperado' : 'Pagamento confirmado'}</p>
-                                                                    <p>R$ {(Number(p.pagamento.valorPago) || 0).toFixed(2)} via {p.pagamento.metodo === 'pix' ? 'PIX' : p.pagamento.metodo === 'credit_card' ? `cartão (${p.pagamento.parcelas}x)` : p.pagamento.metodo}</p>
+                                                                    <p>{brl((Number(p.pagamento.valorPago) || 0))} via {p.pagamento.metodo === 'pix' ? 'PIX' : p.pagamento.metodo === 'credit_card' ? `cartão (${p.pagamento.parcelas}x)` : p.pagamento.metodo}</p>
                                                                     {p.pagamento.comprovante && <a href={p.pagamento.comprovante} target="_blank" rel="noreferrer" className="underline">Comprovante</a>}
                                                                 </div>
                                                             )}
@@ -2042,6 +2298,16 @@
                 } catch (e) { console.error(e); }
             };
             useEffect(() => { carregarConfig(); }, []);
+
+            const [banners, setBanners] = useState([]);
+            const carregarBanners = async () => {
+                try {
+                    const { db, collection, getDocs } = await getFb();
+                    const sn = await getDocs(collection(db, 'banners'));
+                    setBanners(sn.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => b.imagem && situacaoBanner(b) === 'No ar').sort((a, b) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0)));
+                } catch (e) { console.error(e); }
+            };
+            useEffect(() => { carregarBanners(); }, []);
 
             // Sessão real do Firebase Auth (não dá mais para "virar admin" pelo localStorage)
             useEffect(() => {
@@ -2176,6 +2442,15 @@
                 else setView('account');
             };
 
+            const clicarBanner = (b) => {
+                if (b.linkTipo === 'perfume') { const p = produtos.find(x => x.id === b.linkValor); if (p) setProdutoSelecionado(p); }
+                else if (b.linkTipo === 'categoria') {
+                    setFiltroAtivo(b.linkValor || 'Todos');
+                    const alvo = document.getElementById('catalogo'); if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                else if (b.linkTipo === 'url' && /^https?:\/\//.test(b.linkValor || '')) window.open(b.linkValor, '_blank', 'noopener');
+            };
+
             const irPara = (v) => {
                 setView(v);
                 if (window.location.hash || window.location.pathname !== '/') window.history.replaceState({}, '', '/');
@@ -2275,7 +2550,7 @@
                     </header>
 
                     <main className="flex-grow">
-                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} recarregarConfig={carregarConfig} />}
+                        {view === 'admin' && user && user.role === 'admin' && <AdminDashboard produtos={produtos} setProdutos={setProdutos} darkMode={darkMode} logout={logout} recarregarConfig={carregarConfig} recarregarBanners={carregarBanners} />}
                         {view === 'account' && user && user.role !== 'admin' && <CustomerAccount user={user} setUser={setUser} logout={logout} voltar={() => irPara('store')} irFavoritos={() => irPara('favorites')} darkMode={darkMode} />}
                         {view === 'account' && !user && !authCarregando && (
                             <div className="max-w-md mx-auto text-center py-24 px-4">
@@ -2302,19 +2577,9 @@
 
                         {view === 'store' && (
                             <div className="animate-fade-in">
-                                <section className="relative h-[65vh] sm:h-[80vh] w-full flex items-center justify-center overflow-hidden bg-slate-900">
-                                    <img src="./banner-promo.jpeg" fetchpriority="high" decoding="async" alt="Perfumes árabes Elora Parfums" className="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent z-10"></div>
-                                    <div className="relative z-20 text-center px-4 mt-8 max-w-4xl">
-                                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif mb-4 sm:mb-6 text-white tracking-tight drop-shadow-2xl">A Essência do <span className="text-elora-gold">Oriente</span>.</h1>
-                                        <p className="text-sm sm:text-lg text-slate-200 mb-8 max-w-2xl mx-auto font-medium drop-shadow">Fragrâncias árabes exclusivas e refinadas.</p>
-                                        <button onClick={() => setQuizOpen(true)} className="bg-elora-gold text-white px-6 sm:px-10 py-4 text-xs font-bold uppercase tracking-widest hover:bg-slate-900 transition-all shadow-2xl flex items-center mx-auto gap-2.5 rounded-md hover:scale-105">
-                                            <Icon name="flask-conical" className="w-4 h-4" /> Encontrar Minha Fragrância
-                                        </button>
-                                    </div>
-                                </section>
+                                <HeroCarrossel banners={banners} onQuiz={() => setQuizOpen(true)} onClicarBanner={clicarBanner} />
 
-                                <section className="max-w-7xl mx-auto px-4 py-12 sm:py-20">
+                                <section id="catalogo" className="max-w-7xl mx-auto px-4 py-12 sm:py-20 scroll-mt-24">
                                     <div className="mb-12 flex flex-col items-center">
                                         <h2 className="text-3xl sm:text-4xl font-serif mb-8 text-center">Catálogo Exclusivo</h2>
                                         
@@ -2390,4 +2655,3 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-    
