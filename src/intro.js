@@ -1,239 +1,288 @@
-// ===== Abertura da Elora Parfums: caixa do Afeef abrindo, frasco saindo, tampa e duas borrifadas =====
+// ===== Abertura da Elora Parfums =====
+// Estrela árabe de 8 pontas desenhada em ouro -> explode em poeira dourada com fumaça de oud
+// -> a poeira forma "ELORA" -> reflexo de luz -> a loja aparece.
+// Tudo desenhado em código (nítido em qualquer tela), ~5 segundos, sem toque.
 // Aparece 1x por dia por visitante. Para forçar (testes): site-elora.vercel.app/?intro=1
 (function () {
   var params = new URLSearchParams(location.search);
   var forcar = params.get('intro') === '1';
   var hoje = new Date().toISOString().slice(0, 10);
   var CHAVE = 'elora_intro_dia';
-
   function lerVisto() { try { return localStorage.getItem(CHAVE); } catch (e) { return null; } }
   function marcarVisto() { try { localStorage.setItem(CHAVE, hoje); } catch (e) {} }
 
   if (!forcar) {
     if (lerVisto() === hoje) return;
-    if (navigator.webdriver) return;                                   // robôs/testes
-    if (location.pathname.indexOf('/p/') === 0) return;                // link direto de perfume
-    if (params.get('pedido') || params.get('order_nsu')) return;       // voltando do pagamento
-    if (/^#(trocas|privacidade|termos)$/.test(location.hash)) return;  // páginas institucionais
+    if (navigator.webdriver) return;
+    if (location.pathname.indexOf('/p/') === 0) return;
+    if (params.get('pedido') || params.get('order_nsu')) return;
+    if (/^#(trocas|privacidade|termos)$/.test(location.hash)) return;
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   }
 
-  var IMG = '/intro/';
+  var OURO = '#D4AF37', OURO_CLARO = '#F7E7B0', OURO_ESCURO = '#8C6A1C';
   var css = '' +
-    '#elora-intro{position:fixed;inset:0;z-index:99999;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#1c2547 0%,#0A1128 55%,#050914 100%);display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,sans-serif;transition:opacity .9s ease;-webkit-tap-highlight-color:transparent}' +
-    '#elora-intro.saindo{opacity:0;pointer-events:none}' +
-    '#elora-intro canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}' +
-    '#ei-palco{position:relative;width:min(78vw,46vh);aspect-ratio:518/708;perspective:1400px;transform-style:preserve-3d;margin-top:-6vh}' +
-    '#ei-brilho{position:absolute;left:50%;top:50%;width:160%;height:120%;transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,rgba(255,226,150,.55) 0%,rgba(212,175,55,.25) 30%,rgba(212,175,55,0) 65%);opacity:0;transition:opacity 1.2s ease,transform 1.6s cubic-bezier(.2,.8,.2,1);pointer-events:none}' +
-    '#ei-caixa,#ei-caixa-fundo{position:absolute;inset:0;transform-style:preserve-3d;transition:transform 1.4s cubic-bezier(.5,0,.3,1),opacity 1s ease;animation:eiFlutua 4s ease-in-out infinite}' +
-    '#ei-fundo{position:absolute;inset:2% 3%;border-radius:3px;background:linear-gradient(180deg,#e9dcc3 0%,#cdb994 100%);box-shadow:inset 0 0 40px rgba(60,40,10,.55),inset 0 0 0 6px #c9a85a}' +
-    '#ei-fundo:after{content:"";position:absolute;inset:12% 18% 6%;border-radius:45% 45% 8% 8%;background:radial-gradient(ellipse at 50% 30%,#5a4321 0%,#2b1f0f 75%);box-shadow:inset 0 0 25px #000}' +
-    '.ei-porta{position:absolute;top:0;width:50%;height:100%;transition:transform 1.6s cubic-bezier(.6,0,.25,1);transform-style:preserve-3d}' +
-    '.ei-porta>i,.ei-porta>em{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:0 0 0 1px rgba(212,175,55,.35)}' +
-    '.ei-porta>i{background:url(' + IMG + 'porta.webp) center/100% 100%}' +
-    '.ei-porta>em{transform:rotateY(180deg);background:linear-gradient(90deg,#efe6d2,#d9c9a6);box-shadow:inset 0 0 0 5px #c9a85a,inset 0 0 30px rgba(90,60,20,.35)}' +
-    '#ei-porta-e{left:0;transform-origin:0 50%}' +
-    '#ei-porta-d{right:0;transform-origin:100% 50%}' +
-    '#ei-porta-d>i{transform:scaleX(-1)}' +
-    '#ei-selo{position:absolute;left:-27.6%;top:37.1%;width:55.2%;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translateZ(1px)}' +
-    '#ei-fenda{position:absolute;left:50%;top:3%;bottom:3%;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,transparent,#ffe7a3,transparent);opacity:0;filter:blur(1px);transition:opacity .5s ease;box-shadow:0 0 18px 6px rgba(255,215,120,.7)}' +
-    '#elora-intro.abrindo #ei-caixa,#elora-intro.abrindo #ei-caixa-fundo{animation:none}' +
-    '#elora-intro.abrindo #ei-fenda{opacity:1}' +
-    '#elora-intro.aberta #ei-porta-e{transform:rotateY(-128deg)}' +
-    '#elora-intro.aberta #ei-porta-d{transform:rotateY(128deg)}' +
-    '#elora-intro.aberta #ei-fenda{opacity:0}' +
-    '#elora-intro.aberta #ei-brilho{opacity:1;transform:translate(-50%,-50%) scale(1)}' +
-    '#elora-intro.subindo #ei-caixa,#elora-intro.subindo #ei-caixa-fundo{transform:translateY(38%) scale(.82);opacity:0;transition:transform 1.4s cubic-bezier(.5,0,.3,1),opacity .7s ease}' +
-    '#ei-frasco{position:absolute;left:50%;top:55%;width:72%;aspect-ratio:459/700;transform:translate(-50%,-50%) scale(.78);opacity:0;transition:transform 1.9s cubic-bezier(.2,.9,.25,1),opacity .8s ease;filter:drop-shadow(0 0 22px rgba(255,210,120,.35)) drop-shadow(0 18px 30px rgba(0,0,0,.55))}' +
-    '#elora-intro.aberta #ei-frasco{opacity:1}' +
-    '#elora-intro.subindo #ei-frasco{transform:translate(-50%,-58%) scale(1.22)}' +
-    '#ei-frasco img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;-webkit-user-drag:none;user-select:none}' +
-    '#ei-sem-tampa,#ei-tampa{opacity:0}' +
-    '#elora-intro.destampado #ei-com-tampa{opacity:0}' +
-    '#elora-intro.destampado #ei-sem-tampa{opacity:1}' +
-    '#elora-intro.destampado #ei-tampa{opacity:1;animation:eiTampa 1.5s cubic-bezier(.4,0,.2,1) forwards}' +
-    '#ei-frasco.aperta #ei-sem-tampa{transform:translateY(.7%) scaleY(.995)}' +
-    '#ei-sem-tampa{transition:transform .12s ease}' +
-    '#ei-flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,rgba(255,240,200,.95),rgba(255,220,140,0) 60%);opacity:0;pointer-events:none}' +
-    '#ei-flash.on{animation:eiFlash .9s ease-out}' +
-    '#ei-titulo{position:absolute;left:0;right:0;bottom:calc(6vh + 78px);text-align:center;color:#f4ead2;transition:opacity .8s ease,transform .8s ease;pointer-events:none}' +
-    '#ei-titulo b{display:block;font-family:"Playfair Display",Georgia,serif;font-weight:700;font-size:clamp(28px,8vw,46px);letter-spacing:.32em;padding-left:.32em}' +
-    '#ei-titulo span{display:block;color:#D4AF37;font-size:10px;letter-spacing:.6em;padding-left:.6em;margin-top:6px}' +
-    '#ei-titulo small{display:block;margin-top:14px;font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:15px;color:#d9c9a3;opacity:0;transition:opacity 1s ease}' +
-    '#elora-intro.final #ei-titulo small{opacity:1}' +
-    '#ei-botao{position:absolute;left:50%;bottom:6vh;transform:translateX(-50%);border:1px solid #D4AF37;background:linear-gradient(135deg,rgba(212,175,55,.95),rgba(170,130,40,.95));color:#fff;font-size:11px;font-weight:700;letter-spacing:.3em;padding:15px 30px 15px 34px;border-radius:999px;box-shadow:0 0 0 0 rgba(212,175,55,.6),0 10px 30px rgba(0,0,0,.4);animation:eiPulso 2.2s ease-in-out infinite;cursor:pointer;white-space:nowrap;text-transform:uppercase;font-family:inherit}' +
-    '#ei-botao:disabled{opacity:.6;animation:none}' +
-    '#ei-pular{position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#d9c9a3;font-size:10px;letter-spacing:.25em;text-transform:uppercase;padding:9px 14px;border-radius:999px;cursor:pointer;font-family:inherit}' +
-    '#elora-intro.iniciou #ei-botao{opacity:0;pointer-events:none;transition:opacity .4s}' +
-    '#elora-intro.iniciou #ei-titulo{opacity:0;transform:translateY(10px)}' +
-    '#elora-intro.final #ei-titulo{opacity:1;transform:translateY(60px)}' +
-    '#elora-intro.final #ei-frasco{transform:translate(-50%,-62%) scale(1.12);transition:transform 2.5s ease}' +
-    '@keyframes eiFlutua{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.6%)}}' +
-    '@keyframes eiPulso{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,.55),0 10px 30px rgba(0,0,0,.4)}50%{box-shadow:0 0 0 12px rgba(212,175,55,0),0 10px 30px rgba(0,0,0,.4)}}' +
-    '@keyframes eiTampa{0%{transform:translate(0,0) rotate(0)}22%{transform:translate(0,-6%) rotate(0)}100%{transform:translate(42%,-62%) rotate(16deg);opacity:0}}' +
-    '@keyframes eiFlash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}';
+    '#elora-intro{position:fixed;inset:0;z-index:99999;background:radial-gradient(ellipse at 50% 42%,#141c38 0%,#0A1128 45%,#03060f 100%);transition:opacity .8s ease,transform 1.1s cubic-bezier(.3,0,.2,1);overflow:hidden;-webkit-tap-highlight-color:transparent}' +
+    '#elora-intro.saindo{opacity:0;transform:scale(1.12);pointer-events:none}' +
+    '#elora-intro canvas{position:absolute;inset:0;width:100%;height:100%}' +
+    '#ei-pular{position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;z-index:2;background:rgba(255,255,255,.06);border:1px solid rgba(212,175,55,.35);color:#d9c9a3;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.28em;text-transform:uppercase;padding:10px 15px;border-radius:999px;cursor:pointer;opacity:0;animation:eiAparece .6s .4s forwards}' +
+    '@keyframes eiAparece{to{opacity:1}}';
 
   var el = document.createElement('div');
   el.id = 'elora-intro';
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Abertura Elora Parfums');
-  el.innerHTML =
-    '<style>' + css + '</style>' +
-    '<canvas id="ei-canvas"></canvas>' +
-    '<div id="ei-palco">' +
-      '<div id="ei-brilho"></div>' +
-      '<div id="ei-caixa-fundo"><div id="ei-fundo"></div></div>' +
-      '<div id="ei-frasco">' +
-        '<img id="ei-com-tampa" alt="" src="' + IMG + 'frasco-com-tampa.webp">' +
-        '<img id="ei-sem-tampa" alt="" src="' + IMG + 'frasco-sem-tampa.webp">' +
-        '<img id="ei-tampa" alt="" src="' + IMG + 'tampa.webp">' +
-      '</div>' +
-      '<div id="ei-caixa">' +
-        '<div class="ei-porta" id="ei-porta-e"><i></i><em></em></div>' +
-        '<div class="ei-porta" id="ei-porta-d"><i></i><em></em><img id="ei-selo" alt="" src="' + IMG + 'selo.webp"></div>' +
-        '<div id="ei-fenda"></div>' +
-      '</div>' +
-    '</div>' +
-    '<div id="ei-flash"></div>' +
-    '<div id="ei-titulo"><b>ELORA</b><span>PARFUMS</span><small>A Essência do Oriente</small></div>' +
-    '<button id="ei-botao" type="button">Descobrir</button>' +
-    '<button id="ei-pular" type="button">Pular</button>';
+  el.innerHTML = '<style>' + css + '</style><canvas></canvas><button id="ei-pular" type="button">Pular</button>';
 
   function montar() {
     document.body.appendChild(el);
-    var htmlOverflow = document.documentElement.style.overflow;
+    var overflowAntes = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
-    var $ = function (id) { return document.getElementById(id); };
-    var cv = $('ei-canvas'), ctx = cv.getContext('2d');
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var W = 0, H = 0;
-    function redim() { W = el.clientWidth; H = el.clientHeight; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
-    redim(); window.addEventListener('resize', redim);
+    var cv = el.querySelector('canvas'), ctx = cv.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2.5), W, H, CX, CY, R;
+    function medir() {
+      W = el.clientWidth; H = el.clientHeight; CX = W / 2; CY = H * 0.46;
+      R = Math.min(W * 0.36, H * 0.22);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    medir();
+
+    // ---------- utilitários ----------
+    var ease = function (t) { t = Math.max(0, Math.min(1, t)); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+    var easeOut = function (t) { t = Math.max(0, Math.min(1, t)); return 1 - Math.pow(1 - t, 3); };
+    var faixa = function (t, a, b) { return Math.max(0, Math.min(1, (t - a) / (b - a))); };
+    var mobile = W < 700;
+
+    // ---------- estrela de 8 pontas (dois quadrados girados + octógono interno) ----------
+    function quadrado(r, rot) { var p = []; for (var i = 0; i <= 4; i++) { var a = rot + i * Math.PI / 2; p.push([Math.cos(a) * r, Math.sin(a) * r]); } return p; }
+    function poligono(n, r, rot) { var p = []; for (var i = 0; i <= n; i++) { var a = rot + i * 2 * Math.PI / n; p.push([Math.cos(a) * r, Math.sin(a) * r]); } return p; }
+    function estrela8(r) {
+      // contorno externo da estrela (16 vértices alternando ponta/vale)
+      var p = [], vale = r * Math.cos(Math.PI / 4) / Math.cos(Math.PI / 8) * 0.765;
+      for (var i = 0; i <= 16; i++) { var a = -Math.PI / 2 + i * Math.PI / 8, rr = i % 2 === 0 ? r : vale; p.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+      return p;
+    }
+    function caminhos() {
+      return [
+        { p: quadrado(R, -Math.PI / 2 + Math.PI / 4), w: 1.4 },
+        { p: quadrado(R, -Math.PI / 2), w: 1.4 },
+        { p: estrela8(R * 0.62), w: 1.1 },
+        { p: poligono(8, R * 0.34, -Math.PI / 2 + Math.PI / 8), w: 1 },
+        { p: poligono(64, R * 1.18, 0), w: .7 },
+        { p: poligono(64, R * 1.26, 0), w: .5 }
+      ];
+    }
+    function comprimento(p) { var L = 0; for (var i = 1; i < p.length; i++) L += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); return L; }
+    function desenharParcial(p, prog) {
+      var L = comprimento(p) * prog, acc = 0;
+      ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+      for (var i = 1; i < p.length; i++) {
+        var s = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]);
+        if (acc + s >= L) { var k = (L - acc) / s; ctx.lineTo(p[i - 1][0] + (p[i][0] - p[i - 1][0]) * k, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * k); break; }
+        ctx.lineTo(p[i][0], p[i][1]); acc += s;
+      }
+      ctx.stroke();
+    }
+    function amostrar(p, n) { // pontos espalhados pelo contorno (viram partículas na explosão)
+      var L = comprimento(p), out = [], passo = L / n, alvo = 0, acc = 0;
+      for (var i = 1; i < p.length && out.length < n; i++) {
+        var s = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]);
+        while (alvo <= acc + s && out.length < n) { var k = (alvo - acc) / s; out.push([p[i - 1][0] + (p[i][0] - p[i - 1][0]) * k, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * k]); alvo += passo; }
+        acc += s;
+      }
+      return out;
+    }
+
+    // ---------- texto "ELORA" em pontos ----------
+    var FONTE = '"Playfair Display", Georgia, "Times New Roman", serif';
+    var tamTexto, espac, textoY;
+    function layoutTexto() {
+      tamTexto = Math.min(W * 0.17, 116); espac = tamTexto * 0.3; textoY = CY + tamTexto * 0.36;
+    }
+    function larguraTexto(c, txt, esp) { var w = 0; for (var i = 0; i < txt.length; i++) w += c.measureText(txt[i]).width + (i < txt.length - 1 ? esp : 0); return w; }
+    function escreverEspacado(c, txt, cx, y, esp) {
+      var w = larguraTexto(c, txt, esp), x = cx - w / 2;
+      for (var i = 0; i < txt.length; i++) { c.fillText(txt[i], x, y); x += c.measureText(txt[i]).width + esp; }
+      return w;
+    }
+    function alvosTexto(max) {
+      var oc = document.createElement('canvas'); oc.width = Math.ceil(W); oc.height = Math.ceil(H);
+      var o = oc.getContext('2d'); o.fillStyle = '#fff'; o.textBaseline = 'alphabetic';
+      o.font = '700 ' + tamTexto + 'px ' + FONTE; escreverEspacado(o, 'ELORA', CX, textoY, espac);
+      var d = o.getImageData(0, 0, oc.width, oc.height).data, pts = [], passo = Math.max(2, Math.round(tamTexto / 34));
+      for (var y = 0; y < oc.height; y += passo) for (var x = 0; x < oc.width; x += passo) if (d[(y * oc.width + x) * 4 + 3] > 128) pts.push([x, y]);
+      for (var i = pts.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = pts[i]; pts[i] = pts[j]; pts[j] = t; }
+      return pts.slice(0, max);
+    }
 
     // ---------- partículas ----------
-    var parts = [];
-    function poeira(n) {
-      for (var i = 0; i < n; i++) parts.push({ t: 'p', x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .15, vy: -.1 - Math.random() * .25, r: .6 + Math.random() * 1.6, a: .15 + Math.random() * .5, vida: 1e9, f: Math.random() * 6.28 });
+    var poeira = [], fumaca = [], faiscas = [];
+    for (var i = 0; i < (mobile ? 45 : 80); i++) poeira.push({ x: Math.random(), y: Math.random(), r: .4 + Math.random() * 1.3, v: .00006 + Math.random() * .00018, f: Math.random() * 6.3 });
+    function novaFumaca() {
+      return { x: CX + (Math.random() - .5) * R * .5, y: CY + R * 0.2, vx: (Math.random() - .5) * .25, vy: -.35 - Math.random() * .55, r: R * (.18 + Math.random() * .2), a: 0, amax: .05 + Math.random() * .05, vida: 0, dur: 220 + Math.random() * 160, f: Math.random() * 6.3 };
     }
-    poeira(Math.round(Math.min(70, W * H / 9000)));
-    function explosao(x, y, n) {
-      for (var i = 0; i < n; i++) { var ang = Math.random() * 6.28, v = 1 + Math.random() * 4; parts.push({ t: 'b', x: x, y: y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v - 1, r: 1 + Math.random() * 2.2, a: 1, vida: 50 + Math.random() * 50, f: 0 }); }
-    }
-    function nevoa(x, y) {
-      // jato em cone para cima e para a direita, como um borrifo real
-      for (var i = 0; i < 140; i++) {
-        var ang = -Math.PI / 2 + 0.55 + (Math.random() - .5) * 0.75, v = 2.5 + Math.random() * 7;
-        var nuvem = Math.random() < .7;
-        parts.push({ t: nuvem ? 'n' : 'g', x: x + (Math.random() - .5) * 4, y: y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, r: nuvem ? 6 + Math.random() * 10 : .7 + Math.random() * 1.4, a: nuvem ? .22 + Math.random() * .18 : .7 + Math.random() * .3, vida: 80 + Math.random() * 70, f: 0, cresce: nuvem ? 1.022 + Math.random() * .022 : 0 });
-      }
-    }
-    var nevoaGeral = 0;
-    var rodando = true;
-    function quadro() {
+    var particulas = null; // criadas na explosão
+
+    // ---------- linha do tempo ----------
+    var t0 = null, encerrado = false, rodando = true;
+    var T = { desenho: [0, 1300], brilho: [1000, 1700], explosao: 1650, forma: [1950, 3200], texto: [2950, 3500], sub: [3350, 3900], tag: [3650, 4300], reflexo: [3800, 4500], fim: 5100 };
+
+    function quadro(agora) {
       if (!rodando) return;
+      if (t0 === null) t0 = agora;
+      var t = agora - t0;
       ctx.clearRect(0, 0, W, H);
-      for (var i = parts.length - 1; i >= 0; i--) {
-        var p = parts[i];
-        p.x += p.vx; p.y += p.vy; p.f += .03;
-        if (p.t === 'p') { p.x += Math.sin(p.f) * .2; if (p.y < -5) { p.y = H + 5; p.x = Math.random() * W; } }
-        else { p.vida--; p.vx *= .965; p.vy = p.vy * .965 + (p.t === 'b' ? .05 : -.012); if (p.cresce) p.r *= p.cresce; p.a *= p.t === 'n' ? .978 : .972; if (p.t === 'n' && p.r > 140) p.r = 140; if (p.vida <= 0 || p.a < .02) { parts.splice(i, 1); continue; } }
-        if (p.t === 'n') {
-          var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-          g.addColorStop(0, 'rgba(255,248,235,' + p.a + ')'); g.addColorStop(.45, 'rgba(255,244,225,' + (p.a * .45) + ')'); g.addColorStop(1, 'rgba(255,240,215,0)');
-          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.29); ctx.fill();
-        } else {
-          ctx.fillStyle = (p.t === 'g' ? 'rgba(255,252,240,' : 'rgba(240,205,120,') + (p.t === 'p' ? p.a * (.6 + .4 * Math.sin(p.f * 2)) : p.a) + ')';
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.29); ctx.fill();
+
+      // poeira de fundo
+      for (var i = 0; i < poeira.length; i++) {
+        var q = poeira[i]; q.y -= q.v * 16; q.f += .02; if (q.y < -0.02) { q.y = 1.02; q.x = Math.random(); }
+        ctx.fillStyle = 'rgba(232,200,120,' + (.12 + .25 * (.5 + .5 * Math.sin(q.f))) + ')';
+        ctx.beginPath(); ctx.arc(q.x * W + Math.sin(q.f) * 6, q.y * H, q.r, 0, 6.29); ctx.fill();
+      }
+
+      // fumaça de oud (sobe a partir da estrela)
+      if (t > 800 && t < T.fim - 300 && fumaca.length < (mobile ? 26 : 40) && Math.random() < .35) fumaca.push(novaFumaca());
+      ctx.globalCompositeOperation = 'lighter';
+      for (var f = fumaca.length - 1; f >= 0; f--) {
+        var s = fumaca[f]; s.vida++; s.f += .015; s.x += s.vx + Math.sin(s.f) * .35; s.y += s.vy; s.r *= 1.006;
+        var k = s.vida / s.dur; s.a = s.amax * Math.sin(Math.PI * Math.min(1, k));
+        if (k >= 1) { fumaca.splice(f, 1); continue; }
+        var g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+        g.addColorStop(0, 'rgba(214,175,90,' + s.a + ')'); g.addColorStop(1, 'rgba(214,175,90,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.29); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      // estrela em fio de ouro
+      if (t < T.explosao + 450) {
+        var prog = ease(faixa(t, T.desenho[0], T.desenho[1]));
+        var some = 1 - faixa(t, T.explosao, T.explosao + 450);
+        var gira = t * 0.00012;
+        ctx.save(); ctx.translate(CX, CY); ctx.rotate(gira);
+        var grad = ctx.createLinearGradient(-R, -R, R, R);
+        grad.addColorStop(0, OURO_ESCURO); grad.addColorStop(.5, OURO_CLARO); grad.addColorStop(1, OURO);
+        ctx.strokeStyle = grad; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        var pulso = faixa(t, T.brilho[0], T.brilho[1]);
+        ctx.shadowColor = 'rgba(255,215,120,.9)'; ctx.shadowBlur = 6 + 18 * Math.sin(Math.PI * pulso);
+        ctx.globalAlpha = some;
+        var cam = caminhos();
+        for (var c = 0; c < cam.length; c++) { ctx.lineWidth = cam[c].w * (1 + .6 * pulso); desenharParcial(cam[c].p, Math.min(1, prog * (1 + c * .08))); }
+        // núcleo luminoso
+        var nucleo = Math.sin(Math.PI * pulso);
+        if (nucleo > 0) { var gn = ctx.createRadialGradient(0, 0, 0, 0, 0, R * .5); gn.addColorStop(0, 'rgba(255,240,200,' + .55 * nucleo + ')'); gn.addColorStop(1, 'rgba(255,220,140,0)'); ctx.fillStyle = gn; ctx.beginPath(); ctx.arc(0, 0, R * .5, 0, 6.29); ctx.fill(); }
+        ctx.restore(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      }
+
+      // explosão: a estrela vira poeira dourada que forma ELORA
+      if (t >= T.explosao && !particulas) {
+        layoutTexto();
+        var alvos = alvosTexto(mobile ? 650 : 1100);
+        var gira2 = t * 0.00012, origem = [];
+        var cam2 = caminhos();
+        for (var c2 = 0; c2 < 4; c2++) origem = origem.concat(amostrar(cam2[c2].p, Math.ceil(alvos.length / 4) + 2));
+        particulas = alvos.map(function (a, i) {
+          var o = origem[i % origem.length], cs = Math.cos(gira2), sn = Math.sin(gira2);
+          var x = CX + o[0] * cs - o[1] * sn, y = CY + o[0] * sn + o[1] * cs;
+          var ang = Math.atan2(y - CY, x - CX) + (Math.random() - .5) * .8, v = 2 + Math.random() * 6;
+          return { x: x, y: y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, tx: a[0], ty: a[1], r: .7 + Math.random() * 1.1, br: Math.random() };
+        });
+        for (var e = 0; e < (mobile ? 70 : 120); e++) { var an = Math.random() * 6.29, ve = 3 + Math.random() * 9; faiscas.push({ x: CX, y: CY, vx: Math.cos(an) * ve, vy: Math.sin(an) * ve, a: 1, r: .6 + Math.random() * 1.8 }); }
+      }
+      // clarão da explosão
+      var cl = faixa(t, T.explosao - 80, T.explosao + 700);
+      if (cl > 0 && cl < 1) { var gc = ctx.createRadialGradient(CX, CY, 0, CX, CY, R * 2.4 * easeOut(cl) + 1); gc.addColorStop(0, 'rgba(255,236,190,' + .5 * (1 - cl) + ')'); gc.addColorStop(1, 'rgba(255,236,190,0)'); ctx.fillStyle = gc; ctx.fillRect(0, 0, W, H); }
+
+      // faíscas
+      for (var fz = faiscas.length - 1; fz >= 0; fz--) {
+        var z = faiscas[fz]; z.x += z.vx; z.y += z.vy; z.vx *= .955; z.vy = z.vy * .955 + .03; z.a *= .965;
+        if (z.a < .03) { faiscas.splice(fz, 1); continue; }
+        ctx.fillStyle = 'rgba(255,230,160,' + z.a + ')'; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 6.29); ctx.fill();
+      }
+
+      // partículas formando o nome
+      var aparece = ease(faixa(t, T.texto[0], T.texto[1]));
+      if (particulas) {
+        var atr = ease(faixa(t, T.forma[0], T.forma[1]));
+        var alfaP = 1 - ease(faixa(t, T.texto[0] + 150, T.texto[1] + 350));
+        if (alfaP > 0) {
+          ctx.globalCompositeOperation = 'lighter';
+          for (var pi = 0; pi < particulas.length; pi++) {
+            var p = particulas[pi];
+            p.vx *= .94; p.vy *= .94;
+            // redemoinho suave antes de ir para o lugar
+            var dx = p.x - CX, dy = p.y - CY; p.vx += -dy * .0009 * (1 - atr); p.vy += dx * .0009 * (1 - atr);
+            p.x += p.vx; p.y += p.vy;
+            p.x += (p.tx - p.x) * (.02 + .2 * atr) * atr; p.y += (p.ty - p.y) * (.02 + .2 * atr) * atr;
+            var brilha = .55 + .45 * Math.sin(t * .008 + p.br * 20);
+            ctx.fillStyle = 'rgba(' + (230 + 25 * p.br | 0) + ',' + (190 + 40 * p.br | 0) + ',110,' + (alfaP * brilha) + ')';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.29); ctx.fill();
+          }
+          ctx.globalCompositeOperation = 'source-over';
         }
       }
-      if (nevoaGeral > 0) { var gg = ctx.createRadialGradient(W / 2, H * .4, 0, W / 2, H * .4, Math.max(W, H) * .7); gg.addColorStop(0, 'rgba(255,236,190,' + nevoaGeral * 2 + ')'); gg.addColorStop(1, 'rgba(255,236,190,0)'); ctx.fillStyle = gg; ctx.fillRect(0, 0, W, H); }
+
+      // nome nítido + PARFUMS + frase + reflexo de luz
+      if (aparece > 0) {
+        ctx.save();
+        ctx.textBaseline = 'alphabetic'; ctx.font = '700 ' + tamTexto + 'px ' + FONTE;
+        var gt = ctx.createLinearGradient(0, textoY - tamTexto, 0, textoY);
+        gt.addColorStop(0, '#FFF3CF'); gt.addColorStop(.55, OURO_CLARO); gt.addColorStop(1, OURO);
+        ctx.fillStyle = gt; ctx.globalAlpha = aparece;
+        ctx.shadowColor = 'rgba(212,175,55,.45)'; ctx.shadowBlur = 24;
+        var wNome = escreverEspacado(ctx, 'ELORA', CX, textoY, espac);
+        ctx.shadowBlur = 0;
+        // reflexo de luz passando pelo nome
+        var rf = faixa(t, T.reflexo[0], T.reflexo[1]);
+        if (rf > 0 && rf < 1) {
+          ctx.globalCompositeOperation = 'source-atop';
+          var xr = CX - wNome / 2 - 80 + (wNome + 160) * ease(rf);
+          var gr = ctx.createLinearGradient(xr - 50, 0, xr + 50, 0);
+          gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = gr; ctx.fillRect(xr - 50, textoY - tamTexto, 100, tamTexto * 1.2);
+          ctx.globalCompositeOperation = 'source-over';
+        }
+        // PARFUMS com traços
+        var sub = ease(faixa(t, T.sub[0], T.sub[1]));
+        if (sub > 0) {
+          var ts = Math.max(10, tamTexto * 0.13), ys = textoY + ts * 2.6;
+          ctx.globalAlpha = sub; ctx.fillStyle = OURO; ctx.font = '500 ' + ts + 'px Inter, system-ui, sans-serif';
+          var wp = escreverEspacado(ctx, 'PARFUMS', CX, ys, ts * .75);
+          var traco = (wNome / 2 - wp / 2 - ts * 1.4) * easeOut(sub);
+          ctx.fillRect(CX - wp / 2 - ts - traco, ys - ts * .38, traco, 1);
+          ctx.fillRect(CX + wp / 2 + ts, ys - ts * .38, traco, 1);
+          var tg = ease(faixa(t, T.tag[0], T.tag[1]));
+          if (tg > 0) {
+            ctx.globalAlpha = tg; ctx.fillStyle = '#d9c9a3';
+            ctx.font = 'italic 400 ' + Math.max(14, tamTexto * .2) + 'px ' + FONTE; ctx.textAlign = 'center';
+            ctx.fillText('A Essência do Oriente', CX, ys + Math.max(14, tamTexto * .2) * 2.4 + (1 - tg) * 8);
+            ctx.textAlign = 'start';
+          }
+        }
+        ctx.restore();
+      }
+
+      if (t >= T.fim && !encerrado) encerrar(false);
       requestAnimationFrame(quadro);
     }
-    requestAnimationFrame(quadro);
 
-    // ---------- sons (gerados aqui, sem arquivos de áudio) ----------
-    var ac = null;
-    function audio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; } return ac; }
-    function ruido(seg) { var b = ac.createBuffer(1, Math.floor(ac.sampleRate * seg), ac.sampleRate), d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; var s = ac.createBufferSource(); s.buffer = b; return s; }
-    function somBorrifo() {
-      if (!audio()) return; var t = ac.currentTime, s = ruido(0.7);
-      var hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2200;
-      var bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(7000, t); bp.frequency.exponentialRampToValueAtTime(4200, t + .5); bp.Q.value = .6;
-      var g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.55, t + .025); g.gain.exponentialRampToValueAtTime(.25, t + .2); g.gain.exponentialRampToValueAtTime(.001, t + .6);
-      s.connect(hp); hp.connect(bp); bp.connect(g); g.connect(ac.destination); s.start(t); s.stop(t + .7);
-      // "clique" do gatilho
-      var o = ac.createOscillator(), go = ac.createGain(); o.frequency.setValueAtTime(320, t); o.frequency.exponentialRampToValueAtTime(90, t + .05);
-      go.gain.setValueAtTime(.18, t); go.gain.exponentialRampToValueAtTime(.001, t + .06); o.connect(go); go.connect(ac.destination); o.start(t); o.stop(t + .07);
-    }
-    function somAbrir() {
-      if (!audio()) return; var t = ac.currentTime, s = ruido(1.6);
-      var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(300, t); lp.frequency.exponentialRampToValueAtTime(2600, t + 1.2);
-      var g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + .5); g.gain.exponentialRampToValueAtTime(.001, t + 1.5);
-      s.connect(lp); lp.connect(g); g.connect(ac.destination); s.start(t); s.stop(t + 1.6);
-      [1046.5, 1318.5, 1568, 2093].forEach(function (f, i) {
-        var o = ac.createOscillator(), go = ac.createGain(), ti = t + .35 + i * .12; o.type = 'sine'; o.frequency.value = f;
-        go.gain.setValueAtTime(0, ti); go.gain.linearRampToValueAtTime(.05, ti + .02); go.gain.exponentialRampToValueAtTime(.0008, ti + 2.2);
-        o.connect(go); go.connect(ac.destination); o.start(ti); o.stop(ti + 2.3);
-      });
-    }
-    function somTampa() {
-      if (!audio()) return; var t = ac.currentTime, s = ruido(.08);
-      var bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 2;
-      var g = ac.createGain(); g.gain.setValueAtTime(.35, t); g.gain.exponentialRampToValueAtTime(.001, t + .08);
-      s.connect(bp); bp.connect(g); g.connect(ac.destination); s.start(t);
-      var o = ac.createOscillator(), go = ac.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(1800, t + .02); o.frequency.exponentialRampToValueAtTime(2600, t + .3);
-      go.gain.setValueAtTime(0, t + .02); go.gain.linearRampToValueAtTime(.04, t + .05); go.gain.exponentialRampToValueAtTime(.001, t + .5); o.connect(go); go.connect(ac.destination); o.start(t + .02); o.stop(t + .55);
-    }
-
-    // ---------- sequência ----------
-    var timers = [];
-    function depois(ms, fn) { timers.push(setTimeout(fn, ms)); }
-    function bico() {
-      var r = $('ei-frasco').getBoundingClientRect(), base = el.getBoundingClientRect();
-      return { x: r.left - base.left + r.width * .496, y: r.top - base.top + r.height * .33 };
-    }
-    function centroFrasco() { var r = $('ei-frasco').getBoundingClientRect(), b = el.getBoundingClientRect(); return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height * .45 }; }
-    function borrifar() {
-      somBorrifo();
-      var f = $('ei-frasco'); f.classList.add('aperta'); setTimeout(function () { f.classList.remove('aperta'); }, 160);
-      var p = bico(); nevoa(p.x, p.y);
-    }
-    var encerrado = false;
     function encerrar(rapido) {
       if (encerrado) return; encerrado = true; marcarVisto();
-      timers.forEach(clearTimeout);
       el.classList.add('saindo');
       setTimeout(function () {
-        rodando = false; window.removeEventListener('resize', redim);
+        rodando = false;
         if (el.parentNode) el.parentNode.removeChild(el);
-        document.documentElement.style.overflow = htmlOverflow;
-        try { if (ac) ac.close(); } catch (e) {}
-      }, rapido ? 450 : 950);
+        document.documentElement.style.overflow = overflowAntes;
+      }, rapido ? 600 : 1000);
     }
-    function iniciar() {
-      audio(); // o toque libera o som no celular
-      $('ei-botao').disabled = true;
-      el.classList.add('iniciou', 'abrindo');
-      depois(500, function () { el.classList.add('aberta'); somAbrir(); var c = centroFrasco(); explosao(c.x, c.y, 60); });
-      depois(1900, function () { el.classList.add('subindo'); });
-      depois(3700, function () {
-        var fl = $('ei-flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
-        el.classList.add('destampado'); somTampa(); var b = bico(); explosao(b.x, b.y, 40);
-      });
-      depois(5000, borrifar);
-      depois(5900, borrifar);
-      depois(6700, function () {
-        el.classList.add('final');
-        var t0 = performance.now();
-        (function sobe() { var k = Math.min(1, (performance.now() - t0) / 1400); nevoaGeral = k * .1; if (k < 1 && !encerrado) requestAnimationFrame(sobe); })();
-      });
-      depois(8600, function () { encerrar(false); });
-    }
-    $('ei-botao').addEventListener('click', iniciar);
-    $('ei-pular').addEventListener('click', function () { encerrar(true); });
+    el.querySelector('#ei-pular').addEventListener('click', function () { encerrar(true); });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', esc); encerrar(true); } });
-    // Se a pessoa não tocar em 25s, a abertura sai sozinha
-    depois(25000, function () { if (!el.classList.contains('iniciou')) encerrar(false); });
+    window.addEventListener('resize', function () { if (!particulas) medir(); });
+
+    // espera a fonte do nome carregar (no máx. 700 ms) para o "ELORA" sair perfeito
+    var comecou = false;
+    function comecar() { if (comecou) return; comecou = true; requestAnimationFrame(quadro); }
+    try { if (document.fonts && document.fonts.load) document.fonts.load('700 100px "Playfair Display"').then(comecar, comecar); } catch (e) {}
+    setTimeout(comecar, 700);
   }
 
   if (document.body) montar(); else document.addEventListener('DOMContentLoaded', montar);
