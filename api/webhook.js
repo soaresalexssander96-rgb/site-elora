@@ -2,6 +2,7 @@
 // O aviso não tem assinatura, então cada notificação é confirmada no payment_check antes de mexer no pedido.
 import { db, INFINITE_TAG } from './_firebaseAdmin.js';
 import { notificarVenda } from './_notificar.js';
+import { lerConfig } from './_cupons.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido' });
@@ -34,6 +35,8 @@ export default async function handler(req, res) {
     }
     const pedidoRef = busca.docs[0].ref;
     let pagamentoInfo = null, pedidoPago = null;
+    const { pixDesconto } = await lerConfig();
+    const fatorMinimo = 1 - Math.max(0, Math.min(Number(pixDesconto) || 0, 50)) / 100;
 
     // 3. Marca como pago e baixa o estoque (uma vez só, mesmo se o aviso chegar repetido)
     const resultado = await db.runTransaction(async (t) => {
@@ -45,6 +48,8 @@ export default async function handler(req, res) {
       const itens = pedido.itens || [];
       const refs = itens.map(i => db.collection('perfumes').doc(String(i.id)));
       const perfumes = refs.length ? await t.getAll(...refs) : [];
+      const cupomRef = pedido.cupom ? db.collection('cupons').doc(String(pedido.cupom)) : null;
+      const cupomSnap = cupomRef ? await t.get(cupomRef) : null;
 
       const esperado = Math.round((Number(pedido.valorTotal) || 0) * 100);
       const pago = Number(conf.paid_amount || conf.amount || body.paid_amount || 0);
@@ -68,9 +73,10 @@ export default async function handler(req, res) {
           comprovante: body.receipt_url || '',
           pagoEm: new Date().toISOString(),
           // aviso para o admin se o valor pago ficou abaixo do esperado (tolerância para desconto PIX de 5%)
-          valorAbaixoDoEsperado: esperado > 0 && pago < Math.floor(esperado * 0.95) - 1
+          valorAbaixoDoEsperado: esperado > 0 && pago < Math.floor(esperado * fatorMinimo) - 1
       };
       pedidoPago = pedido;
+      if (cupomSnap && cupomSnap.exists) t.update(cupomRef, { usos: (parseInt(cupomSnap.data().usos) || 0) + 1 });
       t.update(pedidoRef, { status: 'Pago', pagamento: pagamentoInfo });
       return 'pago';
     });

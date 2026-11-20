@@ -1,6 +1,7 @@
 // Cria o link de pagamento da InfinitePay.
 // O navegador só manda o ID do pedido; preços, frete e cupom são recalculados aqui a partir do Firestore.
-import { db, adminAuth, SITE_URL, INFINITE_TAG, STATUS_PAGOS } from './_firebaseAdmin.js';
+import { db, adminAuth, SITE_URL, INFINITE_TAG } from './_firebaseAdmin.js';
+import { validarCupom } from './_cupons.js';
 import { cotarFrete } from './_frete.js';
 
 const arred = (v) => Math.round(v * 100) / 100;
@@ -58,25 +59,44 @@ export default async function handler(req, res) {
     if (!opcao) return res.status(409).json({ erro: 'As opções de frete mudaram. Clique em Calcular de novo e escolha o frete.' });
     const valorFrete = opcao.valor;
 
-    // 4. Cupom PRIMEIROGRATIS: só se nunca houve pedido pago nesta conta
-    let descontoFrete = 0;
-    let cupom = null;
-    if (pedido.cupom === 'PRIMEIROGRATIS') {
-      const anteriores = await db.collection('pedidos').where('uid', '==', uid).get();
-      const jaComprou = anteriores.docs.some(d => d.id !== pedidoSnap.id && STATUS_PAGOS.includes(d.data().status));
-      if (!jaComprou) { descontoFrete = valorFrete; cupom = 'PRIMEIROGRATIS'; }
+    // 4. Cupom (validado de novo aqui — regras, validade, limite e primeira compra)
+    let descontoFrete = 0, descontoCupom = 0, cupom = null;
+    if (pedido.cupom) {
+      const c = await validarCupom(pedido.cupom, uid, valorProdutos, pedidoSnap.id);
+      if (!c.ok) return res.status(400).json({ erro: `Cupom ${String(pedido.cupom).toUpperCase()}: ${c.erro} Remova o cupom e tente de novo.`, cupomInvalido: true });
+      cupom = c.codigo;
+      descontoCupom = c.descontoProdutos;
+      if (c.freteGratis) descontoFrete = valorFrete;
     }
-    const valorTotal = arred(valorProdutos + valorFrete - descontoFrete);
+    const valorTotal = arred(valorProdutos - descontoCupom + valorFrete - descontoFrete);
+    if (valorTotal < 1) return res.status(400).json({ erro: 'O valor final do pedido ficou abaixo do mínimo para pagamento.' });
 
     // 5. Grava os valores oficiais no pedido
     await pedidoRef.update({
-      itens, valorProdutos, valorFrete, descontoFrete, cupom, valorTotal,
+      itens, valorProdutos, valorFrete, descontoFrete, descontoCupom, cupom, valorTotal,
       freteTipo: opcao.nome, fretePrazo: opcao.prazo, freteServicoId: opcao.id,
       'cliente.uf': uf, validadoServidor: true
     });
 
     // 6. Link de pagamento
-    const items = itens.map(i => ({ description: `Elora: ${i.marca} - ${i.nome}`, quantity: i.qtd, price: Math.round(i.preco * 100) }));
+    let items;
+    if (descontoCupom > 0) {
+      // Com desconto: cada perfume vira uma linha (ex: "2x Lattafa Royal Amber") com o desconto já distribuído
+      const linhas = itens.map(i => Math.round(i.preco * 100) * i.qtd);
+      const totalCents = linhas.reduce((s, v) => s + v, 0);
+      const descCents = Math.round(descontoCupom * 100);
+      const partes = linhas.map(v => Math.floor(v * descCents / totalCents));
+      let sobra = descCents - partes.reduce((s, v) => s + v, 0);
+      const maior = linhas.indexOf(Math.max(...linhas));
+      partes[maior] += sobra;
+      items = itens.map((i, k) => ({
+        description: `Elora: ${i.qtd}x ${i.marca} - ${i.nome} (cupom ${cupom})`,
+        quantity: 1,
+        price: Math.max(1, linhas[k] - partes[k])
+      }));
+    } else {
+      items = itens.map(i => ({ description: `Elora: ${i.marca} - ${i.nome}`, quantity: i.qtd, price: Math.round(i.preco * 100) }));
+    }
     const freteCobrado = arred(valorFrete - descontoFrete);
     if (freteCobrado > 0) items.push({ description: `Frete ${opcao.nome} (${uf})`, quantity: 1, price: Math.round(freteCobrado * 100) });
 
