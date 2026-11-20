@@ -1,13 +1,13 @@
 const { useState, useEffect, useRef, useContext } = React;
 
-        const Icon = ({ name, className }) => {
+        const Icon = ({ name, className, traco }) => {
             const ref = useRef(null);
             useEffect(() => {
                 if (ref.current) {
-                    ref.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
+                    ref.current.innerHTML = `<i data-lucide="${name}" class="${className || ''}"${traco ? ` stroke-width="${traco}"` : ''}></i>`;
                     lucide.createIcons({ root: ref.current });
                 }
-            }, [name, className]);
+            }, [name, className, traco]);
             return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
         };
 
@@ -204,7 +204,7 @@ const { useState, useEffect, useRef, useContext } = React;
             );
         }
 
-        function Rodape({ darkMode, irPara, irPagina }) {
+        function Rodape({ darkMode, setDarkMode, irPara, irPagina }) {
             const cfg = useContext(ConfigLoja);
             const link = "text-slate-500 dark:text-slate-400 hover:text-elora-gold transition-colors text-left";
             const titulo = "text-[10px] font-bold uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200 mb-4";
@@ -249,6 +249,9 @@ const { useState, useEffect, useRef, useContext } = React;
                         </div>
                     </div>
                     <div className="max-w-7xl mx-auto px-4 mt-12 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+                        <button onClick={() => setDarkMode(!darkMode)} className="sm:hidden mb-5 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-300">
+                            <Icon name={darkMode ? 'sun' : 'moon'} className="w-4 h-4" /> {darkMode ? 'Modo claro' : 'Modo escuro'}
+                        </button>
                         <p className="text-slate-400 text-[10px] tracking-widest uppercase">Elora Parfums &copy; 2026 · Todos os direitos reservados</p>
                     </div>
                 </footer>
@@ -419,9 +422,19 @@ const { useState, useEffect, useRef, useContext } = React;
             );
         }
 
-        function LogoPremium({ onClick, isSmall = false, darkMode }) {
+        function LogoPremium({ onClick, isSmall = false, darkMode, compacto = false }) {
             const textColor = darkMode ? 'text-elora-gold' : 'text-elora-deepblue';
             const lineColor = darkMode ? 'bg-elora-gold' : 'bg-elora-deepblue';
+            if (compacto) return (
+                <div className="font-cinzel cursor-pointer flex flex-col items-start leading-none" onClick={onClick} role="link" aria-label="Elora Parfums - início">
+                    <span className={`text-[26px] tracking-[0.14em] uppercase font-semibold pb-0.5 ${textColor}`}>ELORA</span>
+                    <div className="flex items-center gap-1.5 pl-[2px]">
+                        <span className={`block w-3 h-[1px] ${lineColor}`}></span>
+                        <span className={`text-[8px] tracking-[0.32em] font-serif font-medium uppercase ${textColor}`}>Parfums</span>
+                        <span className={`block w-3 h-[1px] ${lineColor}`}></span>
+                    </div>
+                </div>
+            );
             
             return (
                 <div className={`font-cinzel cursor-pointer flex flex-col items-center leading-none ${isSmall ? 'scale-75' : ''}`} onClick={onClick}>
@@ -1523,7 +1536,7 @@ const { useState, useEffect, useRef, useContext } = React;
 
         // ===== PAINEL: CUPONS =====
         function AdminCupons({ darkMode }) {
-            const vazio = { codigo: '', tipo: 'percentual', valor: '', minimo: '', validade: '', limiteUsos: '', primeiraCompra: false, ativo: true };
+            const vazio = { codigo: '', tipo: 'percentual', valor: '', minimo: '', minItens: '', inicio: '', validade: '', limiteUsos: '', primeiraCompra: false, umPorCpf: false, ativo: true };
             const [cupons, setCupons] = useState(null);
             const [form, setForm] = useState(vazio);
             const [editando, setEditando] = useState(false);
@@ -1545,6 +1558,7 @@ const { useState, useEffect, useRef, useContext } = React;
                 const valor = Number(String(form.valor).replace(',', '.')) || 0;
                 if (form.tipo !== 'frete' && valor <= 0) return alert('Informe o valor do desconto.');
                 if (form.tipo === 'percentual' && valor > 90) return alert('O desconto percentual máximo é 90%.');
+                if (form.inicio && form.validade && form.validade < form.inicio) return alert('A data final é antes da data de início.');
                 if (!editando && cupons && cupons.some(c => c.id === codigo)) return alert('Já existe um cupom com esse código.');
                 setSalvando(true);
                 try {
@@ -1552,7 +1566,8 @@ const { useState, useEffect, useRef, useContext } = React;
                     const dados = {
                         codigo, tipo: form.tipo, valor: form.tipo === 'frete' ? 0 : valor,
                         minimo: Number(String(form.minimo).replace(',', '.')) || 0,
-                        validade: form.validade || '', limiteUsos: parseInt(form.limiteUsos) || 0,
+                        inicio: form.inicio || '', validade: form.validade || '', limiteUsos: parseInt(form.limiteUsos) || 0,
+                        minItens: parseInt(form.minItens) || 0, umPorCpf: !!form.umPorCpf,
                         primeiraCompra: !!form.primeiraCompra, ativo: !!form.ativo
                     };
                     if (!editando) { dados.usos = 0; dados.criadoEm = new Date().toISOString(); }
@@ -1574,13 +1589,14 @@ const { useState, useEffect, useRef, useContext } = React;
                 await deleteDoc(doc(db, 'cupons', c.id));
                 setCupons(cupons.filter(x => x.id !== c.id));
             };
-            const editar = (c) => { setEditando(true); setForm({ codigo: c.id, tipo: c.tipo, valor: c.valor || '', minimo: c.minimo || '', validade: c.validade || '', limiteUsos: c.limiteUsos || '', primeiraCompra: !!c.primeiraCompra, ativo: c.ativo !== false }); window.scrollTo(0, 0); };
+            const editar = (c) => { setEditando(true); setForm({ codigo: c.id, tipo: c.tipo, valor: c.valor || '', minimo: c.minimo || '', minItens: c.minItens || '', inicio: c.inicio || '', validade: c.validade || '', limiteUsos: c.limiteUsos || '', primeiraCompra: !!c.primeiraCompra, umPorCpf: !!c.umPorCpf, ativo: c.ativo !== false }); window.scrollTo(0, 0); };
 
             const campo = `w-full ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'} border p-3 text-sm outline-none focus:border-elora-gold rounded-md`;
             const rotulo = "block text-[10px] text-slate-400 uppercase tracking-widest mb-1 font-semibold";
             const hoje = new Date().toISOString().slice(0, 10);
             const situacao = (c) => {
                 if (c.ativo === false) return ['Pausado', 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'];
+                if (c.inicio && c.inicio > hoje) return ['Agendado', 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'];
                 if (c.validade && c.validade < hoje) return ['Expirado', 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'];
                 if (c.limiteUsos > 0 && (c.usos || 0) >= c.limiteUsos) return ['Esgotado', 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'];
                 return ['Ativo', 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'];
@@ -1604,7 +1620,13 @@ const { useState, useEffect, useRef, useContext } = React;
                             <div><label className={rotulo}>Compra mínima (R$)</label><input type="number" step="0.01" min="0" value={form.minimo} onChange={e => setForm({ ...form, minimo: e.target.value })} className={campo} placeholder="0 = sem mínimo" /></div>
                             <div><label className={rotulo}>Limite de usos</label><input type="number" min="0" value={form.limiteUsos} onChange={e => setForm({ ...form, limiteUsos: e.target.value })} className={campo} placeholder="0 = sem limite" /></div>
                         </div>
-                        <div><label className={rotulo}>Válido até (inclusive)</label><input type="date" value={form.validade} onChange={e => setForm({ ...form, validade: e.target.value })} className={campo} /><p className="text-[10px] text-slate-400 mt-1">Deixe em branco para não expirar.</p></div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div><label className={rotulo}>Começa em</label><input type="date" value={form.inicio} onChange={e => setForm({ ...form, inicio: e.target.value })} className={campo} /></div>
+                            <div><label className={rotulo}>Válido até (inclusive)</label><input type="date" value={form.validade} onChange={e => setForm({ ...form, validade: e.target.value })} className={campo} /></div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 -mt-2">Datas em branco = vale desde já e não expira.</p>
+                        <div><label className={rotulo}>Mínimo de perfumes no pedido</label><input type="number" min="0" value={form.minItens} onChange={e => setForm({ ...form, minItens: e.target.value })} className={campo} placeholder="0 = sem mínimo (ex: 2 para 'compre 2')" /></div>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.umPorCpf} onChange={e => setForm({ ...form, umPorCpf: e.target.checked })} className="w-4 h-4 accent-elora-gold" /> Só 1 uso por CPF</label>
                         <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.primeiraCompra} onChange={e => setForm({ ...form, primeiraCompra: e.target.checked })} className="w-4 h-4 accent-elora-gold" /> Só para a primeira compra do cliente</label>
                         <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={form.ativo} onChange={e => setForm({ ...form, ativo: e.target.checked })} className="w-4 h-4 accent-elora-gold" /> Cupom ativo</label>
                         <div className="flex gap-2 pt-2">
@@ -1627,7 +1649,7 @@ const { useState, useEffect, useRef, useContext } = React;
                                         <div className="flex items-center gap-2 flex-wrap"><span className="font-bold tracking-wider">{c.id}</span><span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cor}`}>{txt}</span></div>
                                         <p className="text-elora-gold font-semibold text-sm mt-1">{descricao(c)}</p>
                                         <p className="text-[11px] text-slate-400 mt-1">
-                                            {[c.minimo > 0 ? `mín. ${brl(c.minimo)}` : null, c.validade ? `até ${c.validade.split('-').reverse().join('/')}` : 'sem validade', c.primeiraCompra ? '1ª compra' : null, `${c.usos || 0}${c.limiteUsos > 0 ? '/' + c.limiteUsos : ''} usos`].filter(Boolean).join(' · ')}
+                                            {[c.minimo > 0 ? `mín. ${brl(c.minimo)}` : null, c.minItens > 1 ? `${c.minItens}+ perfumes` : null, c.inicio ? `de ${c.inicio.split('-').reverse().join('/')}` : null, c.validade ? `até ${c.validade.split('-').reverse().join('/')}` : 'sem validade', c.primeiraCompra ? '1ª compra' : null, c.umPorCpf ? '1 por CPF' : null, `${c.usos || 0}${c.limiteUsos > 0 ? '/' + c.limiteUsos : ''} usos`].filter(Boolean).join(' · ')}
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
@@ -2505,9 +2527,12 @@ const { useState, useEffect, useRef, useContext } = React;
                     <PromoTicker />
                     <WhatsAppButton />
 
-                    <header className={`${darkMode ? 'bg-elora-darkbg border-slate-800' : 'bg-white/95 border-slate-200'} backdrop-blur-md border-b py-4 md:py-6 sticky top-0 z-40 shadow-sm transition-colors`}>
+                    <header className={`${darkMode ? 'bg-elora-darkbg border-slate-800' : 'bg-white/95 border-slate-200'} backdrop-blur-md border-b py-3 sm:py-4 md:py-6 sticky top-0 z-40 shadow-sm transition-colors`}>
                         <div className="max-w-7xl w-full mx-auto px-4 flex justify-between items-center relative">
-                            <div className="w-1/3 flex items-center gap-3">
+                            <div className="sm:hidden">
+                                <LogoPremium compacto onClick={() => irPara('store')} darkMode={darkMode} />
+                            </div>
+                            <div className="hidden sm:flex w-1/3 items-center gap-3">
                                 <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-elora-gold transition-colors flex items-center gap-2 text-xs">
                                     <Icon name={darkMode ? "sun" : "moon"} className={`w-4 h-4 ${darkMode ? 'text-amber-400' : ''}`} />
                                     <span className="hidden md:inline font-semibold uppercase tracking-wider text-[10px]">{darkMode ? 'Claro' : 'Escuro'}</span>
@@ -2517,34 +2542,35 @@ const { useState, useEffect, useRef, useContext } = React;
                                 )}
                             </div>
 
-                            <div className="absolute left-1/2 -translate-x-1/2">
+                            <div className="hidden sm:block absolute left-1/2 -translate-x-1/2">
                                 <LogoPremium onClick={() => setView('store')} darkMode={darkMode} />
                             </div>
 
-                            <div className="flex items-center justify-end space-x-2 sm:space-x-4 w-1/3">
+                            {/* Estilo Magalu: ícones grandes e firmes; ordem Favoritos → Sacola → Entrar */}
+                            <div className="flex items-center justify-end gap-4 sm:gap-5 sm:w-1/3">
+                                {(!user || user.role !== 'admin') && (
+                                    <button onClick={() => irPara('favorites')} className="relative text-slate-700 dark:text-slate-200 hover:text-red-500 transition-colors p-0.5" title="Meus Favoritos" aria-label="Meus Favoritos">
+                                        <Icon name="heart" traco="2.25" className="w-[26px] h-[26px] sm:w-6 sm:h-6" />
+                                        {favorites.length > 0 && <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] px-1 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-900">{favorites.length}</span>}
+                                    </button>
+                                )}
+
+                                {(!user || user.role !== 'admin') && (
+                                    <button onClick={() => setCartOpen(true)} className="relative text-slate-700 dark:text-slate-200 hover:text-elora-gold transition-colors p-0.5" title="Sacola" aria-label="Sacola">
+                                        <Icon name="shopping-bag" traco="2.25" className="w-[26px] h-[26px] sm:w-6 sm:h-6" />
+                                        <span className={`absolute -top-1.5 -right-2 min-w-[19px] h-[19px] px-1 text-[10px] font-bold flex items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-900 ${cart.length > 0 ? 'bg-elora-gold text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-300'}`}>{totalItens(cart)}</span>
+                                    </button>
+                                )}
+
                                 <button onClick={() => {
                                     if (authCarregando) return;
                                     if (user && user.role === 'admin') irPara('admin');
                                     else if (user) irPara('account');
                                     else { setAuthNotice(''); setAuthModalOpen(true); }
-                                }} className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors py-1">
-                                    <Icon name={user && user.role === 'admin' ? "layout-dashboard" : "user"} className="w-4 h-4 sm:w-5 sm:h-5" />
-                                    <span className="hidden sm:inline">{user && user.role === 'admin' ? 'Gestão' : (user ? 'Conta' : 'Entrar')}</span>
+                                }} aria-label={user && user.role === 'admin' ? 'Gestão' : (user ? 'Minha conta' : 'Entrar')} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200 hover:text-elora-gold transition-colors p-0.5">
+                                    <Icon name={user && user.role === 'admin' ? "layout-dashboard" : "circle-user-round"} traco="2" className="w-7 h-7 sm:w-6 sm:h-6" />
+                                    <span className="hidden md:inline">{user && user.role === 'admin' ? 'Gestão' : (user ? 'Conta' : 'Entrar')}</span>
                                 </button>
-                                
-                                {(!user || user.role !== 'admin') && (
-                                    <button onClick={() => irPara('favorites')} className="relative text-slate-500 dark:text-slate-300 hover:text-red-500 transition-colors p-1" title="Meus Favoritos">
-                                        <Icon name="heart" className="w-5 h-5" />
-                                        {favorites.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">{favorites.length}</span>}
-                                    </button>
-                                )}
-
-                                {(!user || user.role !== 'admin') && (
-                                    <button onClick={() => setCartOpen(true)} className="relative text-slate-500 dark:text-slate-300 hover:text-elora-gold transition-colors p-1" title="Sacola">
-                                        <Icon name="shopping-bag" className="w-5 h-5" />
-                                        {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">{totalItens(cart)}</span>}
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </header>
@@ -2641,7 +2667,7 @@ const { useState, useEffect, useRef, useContext } = React;
                         )}
                     </main>
 
-                    <Rodape darkMode={darkMode} irPara={irPara} irPagina={irPagina} />
+                    <Rodape darkMode={darkMode} setDarkMode={setDarkMode} irPara={irPara} irPagina={irPagina} />
                     <AvisoCookies irPagina={irPagina} darkMode={darkMode} />
 
                     <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} cart={cart} removeFromCart={removeFromCart} alterarQtd={alterarQtd} onCheckout={iniciarCheckout} darkMode={darkMode} />
