@@ -2,17 +2,13 @@
 // Estrela árabe de 8 pontas desenhada em ouro -> explode em poeira dourada com fumaça de oud
 // -> a poeira forma "ELORA" -> reflexo de luz -> a loja aparece.
 // Tudo desenhado em código (nítido em qualquer tela). Sem som; começa sozinha (~7 s).
-// Aparece 1x por dia por visitante. Para forçar (testes): eloraparfums.vercel.app/?intro=1
+// Aparece sempre que a pessoa entra no site ou atualiza a página. Para forçar (testes): eloraparfums.vercel.app/?intro=1
 (function () {
   var params = new URLSearchParams(location.search);
   var forcar = params.get('intro') === '1';
-  var hoje = new Date().toISOString().slice(0, 10);
-  var CHAVE = 'elora_intro_dia';
-  function lerVisto() { try { return localStorage.getItem(CHAVE); } catch (e) { return null; } }
-  function marcarVisto() { try { localStorage.setItem(CHAVE, hoje); } catch (e) {} }
+  function marcarVisto() {}
 
   if (!forcar) {
-    if (lerVisto() === hoje) return;
     if (navigator.webdriver) return;
     if (location.pathname.indexOf('/p/') === 0) return;
     if (params.get('pedido') || params.get('order_nsu')) return;
